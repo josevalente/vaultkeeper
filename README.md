@@ -49,13 +49,24 @@ Abre la URL en **Safari** → botón **Compartir** → **Agregar a pantalla de i
 - **Intercambio:** tus cartas salen a valor de mercado y las que recibes entran con ese valor (± efectivo) como costo. Si te pagan más efectivo que lo que valen tus cartas, el exceso cuenta como ganancia realizada. Siempre se cumple: Σ ventas − Σ costos nuevos = efectivo neto recibido.
 - **Tipo de cambio fijado a mano** en Ajustes se respeta hasta que presiones *Actualizar*.
 
-Pruebas de los cálculos: `node tests/calc.test.mjs`
+Pruebas de los cálculos: `node tests/calc.test.mjs` · del cruce de cartas: `node tests/match.test.mjs`
+
+## Precios de expansiones nuevas (automático)
+TCGdex a veces tarda semanas en cargar precios de una expansión recién salida (pasó con 30th Celebration, 30th Classic Collection y las promos MEP). Para cubrir ese hueco, el repositorio trae un robot:
+
+- `.github/workflows/precios.yml` corre todos los días a las 21:15 UTC (y en cada push que cambie `scripts/`).
+- `scripts/precios-faltantes.mjs` detecta las expansiones recientes sin precio en TCGdex, busca su equivalente en [TCGCSV](https://tcgcsv.com) (espejo diario de TCGplayer) y cruza carta por carta por número y nombre. También trae la rareza y la versión reales.
+- El resultado (`data/precios-extra.json`) se publica en la rama `datos`, así nunca choca con tus push a `main`. La app lo lee desde `raw.githubusercontent.com`; la copia en `main` es solo respaldo.
+- Cuando TCGdex carga sus propios precios, la app vuelve a usarlos sola.
+- No hay nada que configurar. Para forzarlo: pestaña **Actions → Precios faltantes → Run workflow**.
+
+Para probarlo en tu computador: `node scripts/precios-faltantes.mjs` y `node tests/match.test.mjs`.
 
 ## Datos y respaldo
 Todo vive en el `localStorage` del teléfono. En **Ajustes → Exportar respaldo** descargas un `.json`; con **Importar** lo cargas en otro teléfono.
 
 ## Fuentes
-- Cartas, imágenes y precios: [TCGdex](https://tcgdex.dev) (precios de TCGplayer en USD y Cardmarket en EUR), respaldo [pokemontcg.io](https://pokemontcg.io).
+- Cartas, imágenes y precios: [TCGdex](https://tcgdex.dev) (precios de TCGplayer en USD y Cardmarket en EUR), respaldo [pokemontcg.io](https://pokemontcg.io) y, para expansiones nuevas, [TCGCSV](https://tcgcsv.com) (datos de TCGplayer, actualizados una vez al día).
 - Tipo de cambio: [mindicador.cl](https://mindicador.cl) (dólar observado), respaldo [open.er-api.com](https://open.er-api.com).
 
 ## Limitaciones conocidas

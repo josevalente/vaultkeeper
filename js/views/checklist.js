@@ -7,7 +7,7 @@ import { RARITIES, rarityByKey, raritySymbol } from '../rarity.js';
 import { listByRarity, cachedQuickPrice, quickPrice } from '../api.js';
 import { cardTile, openCardSheet, money } from '../ui.js';
 
-const FEATURED = ['illus', 'sir', 'hyper', 'mega', 'ultra', 'shinyultra', 'shiny', 'double', 'ace', 'promo'];
+const FEATURED = ['illus', 'sir', 'hyper', 'mega', 'ultra', 'shinyultra', 'shiny', 'double', 'ace', 'futur', 'classic', 'pika', 'promo'];
 const ui = { rarity: 'illus', set: 'all', show: 'missing', sort: 'set' };
 const lists = new Map();
 let loadingPrices = false;
@@ -22,7 +22,7 @@ export function renderChecklist(root) {
     <div class="rgrid rise" style="--d:1">
       ${FEATURED.map((k) => {
         const x = rarityByKey(k);
-        return `<button class="rcard ${ui.rarity === k && ui.show !== 'wish' ? 'on' : ''}" data-r="${k}">${raritySymbol(k, 26)}<span>${esc(x.label)}</span><em>${esc(x.jp)}</em></button>`;
+        return `<button class="rcard ${ui.rarity === k && ui.show !== 'wish' ? 'on' : ''}" data-r="${k}">${raritySymbol(k, 26)}<span>${esc(x.label)}</span>${x.jp ? `<em>${esc(x.jp)}</em>` : ''}</button>`;
       }).join('')}
       <button class="rcard wishbtn ${ui.show === 'wish' ? 'on' : ''}" data-wish="1"><span class="heart">♥</span><span>Wishlist</span><em>${Object.keys(state.wishlist).length}</em></button>
     </div>

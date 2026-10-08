@@ -130,7 +130,7 @@ function normCard(c) {
     setId: c.set?.id,
     setName: c.set?.name,
     setLogo: c.set?.logo,
-    rarity: c.rarity,
+    rarity: c.rarity && c.rarity !== 'None' ? c.rarity : null, // TCGdex sends the text "None" when unknown
     image: c.image,
     illustrator: c.illustrator,
     variants: [...variants],
@@ -151,6 +151,41 @@ async function ptcgPrices(card) {
   return { tp, url: hit?.tcgplayer?.url };
 }
 
+// ───────────────────────── extra prices (TCGCSV, filled daily by .github/workflows/precios.yml)
+
+// The workflow publishes data/precios-extra.json on the `datos` branch; GitHub serves raw files with
+// CORS and a 5-minute cache, so new prices reach the app without a Pages rebuild. The copy in the
+// app itself (same origin) is the fallback, e.g. when running locally.
+function extraUrls() {
+  const urls = [];
+  const m = location.hostname.match(/^([^.]+)\.github\.io$/i);
+  const repo = location.pathname.split('/').filter(Boolean)[0];
+  if (m && repo) urls.push(`https://raw.githubusercontent.com/${m[1]}/${repo}/datos/data/precios-extra.json`);
+  urls.push(new URL('data/precios-extra.json', location.href.split('#')[0]).href);
+  return urls;
+}
+
+let extraPromise;
+export function getExtra() {
+  extraPromise ||= (async () => {
+    const cached = cacheGet('extra', 3 * 3600000);
+    if (cached) return cached;
+    for (const url of extraUrls()) {
+      try {
+        const d = await fetchJSON(url, { timeout: 8000, retries: 0 });
+        if (d?.cards) {
+          cacheSet('extra', d);
+          return d;
+        }
+      } catch {
+        /* next source */
+      }
+    }
+    return cacheGet('extra') || { cards: {}, sets: {} };
+  })();
+  return extraPromise;
+}
+
 const cardMem = new Map();
 
 export async function getCard(id, { fresh = false } = {}) {
@@ -159,6 +194,20 @@ export async function getCard(id, { fresh = false } = {}) {
   if (!raw) throw new Error('Carta no encontrada');
   const card = normCard(raw);
   const prices = normPrices(raw);
+  const extra = await getExtra().catch(() => ({ cards: {} }));
+  const ex = extra.cards?.[id];
+  if (ex) {
+    card.printed = ex.printed;
+    if (!card.rarity && ex.rarity) card.rarity = ex.rarity; // e.g. Classic Collection has no rarity in TCGdex
+  }
+  if (!Object.keys(prices.tp).length && ex && Object.keys(ex.tp || {}).length) {
+    // TCGdex hasn't priced this card yet: use TCGplayer via TCGCSV, with its real versions
+    // (TCGdex marks brand-new cards as "Normal" as a placeholder).
+    prices.tp = ex.tp;
+    prices.src = 'tcgcsv';
+    prices.srcUpdated = extra.tcgcsvUpdated || extra.updated;
+    card.variants = [...ex.variants];
+  }
   if (!Object.keys(prices.tp).length) {
     try {
       const alt = await ptcgPrices(card);
@@ -208,6 +257,21 @@ export async function findByNumber(number, total, name, { nameFallback = true } 
     const byTotal = cands.filter((c) => c.total === totalNum);
     if (byTotal.length) cands = byTotal;
   }
+  // Reprints that keep their original printed number (30th Classic Collection: Charizard 4/102).
+  const extra = await getExtra().catch(() => ({ cards: {} }));
+  const pk = (s) => String(s || '').toUpperCase().replace(/^([A-Z]*)0*(\d)/, '$1$2');
+  const reprints = Object.entries(extra.cards || {}).filter(([id, e]) => {
+    if (!e.printed?.includes('/') || seen.has(id)) return false;
+    const [n, t] = e.printed.split('/');
+    return pk(n) === pk(number) && (!totalNum || parseInt(t.replace(/\D/g, ''), 10) === totalNum);
+  });
+  if (reprints.length) {
+    const map = await setMap();
+    for (const [id, e] of reprints) {
+      const s = map.get(e.setId);
+      if (s) cands.push({ id, name: e.name, number: e.number, image: e.image, setId: e.setId, setName: s.name, total: s.official, setIdx: s.idx, printed: e.printed });
+    }
+  }
   // Name similarity in coarse buckets (OCR is noisy), then newest set first.
   const base = (n) => String(n || '').toLowerCase().replace(/\b(ex|v|vmax|vstar|gx)\b/g, '').trim();
   const sim = (c) => Math.round(similarity(base(c.name), base(name)) * 4);
@@ -234,6 +298,15 @@ export async function listByRarity(apiRarity) {
   if (cached) return cached;
   const list = await fetchJSON(`${TD}/cards?rarity=${encodeURIComponent('eq:' + apiRarity)}`, { retries: 2, timeout: 20000 });
   const out = await decorate(list);
+  // Cards TCGdex has without a rarity (e.g. 30th Classic Collection) but TCGplayer classifies.
+  const extra = await getExtra().catch(() => ({ cards: {} }));
+  const have = new Set(out.map((c) => c.id));
+  const map = await setMap();
+  for (const [id, e] of Object.entries(extra.cards || {})) {
+    if (have.has(id) || String(e.rarity || '').toLowerCase() !== apiRarity.toLowerCase()) continue;
+    const s = map.get(e.setId);
+    if (s) out.push({ id, name: e.name, number: e.number, image: e.image, setId: e.setId, setName: s.name, total: s.official, setIdx: s.idx });
+  }
   cacheSet(key, out);
   return out;
 }

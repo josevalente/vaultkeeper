@@ -232,7 +232,7 @@ export async function openCardSheet(cardId, { onPick, pickLabel = 'Agregar al in
         <a class="btn ghost" target="_blank" rel="noopener" href="${esc(tcgplayerUrl(prices, variant, card))}">TCGplayer ↗</a>
       </div>
     </div>
-    <p class="muted tiny">Precios ${prices.src === 'pokemontcg.io' ? 'vía pokemontcg.io' : 'vía TCGdex'} · actualizados ${timeAgo(state.prices[card.id]?.at)} · TC ${fmtCLP(state.fx.usdclp)}</p>`;
+    <p class="muted tiny">Precios ${prices.src === 'pokemontcg.io' ? 'vía pokemontcg.io' : prices.src === 'tcgcsv' ? `TCGplayer vía TCGCSV (TCGdex aún no los tiene) · del ${esc(fmtDate(String(prices.srcUpdated || '').slice(0, 10)))}` : 'vía TCGdex'} · consultados ${timeAgo(state.prices[card.id]?.at)} · TC ${fmtCLP(state.fx.usdclp)}${card.printed && !String(card.printed).startsWith(String(card.number)) ? ` · impreso ${esc(card.printed)}` : ''}</p>`;
 
   const pricesEl = $('.prices', body);
   const verdictEl = $('.verdict', body);

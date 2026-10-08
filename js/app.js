@@ -1,7 +1,7 @@
 // VaultKeeper — app shell: router, tab bar, price refresh, offline support.
 
 import { $, $$, fmtCLP, pool, toast, localDate } from './util.js';
-import { state, save, onChange, held, setPrice, pushHist, marketUSD, snapshot, actions } from './store.js';
+import { state, save, onChange, held, setPrice, pushHist, marketUSD, snapshot, actions, repairItems } from './store.js';
 import { getCard } from './api.js';
 import { refreshFx } from './fx.js';
 import { scanFlow, openCardSheet } from './ui.js';
@@ -54,6 +54,7 @@ onChange(() => {
 // ───────────────────────── prices
 
 let refreshing = false;
+
 const SIX_H = 6 * 3600000;
 
 function setStatus(msg, progress) {
@@ -78,8 +79,9 @@ async function refreshPrices({ force = false } = {}) {
       let done = 0;
       setStatus(`Actualizando precios 0/${stale.length}`, 0);
       await pool(stale, 4, async (id) => {
-        const { prices } = await getCard(id, { fresh: true });
+        const { card, prices } = await getCard(id, { fresh: true });
         setPrice(id, prices);
+        repairItems(card, prices);
         done++;
         setStatus(`Actualizando precios ${done}/${stale.length}`, done / stale.length);
       });

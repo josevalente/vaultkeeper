@@ -1,0 +1,5995 @@
+{
+ "updated": "2026-10-08T16:47:44.748Z",
+ "tcgcsvUpdated": "2026-10-07T20:06:09+0000",
+ "source": "tcgcsv.com (precios TCGplayer)",
+ "sets": {
+  "mep": {
+   "name": "MEP Black Star Promos",
+   "releaseDate": "2025-09-26",
+   "tcgcsvGroup": 24451,
+   "tcgcsvName": "ME: Mega Evolution Promo",
+   "cards": 89,
+   "matched": 83
+  },
+  "30th": {
+   "name": "30th Celebration",
+   "releaseDate": "2026-09-16",
+   "tcgcsvGroup": 24722,
+   "tcgcsvName": "ME: 30th Celebration",
+   "cards": 158,
+   "matched": 158
+  },
+  "30th-c": {
+   "name": "30th Classic Collection",
+   "releaseDate": "2026-09-16",
+   "tcgcsvGroup": 24837,
+   "tcgcsvName": "ME: 30th Celebration Classic Collection",
+   "cards": 30,
+   "matched": 30
+  }
+ },
+ "cards": {
+  "mep-001": {
+   "name": "Meganium",
+   "tcgplayerName": "Meganium - 001",
+   "tp": {
+    "holofoil": {
+     "low": 26.58,
+     "mid": 29.06,
+     "high": 56.58,
+     "market": 28.29,
+     "pid": 654594
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "001",
+   "how": "numero",
+   "setId": "mep",
+   "number": "001",
+   "image": null
+  },
+  "mep-002": {
+   "name": "Inteleon",
+   "tcgplayerName": "Inteleon - 002",
+   "tp": {
+    "normal": {
+     "low": 10.45,
+     "mid": 12.99,
+     "high": 117.62,
+     "market": 12.25,
+     "pid": 654596
+    }
+   },
+   "variants": [
+    "normal"
+   ],
+   "rarity": "Promo",
+   "printed": "002",
+   "how": "numero",
+   "setId": "mep",
+   "number": "002",
+   "image": null
+  },
+  "mep-003": {
+   "name": "Alakazam",
+   "tcgplayerName": "Alakazam - 003",
+   "tp": {
+    "holofoil": {
+     "low": 17.79,
+     "mid": 21.2,
+     "high": 39.8,
+     "market": 19.9,
+     "pid": 654597
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "003",
+   "how": "numero",
+   "setId": "mep",
+   "number": "003",
+   "image": null
+  },
+  "mep-004": {
+   "name": "Lunatone",
+   "tcgplayerName": "Lunatone - 004",
+   "tp": {
+    "normal": {
+     "low": 15.8,
+     "mid": 19.99,
+     "high": 209.62,
+     "market": 18.21,
+     "pid": 654598
+    }
+   },
+   "variants": [
+    "normal"
+   ],
+   "rarity": "Promo",
+   "printed": "004",
+   "how": "numero",
+   "setId": "mep",
+   "number": "004",
+   "image": null
+  },
+  "mep-005": {
+   "name": "Drifloon",
+   "tcgplayerName": "Drifloon - 005 (Cosmos Holo)",
+   "tp": {
+    "holofoil": {
+     "low": 2,
+     "mid": 3.23,
+     "high": 19.99,
+     "market": 2.92,
+     "pid": 656255
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "005",
+   "how": "numero",
+   "setId": "mep",
+   "number": "005",
+   "image": null
+  },
+  "mep-006": {
+   "name": "Drifblim",
+   "tcgplayerName": "Drifblim - 006 (Cosmos Holo)",
+   "tp": {
+    "holofoil": {
+     "low": 1,
+     "mid": 2.18,
+     "high": 19.99,
+     "market": 1.89,
+     "pid": 656256
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "006",
+   "how": "numero",
+   "setId": "mep",
+   "number": "006",
+   "image": null
+  },
+  "mep-007": {
+   "name": "Psyduck",
+   "tcgplayerName": "Psyduck - 007",
+   "tp": {
+    "holofoil": {
+     "low": 5.85,
+     "mid": 9.75,
+     "high": 212.05,
+     "market": 9.26,
+     "pid": 656257
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "007",
+   "how": "numero",
+   "setId": "mep",
+   "number": "007",
+   "image": null
+  },
+  "mep-008": {
+   "name": "Golduck",
+   "tcgplayerName": "Golduck - 008",
+   "tp": {
+    "holofoil": {
+     "low": 0.5,
+     "mid": 1.18,
+     "high": 19.8,
+     "market": 1.11,
+     "pid": 656258
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "008",
+   "how": "numero",
+   "setId": "mep",
+   "number": "008",
+   "image": null
+  },
+  "mep-009": {
+   "name": "Alakazam",
+   "tcgplayerName": "Alakazam - 009",
+   "tp": {
+    "holofoil": {
+     "low": 4.76,
+     "mid": 9.49,
+     "high": 97.6,
+     "market": 7.36,
+     "pid": 656259
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "009",
+   "how": "numero",
+   "setId": "mep",
+   "number": "009",
+   "image": null
+  },
+  "mep-010": {
+   "name": "Riolu",
+   "tcgplayerName": "Riolu - 010",
+   "tp": {
+    "holofoil": {
+     "low": 5.4,
+     "mid": 9.67,
+     "high": 101.48,
+     "market": 7.89,
+     "pid": 656260
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "010",
+   "how": "numero",
+   "setId": "mep",
+   "number": "010",
+   "image": null
+  },
+  "mep-011": {
+   "name": "Mega Latias ex",
+   "tcgplayerName": "Mega Latias ex - 011",
+   "tp": {
+    "holofoil": {
+     "low": 0.39,
+     "mid": 0.86,
+     "high": 19.8,
+     "market": 0.78,
+     "pid": 657846
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "011",
+   "how": "numero",
+   "setId": "mep",
+   "number": "011",
+   "image": null
+  },
+  "mep-012": {
+   "name": "Mega Lucario ex",
+   "tcgplayerName": "Mega Lucario ex - 012",
+   "tp": {
+    "holofoil": {
+     "low": 0.99,
+     "mid": 1.73,
+     "high": 25.42,
+     "market": 1.56,
+     "pid": 663177
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "012",
+   "how": "numero",
+   "setId": "mep",
+   "number": "012",
+   "image": null
+  },
+  "mep-013": {
+   "name": "Mega Venusaur ex",
+   "tcgplayerName": "Mega Venusaur ex - 013",
+   "tp": {
+    "holofoil": {
+     "low": 0.55,
+     "mid": 1.07,
+     "high": 19.8,
+     "market": 1.09,
+     "pid": 666905
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "013",
+   "how": "numero",
+   "setId": "mep",
+   "number": "013",
+   "image": null
+  },
+  "mep-014": {
+   "name": "Ceruledge",
+   "tcgplayerName": "Ceruledge - 014",
+   "tp": {
+    "holofoil": {
+     "low": 11.31,
+     "mid": 13.44,
+     "high": 139.52,
+     "market": 13.43,
+     "pid": 663187
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "014",
+   "how": "numero",
+   "setId": "mep",
+   "number": "014",
+   "image": null
+  },
+  "mep-015": {
+   "name": "Zacian",
+   "tcgplayerName": "Zacian - 015",
+   "tp": {
+    "holofoil": {
+     "low": 7.43,
+     "mid": 11.48,
+     "high": 147.72,
+     "market": 10.06,
+     "pid": 663189
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "015",
+   "how": "numero",
+   "setId": "mep",
+   "number": "015",
+   "image": null
+  },
+  "mep-016": {
+   "name": "Flygon",
+   "tcgplayerName": "Flygon - 016",
+   "tp": {
+    "holofoil": {
+     "low": 6.5,
+     "mid": 9.53,
+     "high": 129.82,
+     "market": 7.69,
+     "pid": 663191
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "016",
+   "how": "numero",
+   "setId": "mep",
+   "number": "016",
+   "image": null
+  },
+  "mep-018": {
+   "name": "Cottonee",
+   "tcgplayerName": "Cottonee (Cosmos Holo)",
+   "tp": {
+    "holofoil": {
+     "low": 0.05,
+     "mid": 0.33,
+     "high": 19.8,
+     "market": 0.29,
+     "pid": 664051
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "018",
+   "how": "numero",
+   "setId": "mep",
+   "number": "018",
+   "image": null
+  },
+  "mep-019": {
+   "name": "Whimsicott",
+   "tcgplayerName": "Whimsicott (Cosmos Holo)",
+   "tp": {
+    "holofoil": {
+     "low": 0.08,
+     "mid": 0.38,
+     "high": 19.8,
+     "market": 0.38,
+     "pid": 664054
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "019",
+   "how": "numero",
+   "setId": "mep",
+   "number": "019",
+   "image": null
+  },
+  "mep-020": {
+   "name": "Sneasel",
+   "tcgplayerName": "Sneasel (Cosmos Holo)",
+   "tp": {
+    "holofoil": {
+     "low": 0.1,
+     "mid": 0.39,
+     "high": 19.8,
+     "market": 0.38,
+     "pid": 664055
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "020",
+   "how": "numero",
+   "setId": "mep",
+   "number": "020",
+   "image": null
+  },
+  "mep-021": {
+   "name": "Weavile",
+   "tcgplayerName": "Weavile (Cosmos Holo)",
+   "tp": {
+    "holofoil": {
+     "low": 0.1,
+     "mid": 0.38,
+     "high": 19.8,
+     "market": 0.33,
+     "pid": 664063
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Holo Rare",
+   "printed": "021",
+   "how": "numero",
+   "setId": "mep",
+   "number": "021",
+   "image": null
+  },
+  "mep-022": {
+   "name": "Charcadet",
+   "tcgplayerName": "Charcadet - 022",
+   "tp": {
+    "holofoil": {
+     "low": 1.34,
+     "mid": 2.74,
+     "high": 50,
+     "market": 1.98,
+     "pid": 666538
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "022",
+   "how": "numero",
+   "setId": "mep",
+   "number": "022",
+   "image": null
+  },
+  "mep-023": {
+   "name": "Mega Charizard X ex",
+   "tcgplayerName": "Mega Charizard X ex - 023",
+   "tp": {
+    "holofoil": {
+     "low": 21.61,
+     "mid": 30,
+     "high": 570.4,
+     "market": 24.48,
+     "pid": 659612
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "023",
+   "how": "numero",
+   "setId": "mep",
+   "number": "023",
+   "image": null
+  },
+  "mep-024": {
+   "name": "Oricorio ex",
+   "tcgplayerName": "Oricorio ex - 024",
+   "tp": {
+    "holofoil": {
+     "low": 7.35,
+     "mid": 11.3,
+     "high": 899.99,
+     "market": 8.59,
+     "pid": 664010
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "024",
+   "how": "numero",
+   "setId": "mep",
+   "number": "024",
+   "image": null
+  },
+  "mep-025": {
+   "name": "Mega Kangaskhan ex",
+   "tcgplayerName": "Mega Kangaskhan ex - 025",
+   "tp": {
+    "holofoil": {
+     "low": 0.4,
+     "mid": 1.18,
+     "high": 19.8,
+     "market": 1.3,
+     "pid": 668509
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "025",
+   "how": "numero",
+   "setId": "mep",
+   "number": "025",
+   "image": null
+  },
+  "mep-026": {
+   "name": "Meloetta",
+   "tcgplayerName": "Meloetta - 026",
+   "tp": {
+    "holofoil": {
+     "low": 12.3,
+     "mid": 16.06,
+     "high": 94.82,
+     "market": 15.19,
+     "pid": 659231
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Illustration Rare",
+   "printed": "026",
+   "how": "numero",
+   "setId": "mep",
+   "number": "026",
+   "image": null
+  },
+  "mep-027": {
+   "name": "Haunter",
+   "tcgplayerName": "Haunter  - 027",
+   "tp": {
+    "holofoil": {
+     "low": 37.49,
+     "mid": 48,
+     "high": 995.88,
+     "market": 43.76,
+     "pid": 659232
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Illustration Rare",
+   "printed": "027",
+   "how": "numero",
+   "setId": "mep",
+   "number": "027",
+   "image": null
+  },
+  "mep-028": {
+   "name": "Celebratory Fanfare",
+   "tcgplayerName": "Celebratory Fanfare (Ace Trainer)",
+   "tp": {
+    "normal": {
+     "low": 671.96,
+     "mid": 677.35,
+     "high": 1049.99,
+     "market": 677.16,
+     "pid": 681244
+    }
+   },
+   "variants": [
+    "normal"
+   ],
+   "rarity": "Promo",
+   "printed": "028",
+   "how": "numero",
+   "setId": "mep",
+   "number": "028",
+   "image": null
+  },
+  "mep-029": {
+   "name": "Mega Charizard X ex",
+   "tcgplayerName": "Mega Charizard X ex - 029",
+   "tp": {
+    "holofoil": {
+     "low": 3.99,
+     "mid": 5.98,
+     "high": 95.98,
+     "market": 5.18,
+     "pid": 680639
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "029",
+   "how": "numero",
+   "setId": "mep",
+   "number": "029",
+   "image": null
+  },
+  "mep-030": {
+   "name": "Mega Charizard Y ex",
+   "tcgplayerName": "Mega Charizard Y ex - 030",
+   "tp": {
+    "holofoil": {
+     "low": 3.45,
+     "mid": 6,
+     "high": 62.62,
+     "market": 5.41,
+     "pid": 680640
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "030",
+   "how": "numero",
+   "setId": "mep",
+   "number": "030",
+   "image": null
+  },
+  "mep-031": {
+   "name": "N's Zekrom",
+   "tcgplayerName": "N's Zekrom - 031",
+   "tp": {
+    "holofoil": {
+     "low": 3.79,
+     "mid": 7.3,
+     "high": 114.36,
+     "market": 5.19,
+     "pid": 680480
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "031",
+   "how": "numero",
+   "setId": "mep",
+   "number": "031",
+   "image": null
+  },
+  "mep-032": {
+   "name": "Mega Gardevoir ex",
+   "tcgplayerName": "Mega Gardevoir ex - 032",
+   "tp": {
+    "holofoil": {
+     "low": 5,
+     "mid": 7.8,
+     "high": 999.99,
+     "market": 6.6,
+     "pid": 685510
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "032",
+   "how": "numero",
+   "setId": "mep",
+   "number": "032",
+   "image": null
+  },
+  "mep-033": {
+   "name": "Mega Lucario ex",
+   "tcgplayerName": "Mega Lucario ex - 033",
+   "tp": {
+    "holofoil": {
+     "low": 7.98,
+     "mid": 11.97,
+     "high": 222.93,
+     "market": 9.39,
+     "pid": 685511
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "033",
+   "how": "numero",
+   "setId": "mep",
+   "number": "033",
+   "image": null
+  },
+  "mep-034": {
+   "name": "Mega Meganium ex",
+   "tcgplayerName": "Mega Meganium ex - 034",
+   "tp": {
+    "holofoil": {
+     "low": 0.15,
+     "mid": 0.8,
+     "high": 150,
+     "market": 0.57,
+     "pid": 692120
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "034",
+   "how": "numero",
+   "setId": "mep",
+   "number": "034",
+   "image": null
+  },
+  "mep-035": {
+   "name": "Mega Emboar ex",
+   "tcgplayerName": "Mega Emboar ex - 035",
+   "tp": {
+    "holofoil": {
+     "low": 0.15,
+     "mid": 0.66,
+     "high": 25,
+     "market": 0.51,
+     "pid": 692119
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "035",
+   "how": "numero",
+   "setId": "mep",
+   "number": "035",
+   "image": null
+  },
+  "mep-036": {
+   "name": "Mega Feraligatr ex",
+   "tcgplayerName": "Mega Feraligatr ex - 036",
+   "tp": {
+    "holofoil": {
+     "low": 0.2,
+     "mid": 0.79,
+     "high": 15.28,
+     "market": 0.56,
+     "pid": 692118
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "036",
+   "how": "numero",
+   "setId": "mep",
+   "number": "036",
+   "image": null
+  },
+  "mep-037": {
+   "name": "Bulbasaur",
+   "tcgplayerName": "Bulbasaur - 037",
+   "tp": {
+    "holofoil": {
+     "low": 17.99,
+     "mid": 26,
+     "high": 1000,
+     "market": 19.69,
+     "pid": 684461
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "037",
+   "how": "numero",
+   "setId": "mep",
+   "number": "037",
+   "image": null
+  },
+  "mep-038": {
+   "name": "Charmander",
+   "tcgplayerName": "Charmander - 038",
+   "tp": {
+    "holofoil": {
+     "low": 25,
+     "mid": 32.26,
+     "high": 1000,
+     "market": 26.66,
+     "pid": 684462
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "038",
+   "how": "numero",
+   "setId": "mep",
+   "number": "038",
+   "image": null
+  },
+  "mep-039": {
+   "name": "Squirtle",
+   "tcgplayerName": "Squirtle - 039",
+   "tp": {
+    "holofoil": {
+     "low": 20,
+     "mid": 26.07,
+     "high": 1000,
+     "market": 22.27,
+     "pid": 684463
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "039",
+   "how": "numero",
+   "setId": "mep",
+   "number": "039",
+   "image": null
+  },
+  "mep-040": {
+   "name": "Turtwig",
+   "tcgplayerName": "Turtwig - 040",
+   "tp": {
+    "holofoil": {
+     "low": 4.15,
+     "mid": 6.91,
+     "high": 120,
+     "market": 5.49,
+     "pid": 684464
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "040",
+   "how": "numero",
+   "setId": "mep",
+   "number": "040",
+   "image": null
+  },
+  "mep-041": {
+   "name": "Chimchar",
+   "tcgplayerName": "Chimchar - 041",
+   "tp": {
+    "holofoil": {
+     "low": 4.1,
+     "mid": 6.5,
+     "high": 120,
+     "market": 5.35,
+     "pid": 684465
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "041",
+   "how": "numero",
+   "setId": "mep",
+   "number": "041",
+   "image": null
+  },
+  "mep-042": {
+   "name": "Piplup",
+   "tcgplayerName": "Piplup - 042",
+   "tp": {
+    "holofoil": {
+     "low": 9,
+     "mid": 12.19,
+     "high": 268.07,
+     "market": 10.66,
+     "pid": 684466
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "042",
+   "how": "numero",
+   "setId": "mep",
+   "number": "042",
+   "image": null
+  },
+  "mep-043": {
+   "name": "Rowlet",
+   "tcgplayerName": "Rowlet - 043",
+   "tp": {
+    "holofoil": {
+     "low": 3.89,
+     "mid": 6.24,
+     "high": 500,
+     "market": 5.69,
+     "pid": 684467
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "043",
+   "how": "numero",
+   "setId": "mep",
+   "number": "043",
+   "image": null
+  },
+  "mep-044": {
+   "name": "Litten",
+   "tcgplayerName": "Litten - 044",
+   "tp": {
+    "holofoil": {
+     "low": 4,
+     "mid": 6.69,
+     "high": 500,
+     "market": 5.36,
+     "pid": 684468
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "044",
+   "how": "numero",
+   "setId": "mep",
+   "number": "044",
+   "image": null
+  },
+  "mep-045": {
+   "name": "Popplio",
+   "tcgplayerName": "Popplio - 045",
+   "tp": {
+    "holofoil": {
+     "low": 4,
+     "mid": 6,
+     "high": 500,
+     "market": 5.41,
+     "pid": 684469
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "045",
+   "how": "numero",
+   "setId": "mep",
+   "number": "045",
+   "image": null
+  },
+  "mep-046": {
+   "name": "Chikorita",
+   "tcgplayerName": "Chikorita - 046",
+   "tp": {
+    "holofoil": {
+     "low": 4.5,
+     "mid": 6.64,
+     "high": 750,
+     "market": 5.81,
+     "pid": 699870
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "046",
+   "how": "numero",
+   "setId": "mep",
+   "number": "046",
+   "image": null
+  },
+  "mep-047": {
+   "name": "Cyndaquil",
+   "tcgplayerName": "Cyndaquil - 047",
+   "tp": {
+    "holofoil": {
+     "low": 5.99,
+     "mid": 8.55,
+     "high": 750,
+     "market": 7.42,
+     "pid": 699871
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "047",
+   "how": "numero",
+   "setId": "mep",
+   "number": "047",
+   "image": null
+  },
+  "mep-048": {
+   "name": "Totodile",
+   "tcgplayerName": "Totodile - 048",
+   "tp": {
+    "holofoil": {
+     "low": 8.25,
+     "mid": 12.14,
+     "high": 750,
+     "market": 10.13,
+     "pid": 699872
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "048",
+   "how": "numero",
+   "setId": "mep",
+   "number": "048",
+   "image": null
+  },
+  "mep-049": {
+   "name": "Snivy",
+   "tcgplayerName": "Snivy - 049",
+   "tp": {
+    "holofoil": {
+     "low": 2.93,
+     "mid": 4.38,
+     "high": 750,
+     "market": 3.77,
+     "pid": 699873
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "049",
+   "how": "numero",
+   "setId": "mep",
+   "number": "049",
+   "image": null
+  },
+  "mep-050": {
+   "name": "Tepig",
+   "tcgplayerName": "Tepig - 050",
+   "tp": {
+    "holofoil": {
+     "low": 2.49,
+     "mid": 4.37,
+     "high": 750,
+     "market": 3.58,
+     "pid": 699874
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "050",
+   "how": "numero",
+   "setId": "mep",
+   "number": "050",
+   "image": null
+  },
+  "mep-051": {
+   "name": "Oshawott",
+   "tcgplayerName": "Oshawott - 051",
+   "tp": {
+    "holofoil": {
+     "low": 3.7,
+     "mid": 5.66,
+     "high": 750,
+     "market": 5.11,
+     "pid": 699875
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "051",
+   "how": "numero",
+   "setId": "mep",
+   "number": "051",
+   "image": null
+  },
+  "mep-052": {
+   "name": "Grookey",
+   "tcgplayerName": "Grookey - 052",
+   "tp": {
+    "holofoil": {
+     "low": 2.5,
+     "mid": 4.14,
+     "high": 750,
+     "market": 3.44,
+     "pid": 699876
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "052",
+   "how": "numero",
+   "setId": "mep",
+   "number": "052",
+   "image": null
+  },
+  "mep-053": {
+   "name": "Scorbunny",
+   "tcgplayerName": "Scorbunny - 053",
+   "tp": {
+    "holofoil": {
+     "low": 2.75,
+     "mid": 4.29,
+     "high": 750,
+     "market": 3.28,
+     "pid": 699877
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "053",
+   "how": "numero",
+   "setId": "mep",
+   "number": "053",
+   "image": null
+  },
+  "mep-054": {
+   "name": "Sobble",
+   "tcgplayerName": "Sobble - 054",
+   "tp": {
+    "holofoil": {
+     "low": 2,
+     "mid": 3.42,
+     "high": 750,
+     "market": 2.66,
+     "pid": 699878
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "054",
+   "how": "numero",
+   "setId": "mep",
+   "number": "054",
+   "image": null
+  },
+  "mep-055": {
+   "name": "Treecko",
+   "tcgplayerName": "Treecko -  055",
+   "tp": {
+    "holofoil": {
+     "low": 4.98,
+     "mid": 8,
+     "high": 750,
+     "market": 6.46,
+     "pid": 709969
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "055",
+   "how": "numero",
+   "setId": "mep",
+   "number": "055",
+   "image": null
+  },
+  "mep-056": {
+   "name": "Torchic",
+   "tcgplayerName": "Torchic -  056",
+   "tp": {
+    "holofoil": {
+     "low": 5.33,
+     "mid": 8.5,
+     "high": 750,
+     "market": 6.81,
+     "pid": 709970
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "056",
+   "how": "numero",
+   "setId": "mep",
+   "number": "056",
+   "image": null
+  },
+  "mep-057": {
+   "name": "Mudkip",
+   "tcgplayerName": "Mudkip -  057",
+   "tp": {
+    "holofoil": {
+     "low": 11,
+     "mid": 15.04,
+     "high": 750,
+     "market": 12.22,
+     "pid": 709971
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "057",
+   "how": "numero",
+   "setId": "mep",
+   "number": "057",
+   "image": null
+  },
+  "mep-058": {
+   "name": "Chespin",
+   "tcgplayerName": "Chespin -  058",
+   "tp": {
+    "holofoil": {
+     "low": 1.98,
+     "mid": 3.35,
+     "high": 750,
+     "market": 2.54,
+     "pid": 709972
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "058",
+   "how": "numero",
+   "setId": "mep",
+   "number": "058",
+   "image": null
+  },
+  "mep-059": {
+   "name": "Fennekin",
+   "tcgplayerName": "Fennekin -  059",
+   "tp": {
+    "holofoil": {
+     "low": 2.95,
+     "mid": 4.97,
+     "high": 750,
+     "market": 3.56,
+     "pid": 709973
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "059",
+   "how": "numero",
+   "setId": "mep",
+   "number": "059",
+   "image": null
+  },
+  "mep-060": {
+   "name": "Froakie",
+   "tcgplayerName": "Froakie -  060",
+   "tp": {
+    "holofoil": {
+     "low": 4,
+     "mid": 6.69,
+     "high": 750,
+     "market": 5.26,
+     "pid": 709974
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "060",
+   "how": "numero",
+   "setId": "mep",
+   "number": "060",
+   "image": null
+  },
+  "mep-061": {
+   "name": "Sprigatito",
+   "tcgplayerName": "Sprigatito -  061",
+   "tp": {
+    "holofoil": {
+     "low": 4.26,
+     "mid": 6.5,
+     "high": 750,
+     "market": 5.66,
+     "pid": 709975
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "061",
+   "how": "numero",
+   "setId": "mep",
+   "number": "061",
+   "image": null
+  },
+  "mep-062": {
+   "name": "Fuecoco",
+   "tcgplayerName": "Fuecoco -  062",
+   "tp": {
+    "holofoil": {
+     "low": 4.3,
+     "mid": 6.59,
+     "high": 750,
+     "market": 5.45,
+     "pid": 709976
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "062",
+   "how": "numero",
+   "setId": "mep",
+   "number": "062",
+   "image": null
+  },
+  "mep-063": {
+   "name": "Quaxly",
+   "tcgplayerName": "Quaxly -  063",
+   "tp": {
+    "holofoil": {
+     "low": 2,
+     "mid": 3.98,
+     "high": 750,
+     "market": 3.16,
+     "pid": 709977
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "063",
+   "how": "numero",
+   "setId": "mep",
+   "number": "063",
+   "image": null
+  },
+  "mep-064": {
+   "name": "Serperior",
+   "tcgplayerName": "Serperior - 064",
+   "tp": {
+    "holofoil": {
+     "low": 6.76,
+     "mid": 8.69,
+     "high": 50,
+     "market": 7.91,
+     "pid": 685494
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "064",
+   "how": "numero",
+   "setId": "mep",
+   "number": "064",
+   "image": null
+  },
+  "mep-065": {
+   "name": "Barbaracle",
+   "tcgplayerName": "Barbaracle - 065",
+   "tp": {
+    "holofoil": {
+     "low": 5,
+     "mid": 7.58,
+     "high": 19.99,
+     "market": 7.12,
+     "pid": 685495
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "065",
+   "how": "numero",
+   "setId": "mep",
+   "number": "065",
+   "image": null
+  },
+  "mep-066": {
+   "name": "Tyrantrum",
+   "tcgplayerName": "Tyrantrum - 066",
+   "tp": {
+    "holofoil": {
+     "low": 12,
+     "mid": 15.51,
+     "high": 50,
+     "market": 15.03,
+     "pid": 685496
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "066",
+   "how": "numero",
+   "setId": "mep",
+   "number": "066",
+   "image": null
+  },
+  "mep-067": {
+   "name": "Doublade",
+   "tcgplayerName": "Doublade - 067",
+   "tp": {
+    "holofoil": {
+     "low": 4.49,
+     "mid": 7.3,
+     "high": 15,
+     "market": 6.18,
+     "pid": 685497
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "067",
+   "how": "numero",
+   "setId": "mep",
+   "number": "067",
+   "image": null
+  },
+  "mep-068": {
+   "name": "Makuhita",
+   "tcgplayerName": "Makuhita - 068",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.33,
+     "high": 19.8,
+     "market": 0.25,
+     "pid": 686275
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "068",
+   "how": "numero",
+   "setId": "mep",
+   "number": "068",
+   "image": null
+  },
+  "mep-069": {
+   "name": "Chikorita",
+   "tcgplayerName": "Chikorita (Cosmos Holo)",
+   "tp": {
+    "holofoil": {
+     "low": 0.1,
+     "mid": 0.42,
+     "high": 15,
+     "market": 0.4,
+     "pid": 686342
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "069",
+   "how": "numero",
+   "setId": "mep",
+   "number": "069",
+   "image": null
+  },
+  "mep-070": {
+   "name": "Tyrunt",
+   "tcgplayerName": "Tyrunt - 070",
+   "tp": {
+    "holofoil": {
+     "low": 0.75,
+     "mid": 2.95,
+     "high": 91.24,
+     "market": 2.2,
+     "pid": 685562
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "070",
+   "how": "numero",
+   "setId": "mep",
+   "number": "070",
+   "image": null
+  },
+  "mep-071": {
+   "name": "Mega Zygarde ex",
+   "tcgplayerName": "Mega Zygarde ex - 071",
+   "tp": {
+    "holofoil": {
+     "low": 0.25,
+     "mid": 0.65,
+     "high": 14.47,
+     "market": 0.5,
+     "pid": 695311
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "071",
+   "how": "numero",
+   "setId": "mep",
+   "number": "071",
+   "image": null
+  },
+  "mep-072": {
+   "name": "Mega Clefable ex",
+   "tcgplayerName": "Mega Clefable ex - 072",
+   "tp": {
+    "holofoil": {
+     "low": 0.4,
+     "mid": 0.77,
+     "high": 20,
+     "market": 0.72,
+     "pid": 696607
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "072",
+   "how": "numero",
+   "setId": "mep",
+   "number": "072",
+   "image": null
+  },
+  "mep-073": {
+   "name": "Mega Gengar ex",
+   "tcgplayerName": "Mega Gengar ex - 073",
+   "tp": {
+    "holofoil": {
+     "low": 2.75,
+     "mid": 4.72,
+     "high": 100,
+     "market": 3.04,
+     "pid": 696608
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "073",
+   "how": "numero",
+   "setId": "mep",
+   "number": "073",
+   "image": null
+  },
+  "mep-074": {
+   "name": "Delphox",
+   "tcgplayerName": "Delphox - 074",
+   "tp": {
+    "holofoil": {
+     "low": 9.29,
+     "mid": 13.33,
+     "high": 99,
+     "market": 11.73,
+     "pid": 694679
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "074",
+   "how": "numero",
+   "setId": "mep",
+   "number": "074",
+   "image": null
+  },
+  "mep-075": {
+   "name": "Ampharos",
+   "tcgplayerName": "Ampharos - 075",
+   "tp": {
+    "holofoil": {
+     "low": 9.5,
+     "mid": 13.49,
+     "high": 31.99,
+     "market": 12.36,
+     "pid": 694681
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "075",
+   "how": "numero",
+   "setId": "mep",
+   "number": "075",
+   "image": null
+  },
+  "mep-076": {
+   "name": "Crobat",
+   "tcgplayerName": "Crobat - 076",
+   "tp": {
+    "holofoil": {
+     "low": 10.49,
+     "mid": 14.41,
+     "high": 30,
+     "market": 13.62,
+     "pid": 694686
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "076",
+   "how": "numero",
+   "setId": "mep",
+   "number": "076",
+   "image": null
+  },
+  "mep-077": {
+   "name": "Goodra",
+   "tcgplayerName": "Goodra - 077",
+   "tp": {
+    "holofoil": {
+     "low": 8.63,
+     "mid": 11.33,
+     "high": 20,
+     "market": 10.94,
+     "pid": 694688
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "077",
+   "how": "numero",
+   "setId": "mep",
+   "number": "077",
+   "image": null
+  },
+  "mep-078": {
+   "name": "Toxel",
+   "tcgplayerName": "Toxel - 078 (Cosmos Holo)",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.35,
+     "high": 5,
+     "market": 0.28,
+     "pid": 694692
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "078",
+   "how": "numero",
+   "setId": "mep",
+   "number": "078",
+   "image": null
+  },
+  "mep-079": {
+   "name": "Charmeleon",
+   "tcgplayerName": "Charmeleon - 079 (Cosmos Holo)",
+   "tp": {
+    "holofoil": {
+     "low": 0.21,
+     "mid": 0.87,
+     "high": 50,
+     "market": 0.61,
+     "pid": 694693
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "079",
+   "how": "numero",
+   "setId": "mep",
+   "number": "079",
+   "image": null
+  },
+  "mep-080": {
+   "name": "Fennekin",
+   "tcgplayerName": "Fennekin - 080",
+   "tp": {
+    "holofoil": {
+     "low": 1,
+     "mid": 2.49,
+     "high": 145,
+     "market": 1.54,
+     "pid": 694694
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "080",
+   "how": "numero",
+   "setId": "mep",
+   "number": "080",
+   "image": null
+  },
+  "mep-081": {
+   "name": "Mega Greninja ex",
+   "tcgplayerName": "Mega Greninja ex - 081",
+   "tp": {
+    "holofoil": {
+     "low": 0.63,
+     "mid": 0.99,
+     "high": 15,
+     "market": 0.75,
+     "pid": 704879
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "081",
+   "how": "numero",
+   "setId": "mep",
+   "number": "081",
+   "image": null
+  },
+  "mep-086": {
+   "name": "Slowpoke",
+   "tcgplayerName": "Slowpoke - 086 (Cosmos Holo)",
+   "tp": {
+    "holofoil": {
+     "low": 0.25,
+     "mid": 1.1,
+     "high": 9.99,
+     "market": 0.68,
+     "pid": 706130
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "086",
+   "how": "numero",
+   "setId": "mep",
+   "number": "086",
+   "image": null
+  },
+  "mep-087": {
+   "name": "Binacle",
+   "tcgplayerName": "Binacle - 087 (Cosmos Holo)",
+   "tp": {
+    "holofoil": {
+     "low": 0.03,
+     "mid": 0.25,
+     "high": 30,
+     "market": 0.22,
+     "pid": 706131
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "087",
+   "how": "numero",
+   "setId": "mep",
+   "number": "087",
+   "image": null
+  },
+  "mep-088": {
+   "name": "Zarude",
+   "tcgplayerName": "Zarude - 088",
+   "tp": {
+    "holofoil": {
+     "low": 0.4,
+     "mid": 1.25,
+     "high": 30,
+     "market": 0.96,
+     "pid": 706193
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Promo",
+   "printed": "088",
+   "how": "numero",
+   "setId": "mep",
+   "number": "088",
+   "image": null
+  },
+  "30th-001": {
+   "name": "Exeggcute",
+   "tcgplayerName": "Exeggcute",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 35,
+     "market": 0.19,
+     "pid": 716435
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "001/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "001",
+   "image": "https://assets.tcgdex.net/en/me/30th/001"
+  },
+  "30th-002": {
+   "name": "Alolan Exeggutor",
+   "tcgplayerName": "Alolan Exeggutor - 002/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.21,
+     "high": 19.99,
+     "market": 0.23,
+     "pid": 716436
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "002/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "002",
+   "image": "https://assets.tcgdex.net/en/me/30th/002"
+  },
+  "30th-003": {
+   "name": "Volbeat",
+   "tcgplayerName": "Volbeat",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 2.49,
+     "market": 0.16,
+     "pid": 716437
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "003/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "003",
+   "image": "https://assets.tcgdex.net/en/me/30th/003"
+  },
+  "30th-004": {
+   "name": "Illumise",
+   "tcgplayerName": "Illumise",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 2.49,
+     "market": 0.2,
+     "pid": 716438
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "004/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "004",
+   "image": "https://assets.tcgdex.net/en/me/30th/004"
+  },
+  "30th-005": {
+   "name": "Tropius",
+   "tcgplayerName": "Tropius",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 2.49,
+     "market": 0.17,
+     "pid": 716439
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "005/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "005",
+   "image": "https://assets.tcgdex.net/en/me/30th/005"
+  },
+  "30th-006": {
+   "name": "Cherubi",
+   "tcgplayerName": "Cherubi",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 10,
+     "market": 0.18,
+     "pid": 716440
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "006/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "006",
+   "image": "https://assets.tcgdex.net/en/me/30th/006"
+  },
+  "30th-007": {
+   "name": "Cherrim",
+   "tcgplayerName": "Cherrim",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.21,
+     "high": 15,
+     "market": 0.17,
+     "pid": 716441
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "007/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "007",
+   "image": "https://assets.tcgdex.net/en/me/30th/007"
+  },
+  "30th-008": {
+   "name": "Vivillon",
+   "tcgplayerName": "Vivillon",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 2.29,
+     "market": 0.18,
+     "pid": 716442
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "008/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "008",
+   "image": "https://assets.tcgdex.net/en/me/30th/008"
+  },
+  "30th-009": {
+   "name": "Vulpix",
+   "tcgplayerName": "Vulpix",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.22,
+     "high": 2.49,
+     "market": 0.22,
+     "pid": 716443
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "009/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "009",
+   "image": "https://assets.tcgdex.net/en/me/30th/009"
+  },
+  "30th-010": {
+   "name": "Ninetales",
+   "tcgplayerName": "Ninetales",
+   "tp": {
+    "holofoil": {
+     "low": 0.04,
+     "mid": 0.25,
+     "high": 2.34,
+     "market": 0.17,
+     "pid": 716444
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "010/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "010",
+   "image": "https://assets.tcgdex.net/en/me/30th/010"
+  },
+  "30th-011": {
+   "name": "Moltres",
+   "tcgplayerName": "Moltres - 011/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.25,
+     "high": 2.49,
+     "market": 0.15,
+     "pid": 716445
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "011/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "011",
+   "image": "https://assets.tcgdex.net/en/me/30th/011"
+  },
+  "30th-012": {
+   "name": "Ho-Oh",
+   "tcgplayerName": "Ho-Oh",
+   "tp": {
+    "holofoil": {
+     "low": 0.03,
+     "mid": 0.24,
+     "high": 2.49,
+     "market": 0.16,
+     "pid": 716446
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Rare",
+   "printed": "012/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "012",
+   "image": "https://assets.tcgdex.net/en/me/30th/012"
+  },
+  "30th-013": {
+   "name": "Victini",
+   "tcgplayerName": "Victini",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 49,
+     "market": 0.18,
+     "pid": 696830
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "013/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "013",
+   "image": "https://assets.tcgdex.net/en/me/30th/013"
+  },
+  "30th-014": {
+   "name": "Reshiram",
+   "tcgplayerName": "Reshiram",
+   "tp": {
+    "holofoil": {
+     "low": 0.02,
+     "mid": 0.22,
+     "high": 5.09,
+     "market": 0.2,
+     "pid": 716447
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Rare",
+   "printed": "014/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "014",
+   "image": "https://assets.tcgdex.net/en/me/30th/014"
+  },
+  "30th-015": {
+   "name": "Fuecoco ex",
+   "tcgplayerName": "Fuecoco ex - 015/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.12,
+     "mid": 0.5,
+     "high": 49,
+     "market": 0.38,
+     "pid": 716448
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Double Rare",
+   "printed": "015/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "015",
+   "image": "https://assets.tcgdex.net/en/me/30th/015"
+  },
+  "30th-016": {
+   "name": "Slowpoke",
+   "tcgplayerName": "Slowpoke",
+   "tp": {
+    "holofoil": {
+     "low": 0.03,
+     "mid": 0.25,
+     "high": 20,
+     "market": 0.21,
+     "pid": 716449
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "016/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "016",
+   "image": "https://assets.tcgdex.net/en/me/30th/016"
+  },
+  "30th-017": {
+   "name": "Lapras",
+   "tcgplayerName": "Lapras - 017/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.05,
+     "mid": 0.25,
+     "high": 10,
+     "market": 0.19,
+     "pid": 716450
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "017/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "017",
+   "image": "https://assets.tcgdex.net/en/me/30th/017"
+  },
+  "30th-018": {
+   "name": "Articuno",
+   "tcgplayerName": "Articuno - 018/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.03,
+     "mid": 0.25,
+     "high": 19.99,
+     "market": 0.15,
+     "pid": 716451
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "018/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "018",
+   "image": "https://assets.tcgdex.net/en/me/30th/018"
+  },
+  "30th-019": {
+   "name": "Kyogre",
+   "tcgplayerName": "Kyogre",
+   "tp": {
+    "holofoil": {
+     "low": 0.02,
+     "mid": 0.23,
+     "high": 35,
+     "market": 0.24,
+     "pid": 716452
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Rare",
+   "printed": "019/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "019",
+   "image": "https://assets.tcgdex.net/en/me/30th/019"
+  },
+  "30th-020": {
+   "name": "Palkia",
+   "tcgplayerName": "Palkia",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 49,
+     "market": 0.17,
+     "pid": 716453
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Rare",
+   "printed": "020/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "020",
+   "image": "https://assets.tcgdex.net/en/me/30th/020"
+  },
+  "30th-021": {
+   "name": "Greninja ex",
+   "tcgplayerName": "Greninja ex - 021/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.2,
+     "mid": 0.65,
+     "high": 49.99,
+     "market": 0.53,
+     "pid": 696676
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Double Rare",
+   "printed": "021/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "021",
+   "image": "https://assets.tcgdex.net/en/me/30th/021"
+  },
+  "30th-022": {
+   "name": "Wishiwashi",
+   "tcgplayerName": "Wishiwashi",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 2.5,
+     "market": 0.15,
+     "pid": 716454
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "022/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "022",
+   "image": "https://assets.tcgdex.net/en/me/30th/022"
+  },
+  "30th-023": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 023/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.3,
+     "mid": 1.25,
+     "high": 52.46,
+     "market": 0.79,
+     "pid": 712934
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "023/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "023",
+   "image": "https://assets.tcgdex.net/en/me/30th/023"
+  },
+  "30th-024": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 024/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.25,
+     "mid": 1,
+     "high": 41.01,
+     "market": 0.75,
+     "pid": 716309
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "024/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "024",
+   "image": "https://assets.tcgdex.net/en/me/30th/024"
+  },
+  "30th-025": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 025/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.15,
+     "mid": 0.95,
+     "high": 49.99,
+     "market": 0.57,
+     "pid": 712935
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "025/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "025",
+   "image": "https://assets.tcgdex.net/en/me/30th/025"
+  },
+  "30th-026": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 026/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.4,
+     "mid": 1.1,
+     "high": 49.99,
+     "market": 0.78,
+     "pid": 712936
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "026/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "026",
+   "image": "https://assets.tcgdex.net/en/me/30th/026"
+  },
+  "30th-027": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 027/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.59,
+     "mid": 1.5,
+     "high": 98,
+     "market": 1.12,
+     "pid": 716310
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "027/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "027",
+   "image": "https://assets.tcgdex.net/en/me/30th/027"
+  },
+  "30th-028": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 028/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.6,
+     "mid": 1.29,
+     "high": 49.95,
+     "market": 0.95,
+     "pid": 712937
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "028/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "028",
+   "image": "https://assets.tcgdex.net/en/me/30th/028"
+  },
+  "30th-029": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 029/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.49,
+     "mid": 1.18,
+     "high": 69.69,
+     "market": 0.79,
+     "pid": 716311
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "029/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "029",
+   "image": "https://assets.tcgdex.net/en/me/30th/029"
+  },
+  "30th-030": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 030/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.28,
+     "mid": 1,
+     "high": 49.99,
+     "market": 0.64,
+     "pid": 712938
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "030/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "030",
+   "image": "https://assets.tcgdex.net/en/me/30th/030"
+  },
+  "30th-031": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 031/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.35,
+     "mid": 1,
+     "high": 41.51,
+     "market": 0.78,
+     "pid": 716312
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "031/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "031",
+   "image": "https://assets.tcgdex.net/en/me/30th/031"
+  },
+  "30th-032": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 032/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.4,
+     "mid": 1.56,
+     "high": 64,
+     "market": 1.17,
+     "pid": 712939
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "032/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "032",
+   "image": "https://assets.tcgdex.net/en/me/30th/032"
+  },
+  "30th-033": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 033/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.35,
+     "mid": 1,
+     "high": 47.4,
+     "market": 0.79,
+     "pid": 712940
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "033/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "033",
+   "image": "https://assets.tcgdex.net/en/me/30th/033"
+  },
+  "30th-034": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 034/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.3,
+     "mid": 1.59,
+     "high": 148,
+     "market": 1.15,
+     "pid": 712941
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "034/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "034",
+   "image": "https://assets.tcgdex.net/en/me/30th/034"
+  },
+  "30th-035": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 035/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.49,
+     "mid": 1.25,
+     "high": 80,
+     "market": 0.79,
+     "pid": 716313
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "035/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "035",
+   "image": "https://assets.tcgdex.net/en/me/30th/035"
+  },
+  "30th-036": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 036/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.3,
+     "mid": 1.75,
+     "high": 40.99,
+     "market": 1.2,
+     "pid": 696680
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "036/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "036",
+   "image": "https://assets.tcgdex.net/en/me/30th/036"
+  },
+  "30th-037": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 037/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.4,
+     "mid": 1,
+     "high": 49.95,
+     "market": 0.67,
+     "pid": 696681
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "037/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "037",
+   "image": "https://assets.tcgdex.net/en/me/30th/037"
+  },
+  "30th-038": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 038/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.39,
+     "mid": 1.05,
+     "high": 49.99,
+     "market": 0.8,
+     "pid": 712942
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "038/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "038",
+   "image": "https://assets.tcgdex.net/en/me/30th/038"
+  },
+  "30th-039": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 039/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.1,
+     "mid": 1.24,
+     "high": 298,
+     "market": 0.72,
+     "pid": 712943
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "039/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "039",
+   "image": "https://assets.tcgdex.net/en/me/30th/039"
+  },
+  "30th-040": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 040/128",
+   "tp": {
+    "holofoil": {
+     "low": 1.44,
+     "mid": 3.5,
+     "high": 298,
+     "market": 2.19,
+     "pid": 712944
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "040/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "040",
+   "image": "https://assets.tcgdex.net/en/me/30th/040"
+  },
+  "30th-041": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 041/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.4,
+     "mid": 1,
+     "high": 70,
+     "market": 0.76,
+     "pid": 712945
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "041/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "041",
+   "image": "https://assets.tcgdex.net/en/me/30th/041"
+  },
+  "30th-042": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 042/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.48,
+     "mid": 1.11,
+     "high": 85,
+     "market": 0.85,
+     "pid": 712946
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "042/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "042",
+   "image": "https://assets.tcgdex.net/en/me/30th/042"
+  },
+  "30th-043": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 043/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.5,
+     "mid": 1.55,
+     "high": 49.99,
+     "market": 0.89,
+     "pid": 712947
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "043/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "043",
+   "image": "https://assets.tcgdex.net/en/me/30th/043"
+  },
+  "30th-044": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 044/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.49,
+     "mid": 1,
+     "high": 49.95,
+     "market": 0.71,
+     "pid": 712948
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "044/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "044",
+   "image": "https://assets.tcgdex.net/en/me/30th/044"
+  },
+  "30th-045": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 045/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.39,
+     "mid": 1,
+     "high": 41,
+     "market": 0.6,
+     "pid": 716314
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "045/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "045",
+   "image": "https://assets.tcgdex.net/en/me/30th/045"
+  },
+  "30th-046": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 046/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.2,
+     "mid": 1,
+     "high": 46,
+     "market": 0.79,
+     "pid": 716315
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "046/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "046",
+   "image": "https://assets.tcgdex.net/en/me/30th/046"
+  },
+  "30th-047": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 047/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.29,
+     "mid": 1,
+     "high": 49.95,
+     "market": 0.65,
+     "pid": 696682
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "047/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "047",
+   "image": "https://assets.tcgdex.net/en/me/30th/047"
+  },
+  "30th-048": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 048/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.45,
+     "mid": 1.1,
+     "high": 62.5,
+     "market": 0.84,
+     "pid": 716316
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "048/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "048",
+   "image": "https://assets.tcgdex.net/en/me/30th/048"
+  },
+  "30th-049": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 049/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.3,
+     "mid": 1,
+     "high": 49.95,
+     "market": 0.8,
+     "pid": 712949
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "049/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "049",
+   "image": "https://assets.tcgdex.net/en/me/30th/049"
+  },
+  "30th-050": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 050/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.5,
+     "mid": 1.11,
+     "high": 40.99,
+     "market": 0.88,
+     "pid": 712950
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "050/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "050",
+   "image": "https://assets.tcgdex.net/en/me/30th/050"
+  },
+  "30th-051": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 051/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.15,
+     "mid": 1,
+     "high": 46,
+     "market": 0.64,
+     "pid": 716317
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "051/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "051",
+   "image": "https://assets.tcgdex.net/en/me/30th/051"
+  },
+  "30th-052": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu - 052/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.34,
+     "mid": 1,
+     "high": 41,
+     "market": 0.67,
+     "pid": 716318
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Pikachu Rare",
+   "printed": "052/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "052",
+   "image": "https://assets.tcgdex.net/en/me/30th/052"
+  },
+  "30th-053": {
+   "name": "Pikachu ex",
+   "tcgplayerName": "Pikachu ex - 053/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.62,
+     "mid": 1.39,
+     "high": 49,
+     "market": 1.13,
+     "pid": 712951
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Double Rare",
+   "printed": "053/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "053",
+   "image": "https://assets.tcgdex.net/en/me/30th/053"
+  },
+  "30th-054": {
+   "name": "Pikachu ex",
+   "tcgplayerName": "Pikachu ex - 054/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.75,
+     "mid": 1.59,
+     "high": 25,
+     "market": 1.21,
+     "pid": 712952
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Double Rare",
+   "printed": "054/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "054",
+   "image": "https://assets.tcgdex.net/en/me/30th/054"
+  },
+  "30th-055": {
+   "name": "Zapdos",
+   "tcgplayerName": "Zapdos - 055/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.08,
+     "mid": 0.25,
+     "high": 5.12,
+     "market": 0.18,
+     "pid": 716455
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "055/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "055",
+   "image": "https://assets.tcgdex.net/en/me/30th/055"
+  },
+  "30th-056": {
+   "name": "Zekrom",
+   "tcgplayerName": "Zekrom",
+   "tp": {
+    "holofoil": {
+     "low": 0.02,
+     "mid": 0.24,
+     "high": 49,
+     "market": 0.19,
+     "pid": 716456
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Rare",
+   "printed": "056/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "056",
+   "image": "https://assets.tcgdex.net/en/me/30th/056"
+  },
+  "30th-057": {
+   "name": "Zeraora",
+   "tcgplayerName": "Zeraora",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.21,
+     "high": 49,
+     "market": 0.19,
+     "pid": 696831
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "057/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "057",
+   "image": "https://assets.tcgdex.net/en/me/30th/057"
+  },
+  "30th-058": {
+   "name": "Toxel",
+   "tcgplayerName": "Toxel",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 35,
+     "market": 0.18,
+     "pid": 716457
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "058/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "058",
+   "image": "https://assets.tcgdex.net/en/me/30th/058"
+  },
+  "30th-059": {
+   "name": "Toxtricity",
+   "tcgplayerName": "Toxtricity - 059/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 49,
+     "market": 0.25,
+     "pid": 716458
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "059/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "059",
+   "image": "https://assets.tcgdex.net/en/me/30th/059"
+  },
+  "30th-060": {
+   "name": "Toxtricity",
+   "tcgplayerName": "Toxtricity - 060/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 35,
+     "market": 0.16,
+     "pid": 716459
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "060/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "060",
+   "image": "https://assets.tcgdex.net/en/me/30th/060"
+  },
+  "30th-061": {
+   "name": "Morpeko",
+   "tcgplayerName": "Morpeko - 061/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.03,
+     "mid": 0.22,
+     "high": 20,
+     "market": 0.22,
+     "pid": 716460
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "061/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "061",
+   "image": "https://assets.tcgdex.net/en/me/30th/061"
+  },
+  "30th-062": {
+   "name": "Miraidon",
+   "tcgplayerName": "Miraidon",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 20,
+     "market": 0.18,
+     "pid": 716461
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Rare",
+   "printed": "062/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "062",
+   "image": "https://assets.tcgdex.net/en/me/30th/062"
+  },
+  "30th-063": {
+   "name": "Mewtwo",
+   "tcgplayerName": "Mewtwo",
+   "tp": {
+    "holofoil": {
+     "low": 0.07,
+     "mid": 0.48,
+     "high": 49,
+     "market": 0.35,
+     "pid": 716462
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Rare",
+   "printed": "063/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "063",
+   "image": "https://assets.tcgdex.net/en/me/30th/063"
+  },
+  "30th-064": {
+   "name": "Mewtwo ex",
+   "tcgplayerName": "Mewtwo ex - 064/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.34,
+     "mid": 1,
+     "high": 15,
+     "market": 0.77,
+     "pid": 716463
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Double Rare",
+   "printed": "064/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "064",
+   "image": "https://assets.tcgdex.net/en/me/30th/064"
+  },
+  "30th-065": {
+   "name": "Mew",
+   "tcgplayerName": "Mew",
+   "tp": {
+    "holofoil": {
+     "low": 0.09,
+     "mid": 0.72,
+     "high": 22.5,
+     "market": 0.47,
+     "pid": 716464
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Rare",
+   "printed": "065/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "065",
+   "image": "https://assets.tcgdex.net/en/me/30th/065"
+  },
+  "30th-066": {
+   "name": "Mew ex",
+   "tcgplayerName": "Mew ex - 066/128",
+   "tp": {
+    "holofoil": {
+     "low": 2,
+     "mid": 3.9,
+     "high": 100,
+     "market": 2.88,
+     "pid": 716465
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Double Rare",
+   "printed": "066/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "066",
+   "image": "https://assets.tcgdex.net/en/me/30th/066"
+  },
+  "30th-067": {
+   "name": "Marill",
+   "tcgplayerName": "Marill",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 20,
+     "market": 0.16,
+     "pid": 716466
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "067/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "067",
+   "image": "https://assets.tcgdex.net/en/me/30th/067"
+  },
+  "30th-068": {
+   "name": "Azumarill",
+   "tcgplayerName": "Azumarill",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 3.59,
+     "market": 0.2,
+     "pid": 716467
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "068/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "068",
+   "image": "https://assets.tcgdex.net/en/me/30th/068"
+  },
+  "30th-069": {
+   "name": "Espeon",
+   "tcgplayerName": "Espeon",
+   "tp": {
+    "holofoil": {
+     "low": 0.1,
+     "mid": 0.4,
+     "high": 49.99,
+     "market": 0.32,
+     "pid": 696678
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "069/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "069",
+   "image": "https://assets.tcgdex.net/en/me/30th/069"
+  },
+  "30th-070": {
+   "name": "Espeon ex",
+   "tcgplayerName": "Espeon ex",
+   "tp": {
+    "holofoil": {
+     "low": 0.28,
+     "mid": 1,
+     "high": 89,
+     "market": 0.75,
+     "pid": 696834
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Double Rare",
+   "printed": "070/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "070",
+   "image": "https://assets.tcgdex.net/en/me/30th/070"
+  },
+  "30th-071": {
+   "name": "Sylveon ex",
+   "tcgplayerName": "Sylveon ex - 071/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.49,
+     "mid": 1.05,
+     "high": 75,
+     "market": 0.81,
+     "pid": 696677
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Double Rare",
+   "printed": "071/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "071",
+   "image": "https://assets.tcgdex.net/en/me/30th/071"
+  },
+  "30th-072": {
+   "name": "Unown",
+   "tcgplayerName": "Unown",
+   "tp": {
+    "holofoil": {
+     "low": 0.15,
+     "mid": 0.36,
+     "high": 15,
+     "market": 0.31,
+     "pid": 716468
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "072/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "072",
+   "image": "https://assets.tcgdex.net/en/me/30th/072"
+  },
+  "30th-073": {
+   "name": "Drifloon",
+   "tcgplayerName": "Drifloon - 073/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.21,
+     "high": 13,
+     "market": 0.18,
+     "pid": 716469
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "073/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "073",
+   "image": "https://assets.tcgdex.net/en/me/30th/073"
+  },
+  "30th-074": {
+   "name": "Cresselia",
+   "tcgplayerName": "Cresselia",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 2.49,
+     "market": 0.17,
+     "pid": 716470
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "074/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "074",
+   "image": "https://assets.tcgdex.net/en/me/30th/074"
+  },
+  "30th-075": {
+   "name": "Chandelure",
+   "tcgplayerName": "Chandelure - 075/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.21,
+     "high": 20,
+     "market": 0.18,
+     "pid": 716471
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "075/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "075",
+   "image": "https://assets.tcgdex.net/en/me/30th/075"
+  },
+  "30th-076": {
+   "name": "Xerneas",
+   "tcgplayerName": "Xerneas",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 2.49,
+     "market": 0.17,
+     "pid": 716472
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Rare",
+   "printed": "076/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "076",
+   "image": "https://assets.tcgdex.net/en/me/30th/076"
+  },
+  "30th-077": {
+   "name": "Comfey",
+   "tcgplayerName": "Comfey",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.18,
+     "high": 20,
+     "market": 0.15,
+     "pid": 716473
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "077/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "077",
+   "image": "https://assets.tcgdex.net/en/me/30th/077"
+  },
+  "30th-078": {
+   "name": "Cosmog",
+   "tcgplayerName": "Cosmog",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 2.49,
+     "market": 0.13,
+     "pid": 716474
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "078/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "078",
+   "image": "https://assets.tcgdex.net/en/me/30th/078"
+  },
+  "30th-079": {
+   "name": "Cosmoem",
+   "tcgplayerName": "Cosmoem",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 2.49,
+     "market": 0.19,
+     "pid": 716475
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "079/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "079",
+   "image": "https://assets.tcgdex.net/en/me/30th/079"
+  },
+  "30th-080": {
+   "name": "Lunala",
+   "tcgplayerName": "Lunala",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.21,
+     "high": 2.49,
+     "market": 0.16,
+     "pid": 716476
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Rare",
+   "printed": "080/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "080",
+   "image": "https://assets.tcgdex.net/en/me/30th/080"
+  },
+  "30th-081": {
+   "name": "Gimmighoul",
+   "tcgplayerName": "Gimmighoul",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 2.49,
+     "market": 0.15,
+     "pid": 716477
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "081/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "081",
+   "image": "https://assets.tcgdex.net/en/me/30th/081"
+  },
+  "30th-082": {
+   "name": "Groudon",
+   "tcgplayerName": "Groudon",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 2.2,
+     "market": 0.15,
+     "pid": 716478
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Rare",
+   "printed": "082/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "082",
+   "image": "https://assets.tcgdex.net/en/me/30th/082"
+  },
+  "30th-083": {
+   "name": "Lucario",
+   "tcgplayerName": "Lucario",
+   "tp": {
+    "holofoil": {
+     "low": 0.03,
+     "mid": 0.23,
+     "high": 2.49,
+     "market": 0.18,
+     "pid": 716479
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "083/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "083",
+   "image": "https://assets.tcgdex.net/en/me/30th/083"
+  },
+  "30th-084": {
+   "name": "Seismitoad",
+   "tcgplayerName": "Seismitoad",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 49,
+     "market": 0.18,
+     "pid": 716480
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "084/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "084",
+   "image": "https://assets.tcgdex.net/en/me/30th/084"
+  },
+  "30th-085": {
+   "name": "Lycanroc",
+   "tcgplayerName": "Lycanroc - 085/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 2.49,
+     "market": 0.13,
+     "pid": 716481
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "085/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "085",
+   "image": "https://assets.tcgdex.net/en/me/30th/085"
+  },
+  "30th-086": {
+   "name": "Koraidon",
+   "tcgplayerName": "Koraidon",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 2.49,
+     "market": 0.19,
+     "pid": 716482
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Rare",
+   "printed": "086/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "086",
+   "image": "https://assets.tcgdex.net/en/me/30th/086"
+  },
+  "30th-087": {
+   "name": "Nidoran♀",
+   "tcgplayerName": "Nidoran F",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 20,
+     "market": 0.18,
+     "pid": 716483
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "087/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "087",
+   "image": "https://assets.tcgdex.net/en/me/30th/087"
+  },
+  "30th-088": {
+   "name": "Nidorina",
+   "tcgplayerName": "Nidorina",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 20,
+     "market": 0.17,
+     "pid": 716484
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "088/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "088",
+   "image": "https://assets.tcgdex.net/en/me/30th/088"
+  },
+  "30th-089": {
+   "name": "Alolan Meowth",
+   "tcgplayerName": "Alolan Meowth - 089/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 49,
+     "market": 0.2,
+     "pid": 714359
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "089/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "089",
+   "image": "https://assets.tcgdex.net/en/me/30th/089"
+  },
+  "30th-090": {
+   "name": "Gengar ex",
+   "tcgplayerName": "Gengar ex - 090/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.69,
+     "mid": 2.25,
+     "high": 38.79,
+     "market": 1.26,
+     "pid": 716485
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Double Rare",
+   "printed": "090/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "090",
+   "image": "https://assets.tcgdex.net/en/me/30th/090"
+  },
+  "30th-091": {
+   "name": "Umbreon",
+   "tcgplayerName": "Umbreon",
+   "tp": {
+    "holofoil": {
+     "low": 0.04,
+     "mid": 0.44,
+     "high": 49.95,
+     "market": 0.28,
+     "pid": 696679
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "091/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "091",
+   "image": "https://assets.tcgdex.net/en/me/30th/091"
+  },
+  "30th-092": {
+   "name": "Umbreon ex",
+   "tcgplayerName": "Umbreon ex",
+   "tp": {
+    "holofoil": {
+     "low": 0.49,
+     "mid": 1.32,
+     "high": 49,
+     "market": 0.93,
+     "pid": 696835
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Double Rare",
+   "printed": "092/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "092",
+   "image": "https://assets.tcgdex.net/en/me/30th/092"
+  },
+  "30th-093": {
+   "name": "Murkrow",
+   "tcgplayerName": "Murkrow",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 2.49,
+     "market": 0.17,
+     "pid": 716486
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "093/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "093",
+   "image": "https://assets.tcgdex.net/en/me/30th/093"
+  },
+  "30th-094": {
+   "name": "Scraggy",
+   "tcgplayerName": "Scraggy - 094/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 3.54,
+     "market": 0.14,
+     "pid": 716487
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "094/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "094",
+   "image": "https://assets.tcgdex.net/en/me/30th/094"
+  },
+  "30th-095": {
+   "name": "Zorua",
+   "tcgplayerName": "Zorua",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.22,
+     "high": 20,
+     "market": 0.21,
+     "pid": 716488
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "095/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "095",
+   "image": "https://assets.tcgdex.net/en/me/30th/095"
+  },
+  "30th-096": {
+   "name": "Zoroark",
+   "tcgplayerName": "Zoroark",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 20,
+     "market": 0.15,
+     "pid": 716489
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "096/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "096",
+   "image": "https://assets.tcgdex.net/en/me/30th/096"
+  },
+  "30th-097": {
+   "name": "Deino",
+   "tcgplayerName": "Deino",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 2.49,
+     "market": 0.17,
+     "pid": 716490
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "097/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "097",
+   "image": "https://assets.tcgdex.net/en/me/30th/097"
+  },
+  "30th-098": {
+   "name": "Zweilous",
+   "tcgplayerName": "Zweilous",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 2.49,
+     "market": 0.19,
+     "pid": 716491
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "098/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "098",
+   "image": "https://assets.tcgdex.net/en/me/30th/098"
+  },
+  "30th-099": {
+   "name": "Hydreigon",
+   "tcgplayerName": "Hydreigon",
+   "tp": {
+    "holofoil": {
+     "low": 0.02,
+     "mid": 0.2,
+     "high": 15,
+     "market": 0.16,
+     "pid": 716492
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "099/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "099",
+   "image": "https://assets.tcgdex.net/en/me/30th/099"
+  },
+  "30th-100": {
+   "name": "Yveltal",
+   "tcgplayerName": "Yveltal",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.21,
+     "high": 2.49,
+     "market": 0.22,
+     "pid": 716493
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Rare",
+   "printed": "100/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "100",
+   "image": "https://assets.tcgdex.net/en/me/30th/100"
+  },
+  "30th-101": {
+   "name": "Galarian Meowth",
+   "tcgplayerName": "Galarian Meowth - 101/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 30,
+     "market": 0.17,
+     "pid": 716494
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "101/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "101",
+   "image": "https://assets.tcgdex.net/en/me/30th/101"
+  },
+  "30th-102": {
+   "name": "Jirachi ex",
+   "tcgplayerName": "Jirachi ex - 102/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.2,
+     "mid": 0.66,
+     "high": 30,
+     "market": 0.47,
+     "pid": 716495
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Double Rare",
+   "printed": "102/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "102",
+   "image": "https://assets.tcgdex.net/en/me/30th/102"
+  },
+  "30th-103": {
+   "name": "Dialga",
+   "tcgplayerName": "Dialga",
+   "tp": {
+    "holofoil": {
+     "low": 0.05,
+     "mid": 0.2,
+     "high": 20,
+     "market": 0.21,
+     "pid": 716496
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Rare",
+   "printed": "103/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "103",
+   "image": "https://assets.tcgdex.net/en/me/30th/103"
+  },
+  "30th-104": {
+   "name": "Ferrothorn",
+   "tcgplayerName": "Ferrothorn",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 20,
+     "market": 0.13,
+     "pid": 716497
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "104/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "104",
+   "image": "https://assets.tcgdex.net/en/me/30th/104"
+  },
+  "30th-105": {
+   "name": "Solgaleo",
+   "tcgplayerName": "Solgaleo",
+   "tp": {
+    "holofoil": {
+     "low": 0.04,
+     "mid": 0.2,
+     "high": 25,
+     "market": 0.18,
+     "pid": 716498
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Rare",
+   "printed": "105/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "105",
+   "image": "https://assets.tcgdex.net/en/me/30th/105"
+  },
+  "30th-106": {
+   "name": "Zacian",
+   "tcgplayerName": "Zacian",
+   "tp": {
+    "holofoil": {
+     "low": 0.05,
+     "mid": 0.23,
+     "high": 8,
+     "market": 0.17,
+     "pid": 716499
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Rare",
+   "printed": "106/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "106",
+   "image": "https://assets.tcgdex.net/en/me/30th/106"
+  },
+  "30th-107": {
+   "name": "Zamazenta",
+   "tcgplayerName": "Zamazenta",
+   "tp": {
+    "holofoil": {
+     "low": 0.03,
+     "mid": 0.2,
+     "high": 48,
+     "market": 0.13,
+     "pid": 716500
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Rare",
+   "printed": "107/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "107",
+   "image": "https://assets.tcgdex.net/en/me/30th/107"
+  },
+  "30th-108": {
+   "name": "Gholdengo",
+   "tcgplayerName": "Gholdengo - 108/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 2.2,
+     "market": 0.17,
+     "pid": 716501
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "108/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "108",
+   "image": "https://assets.tcgdex.net/en/me/30th/108"
+  },
+  "30th-109": {
+   "name": "Salamence ex",
+   "tcgplayerName": "Salamence ex - 109/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.1,
+     "mid": 0.5,
+     "high": 49,
+     "market": 0.41,
+     "pid": 716502
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Double Rare",
+   "printed": "109/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "109",
+   "image": "https://assets.tcgdex.net/en/me/30th/109"
+  },
+  "30th-110": {
+   "name": "Jangmo-o",
+   "tcgplayerName": "Jangmo-o",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 48,
+     "market": 0.19,
+     "pid": 716503
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "110/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "110",
+   "image": "https://assets.tcgdex.net/en/me/30th/110"
+  },
+  "30th-111": {
+   "name": "Hakamo-o",
+   "tcgplayerName": "Hakamo-o",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.21,
+     "high": 25,
+     "market": 0.18,
+     "pid": 716504
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "111/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "111",
+   "image": "https://assets.tcgdex.net/en/me/30th/111"
+  },
+  "30th-112": {
+   "name": "Kommo-o",
+   "tcgplayerName": "Kommo-o - 112/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.25,
+     "high": 15,
+     "market": 0.17,
+     "pid": 716505
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "112/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "112",
+   "image": "https://assets.tcgdex.net/en/me/30th/112"
+  },
+  "30th-113": {
+   "name": "Meowth",
+   "tcgplayerName": "Meowth - 113/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.22,
+     "high": 49,
+     "market": 0.16,
+     "pid": 714356
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "113/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "113",
+   "image": "https://assets.tcgdex.net/en/me/30th/113"
+  },
+  "30th-114": {
+   "name": "Kangaskhan",
+   "tcgplayerName": "Kangaskhan",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.21,
+     "high": 35,
+     "market": 0.2,
+     "pid": 716506
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "114/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "114",
+   "image": "https://assets.tcgdex.net/en/me/30th/114"
+  },
+  "30th-115": {
+   "name": "Ditto",
+   "tcgplayerName": "Ditto",
+   "tp": {
+    "holofoil": {
+     "low": 0.03,
+     "mid": 0.39,
+     "high": 39,
+     "market": 0.32,
+     "pid": 716507
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "115/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "115",
+   "image": "https://assets.tcgdex.net/en/me/30th/115"
+  },
+  "30th-116": {
+   "name": "Eevee",
+   "tcgplayerName": "Eevee - 116/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.07,
+     "mid": 0.32,
+     "high": 49,
+     "market": 0.2,
+     "pid": 714357
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "116/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "116",
+   "image": "https://assets.tcgdex.net/en/me/30th/116"
+  },
+  "30th-117": {
+   "name": "Eevee",
+   "tcgplayerName": "Eevee - 117/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.1,
+     "mid": 0.39,
+     "high": 49.99,
+     "market": 0.33,
+     "pid": 696832
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "117/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "117",
+   "image": "https://assets.tcgdex.net/en/me/30th/117"
+  },
+  "30th-118": {
+   "name": "Eevee",
+   "tcgplayerName": "Eevee - 118/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.13,
+     "mid": 0.45,
+     "high": 49.99,
+     "market": 0.33,
+     "pid": 696833
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "118/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "118",
+   "image": "https://assets.tcgdex.net/en/me/30th/118"
+  },
+  "30th-119": {
+   "name": "Snorlax",
+   "tcgplayerName": "Snorlax",
+   "tp": {
+    "holofoil": {
+     "low": 0.02,
+     "mid": 0.35,
+     "high": 49,
+     "market": 0.3,
+     "pid": 716508
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "119/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "119",
+   "image": "https://assets.tcgdex.net/en/me/30th/119"
+  },
+  "30th-120": {
+   "name": "Igglybuff",
+   "tcgplayerName": "Igglybuff",
+   "tp": {
+    "holofoil": {
+     "low": 0.09,
+     "mid": 0.35,
+     "high": 5.99,
+     "market": 0.26,
+     "pid": 716509
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "120/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "120",
+   "image": "https://assets.tcgdex.net/en/me/30th/120"
+  },
+  "30th-121": {
+   "name": "Lugia",
+   "tcgplayerName": "Lugia",
+   "tp": {
+    "holofoil": {
+     "low": 0.08,
+     "mid": 0.4,
+     "high": 49,
+     "market": 0.31,
+     "pid": 716510
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Rare",
+   "printed": "121/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "121",
+   "image": "https://assets.tcgdex.net/en/me/30th/121"
+  },
+  "30th-122": {
+   "name": "Hisuian Zorua",
+   "tcgplayerName": "Hisuian Zorua - 122/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.21,
+     "high": 49,
+     "market": 0.19,
+     "pid": 716511
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "122/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "122",
+   "image": "https://assets.tcgdex.net/en/me/30th/122"
+  },
+  "30th-123": {
+   "name": "Hisuian Zoroark",
+   "tcgplayerName": "Hisuian Zoroark",
+   "tp": {
+    "holofoil": {
+     "low": 0.02,
+     "mid": 0.24,
+     "high": 25,
+     "market": 0.25,
+     "pid": 716512
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "123/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "123",
+   "image": "https://assets.tcgdex.net/en/me/30th/123"
+  },
+  "30th-124": {
+   "name": "Minior",
+   "tcgplayerName": "Minior",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.2,
+     "high": 7.5,
+     "market": 0.19,
+     "pid": 716513
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "124/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "124",
+   "image": "https://assets.tcgdex.net/en/me/30th/124"
+  },
+  "30th-125": {
+   "name": "Maushold",
+   "tcgplayerName": "Maushold - 125/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.04,
+     "mid": 0.29,
+     "high": 35,
+     "market": 0.19,
+     "pid": 716514
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "125/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "125",
+   "image": "https://assets.tcgdex.net/en/me/30th/125"
+  },
+  "30th-126": {
+   "name": "Poké Pad",
+   "tcgplayerName": "Poke Pad",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.57,
+     "high": 78,
+     "market": 0.51,
+     "pid": 716515
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "126/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "126",
+   "image": "https://assets.tcgdex.net/en/me/30th/126"
+  },
+  "30th-127": {
+   "name": "Switch",
+   "tcgplayerName": "Switch",
+   "tp": {
+    "holofoil": {
+     "low": 0.01,
+     "mid": 0.3,
+     "high": 2.84,
+     "market": 0.25,
+     "pid": 716516
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "127/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "127",
+   "image": "https://assets.tcgdex.net/en/me/30th/127"
+  },
+  "30th-128": {
+   "name": "Ultra Ball",
+   "tcgplayerName": "Ultra Ball",
+   "tp": {
+    "holofoil": {
+     "low": 0.06,
+     "mid": 0.49,
+     "high": 12.6,
+     "market": 0.35,
+     "pid": 716517
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Common",
+   "printed": "128/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "128",
+   "image": "https://assets.tcgdex.net/en/me/30th/128"
+  },
+  "30th-129": {
+   "name": "Alolan Exeggutor",
+   "tcgplayerName": "Alolan Exeggutor - 129/128",
+   "tp": {
+    "holofoil": {
+     "low": 1.4,
+     "mid": 3.17,
+     "high": 74.99,
+     "market": 2.21,
+     "pid": 716218
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Illustration Rare",
+   "printed": "129/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "129",
+   "image": "https://assets.tcgdex.net/en/me/30th/129"
+  },
+  "30th-130": {
+   "name": "Moltres",
+   "tcgplayerName": "Moltres - 130/128",
+   "tp": {
+    "holofoil": {
+     "low": 5.23,
+     "mid": 8.99,
+     "high": 199,
+     "market": 6.03,
+     "pid": 716219
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Illustration Rare",
+   "printed": "130/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "130",
+   "image": "https://assets.tcgdex.net/en/me/30th/130"
+  },
+  "30th-131": {
+   "name": "Lapras",
+   "tcgplayerName": "Lapras - 131/128",
+   "tp": {
+    "holofoil": {
+     "low": 6,
+     "mid": 9.11,
+     "high": 100,
+     "market": 6.71,
+     "pid": 696683
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Illustration Rare",
+   "printed": "131/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "131",
+   "image": "https://assets.tcgdex.net/en/me/30th/131"
+  },
+  "30th-132": {
+   "name": "Articuno",
+   "tcgplayerName": "Articuno - 132/128",
+   "tp": {
+    "holofoil": {
+     "low": 6,
+     "mid": 9,
+     "high": 198.99,
+     "market": 7.07,
+     "pid": 716220
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Illustration Rare",
+   "printed": "132/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "132",
+   "image": "https://assets.tcgdex.net/en/me/30th/132"
+  },
+  "30th-133": {
+   "name": "Zapdos",
+   "tcgplayerName": "Zapdos - 133/128",
+   "tp": {
+    "holofoil": {
+     "low": 6,
+     "mid": 9.6,
+     "high": 111,
+     "market": 6.94,
+     "pid": 716221
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Illustration Rare",
+   "printed": "133/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "133",
+   "image": "https://assets.tcgdex.net/en/me/30th/133"
+  },
+  "30th-134": {
+   "name": "Toxtricity",
+   "tcgplayerName": "Toxtricity - 134/128",
+   "tp": {
+    "holofoil": {
+     "low": 1.9,
+     "mid": 3.5,
+     "high": 145,
+     "market": 2.33,
+     "pid": 716222
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Illustration Rare",
+   "printed": "134/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "134",
+   "image": "https://assets.tcgdex.net/en/me/30th/134"
+  },
+  "30th-135": {
+   "name": "Morpeko",
+   "tcgplayerName": "Morpeko - 135/128",
+   "tp": {
+    "holofoil": {
+     "low": 4,
+     "mid": 7.16,
+     "high": 100,
+     "market": 4.7,
+     "pid": 716223
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Illustration Rare",
+   "printed": "135/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "135",
+   "image": "https://assets.tcgdex.net/en/me/30th/135"
+  },
+  "30th-136": {
+   "name": "Drifloon",
+   "tcgplayerName": "Drifloon - 136/128",
+   "tp": {
+    "holofoil": {
+     "low": 2.6,
+     "mid": 4.66,
+     "high": 100,
+     "market": 3.27,
+     "pid": 696684
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Illustration Rare",
+   "printed": "136/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "136",
+   "image": "https://assets.tcgdex.net/en/me/30th/136"
+  },
+  "30th-137": {
+   "name": "Chandelure",
+   "tcgplayerName": "Chandelure - 137/128",
+   "tp": {
+    "holofoil": {
+     "low": 1.5,
+     "mid": 3.5,
+     "high": 88.99,
+     "market": 2.18,
+     "pid": 716224
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Illustration Rare",
+   "printed": "137/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "137",
+   "image": "https://assets.tcgdex.net/en/me/30th/137"
+  },
+  "30th-138": {
+   "name": "Lycanroc",
+   "tcgplayerName": "Lycanroc - 138/128",
+   "tp": {
+    "holofoil": {
+     "low": 1,
+     "mid": 2.26,
+     "high": 44,
+     "market": 1.34,
+     "pid": 696685
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Illustration Rare",
+   "printed": "138/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "138",
+   "image": "https://assets.tcgdex.net/en/me/30th/138"
+  },
+  "30th-139": {
+   "name": "Alolan Meowth",
+   "tcgplayerName": "Alolan Meowth - 139/128",
+   "tp": {
+    "holofoil": {
+     "low": 6.75,
+     "mid": 10,
+     "high": 100,
+     "market": 7.68,
+     "pid": 714360
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Illustration Rare",
+   "printed": "139/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "139",
+   "image": "https://assets.tcgdex.net/en/me/30th/139"
+  },
+  "30th-140": {
+   "name": "Scraggy",
+   "tcgplayerName": "Scraggy - 140/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.8,
+     "mid": 2.3,
+     "high": 74.99,
+     "market": 1.34,
+     "pid": 716225
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Illustration Rare",
+   "printed": "140/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "140",
+   "image": "https://assets.tcgdex.net/en/me/30th/140"
+  },
+  "30th-141": {
+   "name": "Galarian Meowth",
+   "tcgplayerName": "Galarian Meowth - 141/128",
+   "tp": {
+    "holofoil": {
+     "low": 6.05,
+     "mid": 10,
+     "high": 588,
+     "market": 7.17,
+     "pid": 716226
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Illustration Rare",
+   "printed": "141/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "141",
+   "image": "https://assets.tcgdex.net/en/me/30th/141"
+  },
+  "30th-142": {
+   "name": "Gholdengo",
+   "tcgplayerName": "Gholdengo - 142/128",
+   "tp": {
+    "holofoil": {
+     "low": 1,
+     "mid": 2.31,
+     "high": 50,
+     "market": 1.39,
+     "pid": 716227
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Illustration Rare",
+   "printed": "142/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "142",
+   "image": "https://assets.tcgdex.net/en/me/30th/142"
+  },
+  "30th-143": {
+   "name": "Kommo-o",
+   "tcgplayerName": "Kommo-o - 143/128",
+   "tp": {
+    "holofoil": {
+     "low": 0.87,
+     "mid": 2.07,
+     "high": 80,
+     "market": 1.5,
+     "pid": 717621
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Illustration Rare",
+   "printed": "143/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "143",
+   "image": "https://assets.tcgdex.net/en/me/30th/143"
+  },
+  "30th-144": {
+   "name": "Meowth",
+   "tcgplayerName": "Meowth - 144/128",
+   "tp": {
+    "holofoil": {
+     "low": 8.5,
+     "mid": 13.75,
+     "high": 100,
+     "market": 10.21,
+     "pid": 714358
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Illustration Rare",
+   "printed": "144/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "144",
+   "image": "https://assets.tcgdex.net/en/me/30th/144"
+  },
+  "30th-145": {
+   "name": "Hisuian Zorua",
+   "tcgplayerName": "Hisuian Zorua - 145/128",
+   "tp": {
+    "holofoil": {
+     "low": 4.45,
+     "mid": 6.66,
+     "high": 100,
+     "market": 5.23,
+     "pid": 696686
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Illustration Rare",
+   "printed": "145/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "145",
+   "image": "https://assets.tcgdex.net/en/me/30th/145"
+  },
+  "30th-146": {
+   "name": "Maushold",
+   "tcgplayerName": "Maushold - 146/128",
+   "tp": {
+    "holofoil": {
+     "low": 11,
+     "mid": 15.99,
+     "high": 599.99,
+     "market": 12.5,
+     "pid": 716228
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Illustration Rare",
+   "printed": "146/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "146",
+   "image": "https://assets.tcgdex.net/en/me/30th/146"
+  },
+  "30th-147": {
+   "name": "Fuecoco ex",
+   "tcgplayerName": "Fuecoco ex - 147/128",
+   "tp": {
+    "holofoil": {
+     "low": 12.85,
+     "mid": 18.42,
+     "high": 94,
+     "market": 14.51,
+     "pid": 716229
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Special Illustration Rare",
+   "printed": "147/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "147",
+   "image": "https://assets.tcgdex.net/en/me/30th/147"
+  },
+  "30th-148": {
+   "name": "Greninja ex",
+   "tcgplayerName": "Greninja ex - 148/128",
+   "tp": {
+    "holofoil": {
+     "low": 19.99,
+     "mid": 30,
+     "high": 348,
+     "market": 21.28,
+     "pid": 716230
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Special Illustration Rare",
+   "printed": "148/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "148",
+   "image": "https://assets.tcgdex.net/en/me/30th/148"
+  },
+  "30th-149": {
+   "name": "Pikachu ex",
+   "tcgplayerName": "Pikachu ex - 149/128",
+   "tp": {
+    "holofoil": {
+     "low": 47,
+     "mid": 71.92,
+     "high": 1099,
+     "market": 52.67,
+     "pid": 712953
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Special Illustration Rare",
+   "printed": "149/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "149",
+   "image": "https://assets.tcgdex.net/en/me/30th/149"
+  },
+  "30th-150": {
+   "name": "Pikachu ex",
+   "tcgplayerName": "Pikachu ex - 150/128",
+   "tp": {
+    "holofoil": {
+     "low": 64.21,
+     "mid": 80,
+     "high": 899.79,
+     "market": 65.28,
+     "pid": 712954
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Special Illustration Rare",
+   "printed": "150/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "150",
+   "image": "https://assets.tcgdex.net/en/me/30th/150"
+  },
+  "30th-151": {
+   "name": "Mewtwo ex",
+   "tcgplayerName": "Mewtwo ex - 151/128",
+   "tp": {
+    "holofoil": {
+     "low": 49,
+     "mid": 80,
+     "high": 5000,
+     "market": 54.18,
+     "pid": 717603
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Special Illustration Rare",
+   "printed": "151/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "151",
+   "image": "https://assets.tcgdex.net/en/me/30th/151"
+  },
+  "30th-152": {
+   "name": "Mew ex",
+   "tcgplayerName": "Mew ex - 152/128",
+   "tp": {
+    "holofoil": {
+     "low": 80,
+     "mid": 104.74,
+     "high": 1000,
+     "market": 84.8,
+     "pid": 717605
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Special Illustration Rare",
+   "printed": "152/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "152",
+   "image": "https://assets.tcgdex.net/en/me/30th/152"
+  },
+  "30th-153": {
+   "name": "Sylveon ex",
+   "tcgplayerName": "Sylveon ex - 153/128",
+   "tp": {
+    "holofoil": {
+     "low": 45.03,
+     "mid": 60.51,
+     "high": 3499.99,
+     "market": 49.1,
+     "pid": 716231
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Special Illustration Rare",
+   "printed": "153/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "153",
+   "image": "https://assets.tcgdex.net/en/me/30th/153"
+  },
+  "30th-154": {
+   "name": "Gengar ex",
+   "tcgplayerName": "Gengar ex - 154/128",
+   "tp": {
+    "holofoil": {
+     "low": 65.99,
+     "mid": 95.1,
+     "high": 500,
+     "market": 71.22,
+     "pid": 717610
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Special Illustration Rare",
+   "printed": "154/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "154",
+   "image": "https://assets.tcgdex.net/en/me/30th/154"
+  },
+  "30th-155": {
+   "name": "Jirachi ex",
+   "tcgplayerName": "Jirachi ex - 155/128",
+   "tp": {
+    "holofoil": {
+     "low": 44.83,
+     "mid": 64,
+     "high": 1249.99,
+     "market": 46.96,
+     "pid": 716232
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Special Illustration Rare",
+   "printed": "155/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "155",
+   "image": "https://assets.tcgdex.net/en/me/30th/155"
+  },
+  "30th-156": {
+   "name": "Salamence ex",
+   "tcgplayerName": "Salamence ex - 156/128",
+   "tp": {
+    "holofoil": {
+     "low": 14.62,
+     "mid": 18.17,
+     "high": 150,
+     "market": 15.84,
+     "pid": 716233
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Special Illustration Rare",
+   "printed": "156/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "156",
+   "image": "https://assets.tcgdex.net/en/me/30th/156"
+  },
+  "30th-157": {
+   "name": "Mewtwo ex",
+   "tcgplayerName": "Mewtwo ex - 157/128",
+   "tp": {
+    "holofoil": {
+     "low": 43.45,
+     "mid": 74.99,
+     "high": 1999.99,
+     "market": 49.25,
+     "pid": 696687
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Futuristic Rare",
+   "printed": "157/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "157",
+   "image": "https://assets.tcgdex.net/en/me/30th/157"
+  },
+  "30th-158": {
+   "name": "Mew ex",
+   "tcgplayerName": "Mew ex - 158/128",
+   "tp": {
+    "holofoil": {
+     "low": 60,
+     "mid": 87.34,
+     "high": 8000,
+     "market": 65.22,
+     "pid": 696688
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Futuristic Rare",
+   "printed": "158/128",
+   "how": "numero",
+   "setId": "30th",
+   "number": "158",
+   "image": "https://assets.tcgdex.net/en/me/30th/158"
+  },
+  "30th-c-001": {
+   "name": "Charizard",
+   "tcgplayerName": "Charizard",
+   "tp": {
+    "holofoil": {
+     "low": 131.66,
+     "mid": 178.99,
+     "high": 751.48,
+     "market": 139.24,
+     "pid": 714372
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "4/102",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "001",
+   "image": null
+  },
+  "30th-c-002": {
+   "name": "Delcatty",
+   "tcgplayerName": "Delcatty",
+   "tp": {
+    "holofoil": {
+     "low": 4,
+     "mid": 6,
+     "high": 99.99,
+     "market": 4.88,
+     "pid": 716156
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "5/109",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "002",
+   "image": null
+  },
+  "30th-c-003": {
+   "name": "Metagross",
+   "tcgplayerName": "Metagross (Delta Species)",
+   "tp": {
+    "holofoil": {
+     "low": 7,
+     "mid": 9.11,
+     "high": 999.99,
+     "market": 8.3,
+     "pid": 716157
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "11/113",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "003",
+   "image": null
+  },
+  "30th-c-004": {
+   "name": "Genesect EX",
+   "tcgplayerName": "Genesect EX (Team Plasma)",
+   "tp": {
+    "holofoil": {
+     "low": 6,
+     "mid": 7,
+     "high": 192.9,
+     "market": 6.71,
+     "pid": 716158
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "11/101",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "004",
+   "image": null
+  },
+  "30th-c-005": {
+   "name": "Misty",
+   "tcgplayerName": "Misty",
+   "tp": {
+    "holofoil": {
+     "low": 5,
+     "mid": 8.5,
+     "high": 99.99,
+     "market": 6.44,
+     "pid": 716159
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "18/132",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "005",
+   "image": null
+  },
+  "30th-c-006": {
+   "name": "Dark Tyranitar",
+   "tcgplayerName": "Dark Tyranitar",
+   "tp": {
+    "holofoil": {
+     "low": 8,
+     "mid": 17.67,
+     "high": 999.99,
+     "market": 14.03,
+     "pid": 716160
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "19/109",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "006",
+   "image": null
+  },
+  "30th-c-007": {
+   "name": "Sneasel",
+   "tcgplayerName": "Sneasel",
+   "tp": {
+    "holofoil": {
+     "low": 3.99,
+     "mid": 6.97,
+     "high": 241.9,
+     "market": 4.73,
+     "pid": 716161
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "25/111",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "007",
+   "image": null
+  },
+  "30th-c-008": {
+   "name": "Pikachu & Zekrom GX",
+   "tcgplayerName": "Pikachu & Zekrom GX",
+   "tp": {
+    "holofoil": {
+     "low": 25,
+     "mid": 35.45,
+     "high": 249.99,
+     "market": 26.95,
+     "pid": 714373
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "33/181",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "008",
+   "image": null
+  },
+  "30th-c-009": {
+   "name": "Greninja BREAK",
+   "tcgplayerName": "Greninja BREAK",
+   "tp": {
+    "holofoil": {
+     "low": 9,
+     "mid": 12.01,
+     "high": 100,
+     "market": 10.08,
+     "pid": 716162
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "41/122",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "009",
+   "image": null
+  },
+  "30th-c-010": {
+   "name": "Uxie",
+   "tcgplayerName": "Uxie",
+   "tp": {
+    "holofoil": {
+     "low": 3,
+     "mid": 5.97,
+     "high": 219.99,
+     "market": 4.79,
+     "pid": 716163
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "43/146",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "010",
+   "image": null
+  },
+  "30th-c-011": {
+   "name": "Crobat G",
+   "tcgplayerName": "Crobat G",
+   "tp": {
+    "holofoil": {
+     "low": 4.51,
+     "mid": 6.98,
+     "high": 225,
+     "market": 4.96,
+     "pid": 716191
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "47/127",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "011",
+   "image": null
+  },
+  "30th-c-012": {
+   "name": "Raikou",
+   "tcgplayerName": "Raikou",
+   "tp": {
+    "holofoil": {
+     "low": 7.5,
+     "mid": 12.04,
+     "high": 499.99,
+     "market": 8.71,
+     "pid": 716192
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "050/185",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "012",
+   "image": null
+  },
+  "30th-c-013": {
+   "name": "Buzzwole GX",
+   "tcgplayerName": "Buzzwole GX",
+   "tp": {
+    "holofoil": {
+     "low": 2.5,
+     "mid": 5,
+     "high": 150,
+     "market": 3.71,
+     "pid": 716193
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "57/111",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "013",
+   "image": null
+  },
+  "30th-c-014": {
+   "name": "Pikachu",
+   "tcgplayerName": "Pikachu",
+   "tp": {
+    "holofoil": {
+     "low": 18.15,
+     "mid": 26.5,
+     "high": 499.99,
+     "market": 22.08,
+     "pid": 716194
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "58/102",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "014",
+   "image": null
+  },
+  "30th-c-015": {
+   "name": "Erika's Jigglypuff",
+   "tcgplayerName": "Erika's Jigglypuff",
+   "tp": {
+    "holofoil": {
+     "low": 8,
+     "mid": 12.26,
+     "high": 500,
+     "market": 10.1,
+     "pid": 716195
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "69/132",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "015",
+   "image": null
+  },
+  "30th-c-016": {
+   "name": "Rayquaza EX",
+   "tcgplayerName": "Rayquaza EX",
+   "tp": {
+    "holofoil": {
+     "low": 20,
+     "mid": 26.37,
+     "high": 701.99,
+     "market": 21.36,
+     "pid": 716196
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "85/124",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "016",
+   "image": null
+  },
+  "30th-c-017": {
+   "name": "Solgaleo GX",
+   "tcgplayerName": "Solgaleo GX",
+   "tp": {
+    "holofoil": {
+     "low": 5.66,
+     "mid": 8.57,
+     "high": 402.98,
+     "market": 6.03,
+     "pid": 716197
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "89/149",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "017",
+   "image": null
+  },
+  "30th-c-018": {
+   "name": "Gengar",
+   "tcgplayerName": "Gengar (Prime)",
+   "tp": {
+    "holofoil": {
+     "low": 50,
+     "mid": 79.99,
+     "high": 2002.97,
+     "market": 79.25,
+     "pid": 716198
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "94/102",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "018",
+   "image": null
+  },
+  "30th-c-021": {
+   "name": "N",
+   "tcgplayerName": "N",
+   "tp": {
+    "holofoil": {
+     "low": 13.75,
+     "mid": 18,
+     "high": 500,
+     "market": 13.72,
+     "pid": 716202
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "101/101",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "021",
+   "image": null
+  },
+  "30th-c-022": {
+   "name": "Palkia",
+   "tcgplayerName": "Palkia LV.X",
+   "tp": {
+    "holofoil": {
+     "low": 7.99,
+     "mid": 12.03,
+     "high": 552.98,
+     "market": 9.66,
+     "pid": 716203
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "106/106",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "022",
+   "image": null
+  },
+  "30th-c-023": {
+   "name": "M Gardevoir EX",
+   "tcgplayerName": "M Gardevoir EX",
+   "tp": {
+    "holofoil": {
+     "low": 10,
+     "mid": 12.28,
+     "high": 499.99,
+     "market": 11.74,
+     "pid": 716204
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "106/160",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "023",
+   "image": null
+  },
+  "30th-c-024": {
+   "name": "Shining Celebi",
+   "tcgplayerName": "Shining Celebi",
+   "tp": {
+    "holofoil": {
+     "low": 19.99,
+     "mid": 33,
+     "high": 519.99,
+     "market": 26.44,
+     "pid": 716205
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "106/105",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "024",
+   "image": null
+  },
+  "30th-c-025": {
+   "name": "Scizor ex",
+   "tcgplayerName": "Scizor ex",
+   "tp": {
+    "holofoil": {
+     "low": 7.99,
+     "mid": 12.91,
+     "high": 602.97,
+     "market": 10.88,
+     "pid": 716206
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "108/115",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "025",
+   "image": null
+  },
+  "30th-c-026": {
+   "name": "Mew VMAX",
+   "tcgplayerName": "Mew VMAX",
+   "tp": {
+    "holofoil": {
+     "low": 18.11,
+     "mid": 23.48,
+     "high": 390,
+     "market": 18.8,
+     "pid": 716207
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "114/264",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "026",
+   "image": null
+  },
+  "30th-c-027": {
+   "name": "Arceus VSTAR",
+   "tcgplayerName": "Arceus VSTAR",
+   "tp": {
+    "holofoil": {
+     "low": 6.59,
+     "mid": 10,
+     "high": 102.98,
+     "market": 7.41,
+     "pid": 716208
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "123/172",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "027",
+   "image": null
+  },
+  "30th-c-028": {
+   "name": "Zacian V",
+   "tcgplayerName": "Zacian V",
+   "tp": {
+    "holofoil": {
+     "low": 5,
+     "mid": 7,
+     "high": 99.99,
+     "market": 6.32,
+     "pid": 716209
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "138/202",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "028",
+   "image": null
+  },
+  "30th-c-029": {
+   "name": "Lugia",
+   "tcgplayerName": "Lugia",
+   "tp": {
+    "holofoil": {
+     "low": 200,
+     "mid": 250,
+     "high": 2999.99,
+     "market": 203.81,
+     "pid": 714386
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "149/147",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "029",
+   "image": null
+  },
+  "30th-c-030": {
+   "name": "Magikarp",
+   "tcgplayerName": "Magikarp",
+   "tp": {
+    "holofoil": {
+     "low": 85,
+     "mid": 108.35,
+     "high": 2002.98,
+     "market": 89.15,
+     "pid": 716210
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "203/193",
+   "how": "nombre",
+   "setId": "30th-c",
+   "number": "030",
+   "image": null
+  },
+  "30th-c-019": {
+   "name": "Darkrai & Cresselia LEGEND",
+   "tcgplayerName": "Darkrai & Cresselia Legend (Top)",
+   "tp": {
+    "holofoil": {
+     "low": 21.07,
+     "mid": 26.02,
+     "high": 349.99,
+     "market": 22.34,
+     "pid": 716199
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "99/102",
+   "how": "mitad",
+   "setId": "30th-c",
+   "number": "019",
+   "image": null
+  },
+  "30th-c-020": {
+   "name": "Darkrai & Cresselia LEGEND",
+   "tcgplayerName": "Darkrai & Cresselia Legend (Bottom)",
+   "tp": {
+    "holofoil": {
+     "low": 20,
+     "mid": 24.49,
+     "high": 402.98,
+     "market": 22.2,
+     "pid": 716200
+    }
+   },
+   "variants": [
+    "holofoil"
+   ],
+   "rarity": "Classic Collection",
+   "printed": "100/102",
+   "how": "mitad",
+   "setId": "30th-c",
+   "number": "020",
+   "image": null
+  }
+ }
+}

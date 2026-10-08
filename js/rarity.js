@@ -33,6 +33,10 @@ const GLYPHS = {
   shiny: disk() + star(12, 12.6, 6.2, 'none', GOLD),
   shinyultra: disk() + star(8.6, 10.2, 4.3, 'none', GOLD) + star(15.4, 14.4, 4.3, 'none', GOLD),
   promo: disk() + star(12, 12.8, 8.2, INK) + `<text x="12" y="14.3" font-size="4.2" font-weight="800" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif">PROMO</text>`,
+  // No official symbol known for these three: own glyphs, clearly different from the rest.
+  pika: disk() + `<path d="M13.6 4.5 7.8 13h3.6l-1.2 6.5 6-8.8h-3.7z" fill="#f2c200" stroke="${INK}" stroke-width=".9" stroke-linejoin="round"/>`,
+  futur: disk('#111') + `<path d="M12 4.2 18.8 8.1v7.8L12 19.8l-6.8-3.9V8.1Z" fill="none" stroke="#5eead4" stroke-width="1.4"/>` + star(12, 12.4, 4.2, '#a78bfa'),
+  classic: disk('#1d1b16') + `<circle cx="12" cy="12" r="9.2" fill="none" stroke="${GOLD}" stroke-width="1"/><text x="12" y="15" font-size="7.6" font-weight="800" text-anchor="middle" fill="${GOLD}" font-family="Georgia,serif">CC</text>`,
   secret: `<circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2.5 2"/><text x="12" y="15.2" font-size="8.5" font-weight="800" text-anchor="middle" fill="currentColor" font-family="Arial,sans-serif">?</text>`,
   other: `<circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="12" cy="12" r="2" fill="currentColor"/>`,
 };
@@ -48,6 +52,9 @@ export const RARITIES = [
   { key: 'shiny', label: 'Shiny Rare', jp: 'S', api: 'Shiny rare', tier: 5 },
   { key: 'ace', label: 'ACE SPEC Rare', jp: 'ACE', api: 'ACE SPEC Rare', tier: 4 },
   { key: 'secret', label: 'Secret Rare', jp: '—', api: 'Secret Rare', tier: 6 },
+  { key: 'futur', label: 'Futuristic Rare', jp: '', api: 'Futuristic Rare', tier: 8 },
+  { key: 'classic', label: 'Classic Collection', jp: '', api: 'Classic Collection', tier: 7 },
+  { key: 'pika', label: 'Pikachu Rare', jp: '', api: 'Pikachu Rare', tier: 4 },
   { key: 'promo', label: 'Promo', jp: 'PROMO', api: 'Promo', tier: 3 },
   { key: 'rare', label: 'Rare', jp: 'R', api: 'Rare', tier: 3 },
   { key: 'uncommon', label: 'Uncommon', jp: 'U', api: 'Uncommon', tier: 2 },

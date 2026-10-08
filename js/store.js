@@ -114,6 +114,19 @@ export function pushHist(key, value) {
 // ───────────────────────── Items
 
 export const held = () => state.items.filter((it) => it.status === 'held');
+
+// Copies registered while TCGdex still had placeholder data get the real version and rarity:
+// if the copy's version has no price and the card has exactly one priced version, that's the one
+// (e.g. bought as "Normal" but TCGplayer only lists the Holofoil).
+export function repairItems(card, prices) {
+  const tp = prices.tp || {};
+  const priced = Object.keys(tp).filter((k) => (tp[k]?.market ?? tp[k]?.mid ?? tp[k]?.low) != null);
+  for (const it of held()) {
+    if (it.cardId !== card.id) continue;
+    if (!tp[it.variant] && priced.length === 1) it.variant = priced[0];
+    if (!it.rarity && card.rarity) it.rarity = card.rarity;
+  }
+}
 export const ownedCount = (cardId) => state.items.filter((it) => it.status === 'held' && it.cardId === cardId).length;
 export const itemValueUSD = (it) => marketUSD(it.cardId, it.variant);
 

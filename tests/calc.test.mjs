@@ -201,6 +201,18 @@ test('collection items are excluded from the sell ranking unless asked', () => {
   assert.equal(S.sellRanking({ includeKeep: true }).length, 1);
 });
 
+// ─────────────── placeholder data repair
+test('copy bought as placeholder "Normal" moves to the only priced version; rarity filled', () => {
+  reset();
+  const [it] = S.addItems({ card: { ...card('n'), rarity: null }, variant: 'normal', price: 10000, currency: 'CLP' });
+  S.repairItems({ id: 'n', rarity: 'Classic Collection' }, { tp: { holofoil: { market: 139.24 } } });
+  assert.equal(it.variant, 'holofoil');
+  assert.equal(it.rarity, 'Classic Collection');
+  const [it2] = S.addItems({ card: card('m'), variant: 'normal', price: 10000, currency: 'CLP' });
+  S.repairItems({ id: 'm', rarity: 'Rare' }, { tp: { holofoil: { market: 1 }, 'reverse-holofoil': { market: 2 } } });
+  assert.equal(it2.variant, 'normal', 'con varias versiones no adivina');
+});
+
 // ─────────────── trades
 const sum = (a) => a.reduce((x, y) => x + y, 0);
 const invariant = (plan, paid, recv) => near(sum(plan.proceeds) - sum(plan.basis), recv - paid, 1e-9, 'Σventas − Σcostos = efectivo neto');
