@@ -41,6 +41,16 @@ Puntaje = ganancia % sobre tu compra + monto de la ganancia + tendencia del prec
 ## Instalar en el iPhone
 Abre la URL en **Safari** → botón **Compartir** → **Agregar a pantalla de inicio**. Abre a pantalla completa, funciona sin conexión con los últimos precios y iOS no borra los datos de apps instaladas.
 
+## Cómo se calculan los montos
+- **Costo:** se guarda en CLP y en USD con el dólar del momento de la compra (o del día que indiques si la registras con fecha pasada: dólar observado de mindicador.cl; si no responde, tipo de mercado de ese día). Ese costo no cambia aunque el dólar se mueva.
+- **Valor:** precio TCGplayer *market* de la versión exacta (Normal / Holo / Reverse); si no hay, *mid*, luego *low*; si la carta tiene una sola versión listada se usa esa; si no hay TCGplayer, Cardmarket (EUR→USD). Nunca se toma el precio de otra versión. Sin precio, la carta cuenta a su costo.
+- **Ganancia en CLP** = valor en USD × dólar de hoy − lo que pagaste en pesos (incluye el efecto del dólar). **En USD** = valor − costo en USD.
+- **Venta:** se registra lo que recibes neto de la comisión configurada; la ganancia realizada es neto − costo.
+- **Intercambio:** tus cartas salen a valor de mercado y las que recibes entran con ese valor (± efectivo) como costo. Si te pagan más efectivo que lo que valen tus cartas, el exceso cuenta como ganancia realizada. Siempre se cumple: Σ ventas − Σ costos nuevos = efectivo neto recibido.
+- **Tipo de cambio fijado a mano** en Ajustes se respeta hasta que presiones *Actualizar*.
+
+Pruebas de los cálculos: `node tests/calc.test.mjs`
+
 ## Datos y respaldo
 Todo vive en el `localStorage` del teléfono. En **Ajustes → Exportar respaldo** descargas un `.json`; con **Importar** lo cargas en otro teléfono.
 

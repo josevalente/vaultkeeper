@@ -81,17 +81,25 @@ export function setPrice(cardId, p) {
   state.prices[cardId] = { ...p, at: Date.now() };
 }
 
-export function marketUSD(cardId, variant) {
+// Market value in USD for one copy, plus where it came from:
+//  1) TCGplayer for that exact version (market → mid → low)
+//  2) TCGplayer of the only listed version, when there is just one (unambiguous)
+//  3) Cardmarket trend (EUR→USD)
+// Never borrows another version's price when several exist (a reverse holo isn't the normal card).
+export function priceOf(cardId, variant) {
   const p = state.prices[cardId];
   if (!p) return null;
   const tp = p.tp || {};
-  if (variant && pickPrice(tp[variant])) return pickPrice(tp[variant]);
-  for (const k of Object.keys(tp)) {
-    const x = pickPrice(tp[k]);
-    if (x) return x;
-  }
+  if (variant && pickPrice(tp[variant])) return { usd: pickPrice(tp[variant]), src: 'tcgplayer' };
+  const keys = Object.keys(tp).filter((k) => pickPrice(tp[k]));
+  if ((!variant || !tp[variant]) && keys.length === 1) return { usd: pickPrice(tp[keys[0]]), src: 'tcgplayer-otra-version' };
   const eur = p.cm?.trend || p.cm?.avg;
-  return eur ? eur * state.fx.eurusd : null;
+  if (eur) return { usd: eur * state.fx.eurusd, src: 'cardmarket' };
+  return null;
+}
+
+export function marketUSD(cardId, variant) {
+  return priceOf(cardId, variant)?.usd ?? null;
 }
 
 export function pushHist(key, value) {
@@ -152,10 +160,11 @@ export function addItems({ card, variant, price, currency, date, purpose, notes,
   return created;
 }
 
-export function recordExit(item, { kind, price, currency, date, fx, tradeId }) {
+// `price` is what you actually receive (net of fees). `gross`/`feePct` are kept for reference.
+export function recordExit(item, { kind, price, currency, date, fx, tradeId, gross, feePct = 0 }) {
   fx = fx || state.fx.usdclp;
   item.status = kind === 'trade' ? 'traded' : 'sold';
-  item.exit = { kind, price, currency, fx, date, tradeId, usd: toUSD(price, currency, fx), clp: toCLP(price, currency, fx) };
+  item.exit = { kind, price, gross: gross ?? price, feePct, currency, fx, date, tradeId, usd: toUSD(price, currency, fx), clp: toCLP(price, currency, fx) };
 }
 
 export function removeItem(id) {
@@ -168,7 +177,8 @@ export function removeItem(id) {
 
 export function summary() {
   const fx = state.fx.usdclp;
-  let costUSD = 0, costCLP = 0, valueUSD = 0, n = 0, missing = 0;
+  // Copies without a market price count at their cost in BOTH currencies (no phantom FX gain).
+  let costUSD = 0, costCLP = 0, valueUSD = 0, valueCLP = 0, n = 0, missing = 0;
   for (const it of state.items) {
     if (it.status !== 'held') continue;
     n++;
@@ -178,7 +188,11 @@ export function summary() {
     if (v == null) {
       missing++;
       valueUSD += it.costUSD;
-    } else valueUSD += v;
+      valueCLP += it.costCLP;
+    } else {
+      valueUSD += v;
+      valueCLP += v * fx;
+    }
   }
   let realUSD = 0, realCLP = 0, exits = 0;
   for (const it of state.items) {
@@ -187,7 +201,6 @@ export function summary() {
     realUSD += it.exit.usd - it.costUSD;
     realCLP += it.exit.clp - it.costCLP;
   }
-  const valueCLP = valueUSD * fx;
   return {
     n, missing, exits, costUSD, costCLP, valueUSD, valueCLP, realUSD, realCLP,
     gainUSD: valueUSD - costUSD,
@@ -201,7 +214,7 @@ export function summary() {
 export function snapshot() {
   const s = summary();
   if (!s.n && !state.history.length) return;
-  const row = { d: localDate(), cu: s.costUSD, cc: s.costCLP, v: s.valueUSD, fx: state.fx.usdclp };
+  const row = { d: localDate(), cu: s.costUSD, cc: s.costCLP, v: s.valueUSD, vc: s.valueCLP, fx: state.fx.usdclp };
   const h = state.history;
   if (h.length && h[h.length - 1].d === row.d) h[h.length - 1] = row;
   else h.push(row);
@@ -252,11 +265,33 @@ export function sellRanking({ includeKeep = false } = {}) {
 
       const p = state.prices[it.cardId]?.tp?.[it.variant];
       const listCLP = Math.round((v * fx) / 500) * 500;
-      const floorCLP = Math.round(Math.max(it.costCLP * 1.1, (p?.low || 0) * fx) / 500) * 500;
+      // Lowest asking price that still leaves +10% over cost after the resale fee.
+      const floorCLP = Math.ceil(Math.max((it.costCLP * 1.1) / (1 - fee || 1), (p?.low || 0) * fx) / 500) * 500;
       return { it, v, gainUSD, gainCLP, gainPct, profitable: gainDisp > 0, mom, days, score, reasons, listCLP, floorCLP };
     })
     .filter(Boolean)
     .sort((a, b) => b.score - a.score);
+}
+
+// ───────────────────────── Trades
+
+// giveUSD: market value of each card you hand over. getUSD: market value of each card you get.
+// paidUSD / recvUSD: cash on top. Returns proceeds per given card and cost basis per received card.
+// Invariant: Σproceeds − Σbasis = recvUSD − paidUSD (the cash is all that changes hands besides cards).
+export function planTrade(giveUSD, getUSD, paidUSD = 0, recvUSD = 0) {
+  const G = giveUSD.reduce((a, b) => a + b, 0);
+  const C = getUSD.reduce((a, b) => a + b, 0);
+  let proceeds, basis;
+  if (!getUSD.length) {
+    proceeds = recvUSD - paidUSD; // cards for cash = a sale
+    basis = 0;
+  } else {
+    basis = G + paidUSD - recvUSD;
+    proceeds = G + Math.max(0, -basis); // cash beyond the cards' value is extra proceeds
+    basis = Math.max(0, basis);
+  }
+  const split = (total, parts, sum) => parts.map((v) => (sum ? (total * v) / sum : total / (parts.length || 1)));
+  return { proceeds: split(proceeds, giveUSD, G), basis: split(basis, getUSD, C) };
 }
 
 // ───────────────────────── Deals

@@ -38,7 +38,7 @@ function chartPoints() {
     const from = new Date(Date.now() - Number(range) * 86400000).toLocaleDateString('sv-SE');
     rows = rows.filter((r) => r.d >= from);
   }
-  return rows.map((r) => ({ d: r.d, cost: usd ? r.cu : r.cc, value: usd ? r.v : r.v * r.fx }));
+  return rows.map((r) => ({ d: r.d, cost: usd ? r.cu : r.cc, value: usd ? r.v : r.vc ?? r.v * r.fx }));
 }
 
 export function renderHome(root) {

@@ -4,7 +4,7 @@ import { h, esc, $, $$, fmtCLP, fmtUSD, fmtPct, fmtDate, localDate, parseAmount,
 import { state, save, addItems, recordExit, removeItem, snapshot, ownedCount, marketUSD, setPrice, pushHist, dealVerdict, defaultPurpose, toUSD, toCLP, itemValueUSD } from './store.js';
 import { getCard, img, variantLabel, tcgplayerUrl, searchByName, findByNumber } from './api.js';
 import { rarityInfo, raritySymbol } from './rarity.js';
-import { refreshFx } from './fx.js';
+import { refreshFx, fxOn } from './fx.js';
 import { openScanner } from './scan.js';
 
 // ───────────────────────── money in the user's display currency
@@ -283,10 +283,44 @@ export async function openCardSheet(cardId, { onPick, pickLabel = 'Agregar al in
   });
 }
 
+// ───────────────────────── exchange rate for an operation date
+
+// Today → latest saved/fetched rate. Past date → dólar observado of that day (mindicador),
+// falling back to today's rate with a visible note when it can't be fetched.
+function fxForDate(body, onUpdate) {
+  const label = $('.fxl', body);
+  const dateIn = $('.date', body);
+  let cur = { usdclp: state.fx.usdclp, src: state.fx.src, at: state.fx.at };
+  const paint = () => {
+    const stale = !cur.at && !cur.past;
+    label.innerHTML = `TC ${fmtCLP(cur.usdclp)} · ${esc(cur.src)}${cur.past ? '' : ` · ${timeAgo(cur.at)}`}${stale ? ' <b class="neg">· sin actualizar, revisa o fíjalo en Ajustes</b>' : ''}${cur.note ? ` <b class="neg">· ${esc(cur.note)}</b>` : ''}`;
+  };
+  const load = async (force = false) => {
+    const d = dateIn?.value || localDate();
+    label.textContent = 'Buscando tipo de cambio…';
+    if (d < localDate()) {
+      const h = await fxOn(d);
+      cur = h ? { usdclp: h.usdclp, src: h.src, past: true } : { usdclp: state.fx.usdclp, src: state.fx.src, at: state.fx.at, note: 'no encontré el de esa fecha, uso el actual' };
+    } else {
+      await refreshFx({ force });
+      cur = { usdclp: state.fx.usdclp, src: state.fx.src, at: state.fx.at };
+    }
+    paint();
+    onUpdate?.();
+  };
+  const get = () => cur.usdclp;
+  get.ready = Promise.resolve();
+  const run = (force) => (get.ready = load(force));
+  dateIn?.addEventListener('change', () => run());
+  $('.fxr', body)?.addEventListener('click', () => run(true));
+  paint();
+  run();
+  return get;
+}
+
 // ───────────────────────── buy
 
 export function openBuyForm(card, prices, { variant, ask = '', askCur = 'CLP' } = {}) {
-  const fxLabel = () => `TC ${fmtCLP(state.fx.usdclp)} · ${esc(state.fx.src)} · ${timeAgo(state.fx.at)}`;
   const purpose = defaultPurpose(card.rarity);
   const body = h(`
     <form class="form">
@@ -296,7 +330,7 @@ export function openBuyForm(card, prices, { variant, ask = '', askCur = 'CLP' } 
         <div class="money-in"><input class="input price" inputmode="decimal" required placeholder="0" value="${ask ? (askCur === 'CLP' ? Math.round(ask) : ask) : ''}">
         <div class="seg cur"><button type="button" data-c="CLP" class="${askCur === 'CLP' ? 'on' : ''}">CLP</button><button type="button" data-c="USD" class="${askCur === 'USD' ? 'on' : ''}">USD</button></div></div>
       </label>
-      <div class="fxline muted small"><span class="fxl">${fxLabel()}</span> <button type="button" class="link fxr">actualizar</button></div>
+      <div class="fxline muted small"><span class="fxl"></span> <button type="button" class="link fxr">actualizar</button></div>
       <div class="row2">
         <label class="field"><span>Cantidad</span><input class="input qty" type="number" min="1" max="50" value="1" inputmode="numeric"></label>
         <label class="field"><span>Fecha</span><input class="input date" type="date" value="${localDate()}"></label>
@@ -313,11 +347,12 @@ export function openBuyForm(card, prices, { variant, ask = '', askCur = 'CLP' } 
   const priceIn = $('.price', body);
   const sum = $('.buy-sum', body);
   const getVariant = () => $('.variant', body)?.value || variant || card.variants[0];
+  let fxNow = () => state.fx.usdclp;
   const renderSum = () => {
     const amount = parseAmount(priceIn.value, cur);
     const qty = Math.max(1, parseInt($('.qty', body).value) || 1);
     if (!amount) return (sum.innerHTML = '');
-    const usd = toUSD(amount, cur), clp = toCLP(amount, cur);
+    const usd = toUSD(amount, cur, fxNow()), clp = toCLP(amount, cur, fxNow());
     const m = prices.tp?.[getVariant()]?.market ?? marketUSD(card.id, getVariant());
     const v = m ? dealVerdict(usd, m) : null;
     sum.innerHTML = `
@@ -336,24 +371,21 @@ export function openBuyForm(card, prices, { variant, ask = '', askCur = 'CLP' } 
   priceIn.oninput = renderSum;
   $('.qty', body).oninput = renderSum;
   $('.variant', body)?.addEventListener('change', renderSum);
-  const doFx = async (force) => {
-    $('.fxl', body).textContent = 'Actualizando tipo de cambio…';
-    await refreshFx({ force });
-    $('.fxl', body).innerHTML = fxLabel();
-    renderSum();
-  };
-  $('.fxr', body).onclick = () => doFx(true);
-  doFx(false);
+  fxNow = fxForDate(body, renderSum);
   renderSum();
 
-  body.onsubmit = (e) => {
+  body.onsubmit = async (e) => {
     e.preventDefault();
     const amount = parseAmount(priceIn.value, cur);
     if (!amount || amount <= 0) return toast('Ingresa el precio pagado', 'err');
+    if (body.dataset.saving) return; // avoid a double tap saving the purchase twice
+    body.dataset.saving = '1';
+    body.querySelector('[type=submit]').textContent = 'Guardando…';
+    await fxNow.ready; // never save with a rate that is still loading
     const v = getVariant();
     setPrice(card.id, prices);
     const created = addItems({
-      card, variant: v, price: amount, currency: cur, date: $('.date', body).value || localDate(),
+      card, variant: v, price: amount, currency: cur, fx: fxNow(), date: $('.date', body).value || localDate(),
       purpose: dest, notes: $('.notes', body).value.trim(), qty: Math.max(1, parseInt($('.qty', body).value) || 1),
     });
     pushHist(`${card.id}|${v}`, marketUSD(card.id, v));
@@ -368,7 +400,13 @@ export function openBuyForm(card, prices, { variant, ask = '', askCur = 'CLP' } 
 
 export function openItemSheet(item) {
   const v = itemValueUSD(item);
-  const gain = v != null ? v - item.costUSD : null;
+  // Same formula as Inicio/Colección: CLP gain is measured against what you paid in pesos.
+  const gainUSD = v != null ? v - item.costUSD : null;
+  const gainCLP = v != null ? v * state.fx.usdclp - item.costCLP : null;
+  const usdMode = disp() === 'USD';
+  const gain = usdMode ? gainUSD : gainCLP;
+  const gainPct = gain == null ? null : usdMode ? gainUSD / item.costUSD : gainCLP / item.costCLP;
+  const fmtGain = (n) => (usdMode ? fmtUSD(n, { sign: true }) : fmtCLP(n, { sign: true }));
   const r = rarityInfo(item.rarity);
   const sold = item.status !== 'held';
   const body = h(`
@@ -388,10 +426,10 @@ export function openItemSheet(item) {
         <div class="kv"><span>Fecha / TC</span><b>${fmtDate(item.buy.date)} · ${fmtCLP(item.buy.fx)}</b></div>
         ${item.buy.source || item.notes ? `<div class="kv"><span>Nota</span><b>${esc(item.notes || item.buy.source)}</b></div>` : ''}
         ${sold
-          ? `<div class="kv"><span>${item.exit.kind === 'trade' ? 'Intercambiada por' : 'Vendida en'}</span><b>${item.exit.currency === 'CLP' ? fmtCLP(item.exit.price) : fmtUSD(item.exit.price)} · ${fmtDate(item.exit.date)}</b></div>
+          ? `<div class="kv"><span>${item.exit.kind === 'trade' ? 'Intercambiada por' : item.exit.feePct ? `Vendida (neto, −${item.exit.feePct}% comisión)` : 'Vendida en'}</span><b>${item.exit.currency === 'CLP' ? fmtCLP(item.exit.price) : fmtUSD(item.exit.price)} · ${fmtDate(item.exit.date)}</b></div>
              <div class="kv"><span>Resultado</span><b class="${pctClass(item.exit.clp - item.costCLP)}">${fmtCLP(item.exit.clp - item.costCLP, { sign: true })} (${fmtPct((item.exit.clp - item.costCLP) / item.costCLP)})</b></div>`
           : `<div class="kv"><span>Valor hoy</span><b>${v != null ? `${money(v)} <em class="muted">${moneyAlt(v)}</em>` : 'sin precio'}</b></div>
-             ${gain != null ? `<div class="kv"><span>Ganancia</span><b class="${pctClass(gain)}">${arrow(gain)} ${money(gain, { sign: true })} (${fmtPct(gain / item.costUSD)})</b></div>` : ''}`}
+             ${gain != null ? `<div class="kv"><span>Ganancia</span><b class="${pctClass(gain)}">${arrow(gain)} ${fmtGain(gain)} (${fmtPct(gainPct)})</b></div>` : ''}`}
       </div>
       <div class="btn-col">
         ${sold ? '' : `<button class="btn primary sell">Registrar venta</button>
@@ -434,6 +472,10 @@ function openEditBuy(item) {
     </form>`);
   const s = openSheet({ title: 'Editar compra', body });
   let cur = item.buy.currency;
+  $('.date', body).addEventListener('change', async (e) => {
+    const h = e.target.value < localDate() ? await fxOn(e.target.value) : await refreshFx().then(() => ({ usdclp: state.fx.usdclp }));
+    if (h) $('.fx', body).value = String(h.usdclp).replace('.', ',');
+  });
   $$('.cur button', body).forEach((b) => (b.onclick = () => {
     cur = b.dataset.c;
     $$('.cur button', body).forEach((x) => x.classList.toggle('on', x === b));
@@ -467,22 +509,25 @@ export function openSellForm(item, { suggestCLP } = {}) {
         <div class="seg cur"><button type="button" data-c="CLP" class="on">CLP</button><button type="button" data-c="USD">USD</button></div></div>
       </label>
       <label class="field"><span>Fecha</span><input class="input date" type="date" value="${localDate()}"></label>
+      <div class="fxline muted small"><span class="fxl"></span> <button type="button" class="link fxr">actualizar</button></div>
       <div class="buy-sum"></div>
       <button class="btn primary" type="submit">Registrar venta</button>
     </form>`);
   const s = openSheet({ title: 'Vender', body });
   let cur = 'CLP';
+  let fxNow = () => state.fx.usdclp;
   const sum = $('.buy-sum', body);
   const render = () => {
     const p = parseAmount($('.price', body).value, cur);
     if (!p) return (sum.innerHTML = '');
-    const clp = toCLP(p, cur), fee = state.settings.feePct / 100;
-    const net = clp * (1 - fee);
-    const g = net - item.costCLP;
+    const fx = fxNow(), fee = state.settings.feePct / 100;
+    const netCLP = toCLP(p, cur, fx) * (1 - fee), netUSD = toUSD(p, cur, fx) * (1 - fee);
+    const g = netCLP - item.costCLP, gu = netUSD - item.costUSD;
     sum.innerHTML = `
-      <div class="kv"><span>Tu costo</span><b>${fmtCLP(item.costCLP)}</b></div>
-      ${fee ? `<div class="kv"><span>Comisión ${state.settings.feePct}%</span><b>${fmtCLP(-clp * fee)}</b></div>` : ''}
-      <div class="kv"><span>Ganancia</span><b class="${pctClass(g)}">${fmtCLP(g, { sign: true })} (${fmtPct(g / item.costCLP)})</b></div>`;
+      <div class="kv"><span>Tu costo</span><b>${fmtCLP(item.costCLP)} <em class="muted">${fmtUSD(item.costUSD)}</em></b></div>
+      ${fee ? `<div class="kv"><span>Comisión ${state.settings.feePct}%</span><b>${fmtCLP(-toCLP(p, cur, fx) * fee)}</b></div>` : ''}
+      <div class="kv"><span>Recibes</span><b>${fmtCLP(netCLP)} <em class="muted">${fmtUSD(netUSD)}</em></b></div>
+      <div class="kv"><span>Ganancia</span><b class="${pctClass(g)}">${fmtCLP(g, { sign: true })} (${fmtPct(g / item.costCLP)}) <em class="muted">${fmtUSD(gu, { sign: true })}</em></b></div>`;
   };
   $$('.cur button', body).forEach((b) => (b.onclick = () => {
     cur = b.dataset.c;
@@ -490,13 +535,19 @@ export function openSellForm(item, { suggestCLP } = {}) {
     render();
   }));
   $('.price', body).oninput = render;
+  fxNow = fxForDate(body, render);
   render();
-  body.onsubmit = (e) => {
+  body.onsubmit = async (e) => {
     e.preventDefault();
     const p = parseAmount($('.price', body).value, cur);
     if (!p) return toast('Ingresa el precio', 'err');
-    const net = p * (1 - state.settings.feePct / 100);
-    recordExit(item, { kind: 'sale', price: net, currency: cur, date: $('.date', body).value || localDate() });
+    if (body.dataset.saving) return;
+    body.dataset.saving = '1';
+    body.querySelector('[type=submit]').textContent = 'Guardando…';
+    await fxNow.ready;
+    const feePct = state.settings.feePct;
+    const net = p * (1 - feePct / 100);
+    recordExit(item, { kind: 'sale', price: net, gross: p, feePct, currency: cur, fx: fxNow(), date: $('.date', body).value || localDate() });
     snapshot();
     save();
     s.close();

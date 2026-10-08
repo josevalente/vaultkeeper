@@ -2,7 +2,7 @@
 // (scanned or searched, valued the same way), plus any cash on top.
 
 import { h, esc, $, $$, fmtCLP, fmtUSD, fmtPct, parseAmount, uid, localDate, toast } from '../util.js';
-import { state, save, held, itemValueUSD, recordExit, addItems, snapshot, setPrice, toUSD, marketUSD } from '../store.js';
+import { state, save, held, itemValueUSD, recordExit, addItems, snapshot, setPrice, toUSD, marketUSD, planTrade } from '../store.js';
 import { img, variantLabel } from '../api.js';
 import { openSheet, cardTile, scanFlow, openSearch, openCardSheet, money, moneyAlt, pctClass, confirmSheet } from '../ui.js';
 
@@ -140,16 +140,18 @@ async function confirmTrade() {
   if (!ok) return;
   const id = uid();
   const date = localDate();
-  T.give.forEach((it) => recordExit(it, { kind: 'trade', price: itemValueUSD(it) ?? it.costUSD, currency: 'USD', date, tradeId: id }));
-  // Cost basis of what you receive = market value you handed over + cash you paid − cash you got.
-  const basisUSD = Math.max(0, T.giveUSD + (t.cashDir === 'pay' ? T.cashUSD : -T.cashUSD));
-  const sumGet = T.getUSD || t.get.length || 1;
+  // Your cards leave at market value; what you receive enters with that value (± cash) as its
+  // cost. Cards-for-cash counts as a sale. See planTrade() in store.js.
+  const plan = planTrade(
+    T.give.map((it) => itemValueUSD(it) ?? it.costUSD),
+    t.get.map((g) => g.marketUSD || 0),
+    t.cashDir === 'pay' ? T.cashUSD : 0,
+    t.cashDir === 'receive' ? T.cashUSD : 0
+  );
+  T.give.forEach((it, i) => recordExit(it, { kind: 'trade', price: plan.proceeds[i], currency: 'USD', date, tradeId: id }));
   const created = [];
-  t.get.forEach((g) => {
-    const share = T.getUSD ? (g.marketUSD || 0) / sumGet : 1 / sumGet;
-    created.push(
-      ...addItems({ card: g.card, variant: g.variant, price: basisUSD * share, currency: 'USD', date, source: 'Intercambio', notes: 'Recibida en intercambio' })
-    );
+  t.get.forEach((g, i) => {
+    created.push(...addItems({ card: g.card, variant: g.variant, price: plan.basis[i], currency: 'USD', date, source: 'Intercambio', notes: 'Recibida en intercambio' }));
   });
   state.trades.push({ id, date, give: T.give.map((x) => x.id), get: created.map((x) => x.id), cash: t.cash, cashCur: t.cashCur, cashDir: t.cashDir, giveUSD: T.giveUSD, getUSD: T.getUSD });
   state.tradeDraft = { give: [], get: [], cash: 0, cashCur: 'CLP', cashDir: 'pay' };

@@ -57,19 +57,28 @@ export function timeAgo(ts) {
   return `hace ${Math.round(hrs / 24)} d`;
 }
 
-// Parses "12.500", "12,5", "$ 12.500" etc. Chilean style: dot = thousands, comma = decimal.
+// Parses amounts typed the Chilean way or the US way:
+//   CLP: "12.500" / "$12.500" / "12500" → 12500 (dot = thousands, comma = decimals)
+//   USD: "12,50" / "12.50" / "1,250.50" / "1.250,50" → decimal mark detected from the last separator
 export function parseAmount(str, currency = 'CLP') {
   if (typeof str === 'number') return str;
-  let s = String(str || '').replace(/[^\d.,-]/g, '');
-  if (!s) return NaN;
-  if (currency === 'CLP') {
-    s = s.replace(/\./g, '').replace(',', '.');
-  } else if (s.includes(',') && !s.includes('.')) {
-    s = s.replace(',', '.');
-  } else {
-    s = s.replace(/,/g, '');
+  let s = String(str || '').trim().replace(/[^\d.,-]/g, '');
+  if (!s || !/\d/.test(s)) return NaN;
+  const lastDot = s.lastIndexOf('.'), lastComma = s.lastIndexOf(',');
+  if (lastDot >= 0 && lastComma >= 0) {
+    const dec = lastDot > lastComma ? '.' : ',';
+    s = s.split(dec === '.' ? ',' : '.').join('').replace(dec, '.');
+  } else if (lastComma >= 0) {
+    const parts = s.split(',');
+    // "1,250" (USD thousands) vs "12,5" (decimal)
+    s = parts.length > 2 || (currency === 'USD' && parts[1].length === 3) ? parts.join('') : parts.join('.');
+  } else if (lastDot >= 0) {
+    const parts = s.split('.');
+    // CLP: dots are thousands. USD: a single dot is the decimal point unless there are several.
+    if (currency === 'CLP' || parts.length > 2) s = parts.join('');
   }
-  return parseFloat(s);
+  const n = parseFloat(s);
+  return isFinite(n) ? n : NaN;
 }
 
 export const clamp = (x, a, b) => Math.min(b, Math.max(a, x));

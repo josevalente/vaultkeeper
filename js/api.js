@@ -248,7 +248,7 @@ export async function quickPrice(id) {
   let best = null;
   for (const v of Object.values(tp)) {
     const m = v.market ?? v.mid ?? v.low;
-    if (m != null && (best == null || m > best)) best = m;
+    if (m != null && (best == null || m < best)) best = m; // cheapest version completes the checklist
   }
   if (best == null && prices.cm) best = (prices.cm.trend || prices.cm.avg || 0) * state.fx.eurusd || null;
   cacheSet(key, best);
