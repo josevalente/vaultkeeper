@@ -110,7 +110,7 @@ function normPrices(c) {
   if (m) {
     const holo = m.avg == null && m['avg-holo'] != null;
     const g = (k) => (holo ? m[`${k}-holo`] : m[k]) ?? null;
-    cm = { avg: g('avg'), low: g('low'), trend: g('trend') || null, avg7: g('avg7'), avg30: g('avg30'), pid: m.idProduct };
+    cm = { avg: g('avg'), low: g('low'), trend: g('trend') || null, avg1: g('avg1'), avg7: g('avg7'), avg30: g('avg30'), pid: m.idProduct };
   }
   return { tp, cm };
 }
@@ -156,14 +156,17 @@ async function ptcgPrices(card) {
 // The workflow publishes data/precios-extra.json on the `datos` branch; GitHub serves raw files with
 // CORS and a 5-minute cache, so new prices reach the app without a Pages rebuild. The copy in the
 // app itself (same origin) is the fallback, e.g. when running locally.
-function extraUrls() {
-  const urls = [];
+// Where the daily workflow's files live: the `datos` branch when served from GitHub Pages,
+// the app's own data/ folder otherwise (local development).
+function dataBases() {
+  const bases = [];
   const m = location.hostname.match(/^([^.]+)\.github\.io$/i);
   const repo = location.pathname.split('/').filter(Boolean)[0];
-  if (m && repo) urls.push(`https://raw.githubusercontent.com/${m[1]}/${repo}/datos/data/precios-extra.json`);
-  urls.push(new URL('data/precios-extra.json', location.href.split('#')[0]).href);
-  return urls;
+  if (m && repo) bases.push(`https://raw.githubusercontent.com/${m[1]}/${repo}/datos/data/`);
+  bases.push(new URL('data/', location.href.split('#')[0]).href);
+  return bases;
 }
+const extraUrls = () => dataBases().map((b) => b + 'precios-extra.json');
 
 let extraPromise;
 export function getExtra() {
@@ -184,6 +187,37 @@ export function getExtra() {
     return cacheGet('extra') || { cards: {}, sets: {} };
   })();
   return extraPromise;
+}
+
+// ───────────────────────── price history (TCGplayer market, built daily by scripts/historial.mjs)
+
+const histMem = new Map();
+const DAY = 86400000;
+
+// Daily market price (USD) of one TCGplayer product + version: [{ d: 'YYYY-MM-DD', v }].
+export async function getHistory(pid, variant) {
+  if (!pid) return [];
+  const shardNo = Number(pid) % 256;
+  if (!histMem.has(shardNo)) {
+    histMem.set(
+      shardNo,
+      (async () => {
+        for (const base of dataBases()) {
+          try {
+            const sh = await fetchJSON(`${base}hist/${shardNo}.json`, { timeout: 10000, retries: 0 });
+            if (sh?.days) return sh;
+          } catch {
+            /* next source */
+          }
+        }
+        return null;
+      })()
+    );
+  }
+  const sh = await histMem.get(shardNo);
+  const arr = sh?.s?.[`${pid}|${variant}`];
+  if (!arr) return [];
+  return sh.days.map((day, i) => ({ d: new Date(day * DAY).toISOString().slice(0, 10), v: arr[i] == null ? null : arr[i] / 100 })).filter((p) => p.v != null);
 }
 
 const cardMem = new Map();

@@ -488,3 +488,17 @@ em.deal-bad { color: var(--neg); background: none; border: 0; font-weight: 700; 
 .shot { width: 84px; border-radius: 8px; border: 1px solid var(--line-2); }
 .tip { font-size: 13px; padding: 10px 12px; border-radius: 12px; background: color-mix(in oklab, var(--brass) 12%, transparent); border: 1px solid color-mix(in oklab, var(--brass) 40%, transparent); }
 .tip a { color: var(--brass); font-weight: 700; }
+
+/* ───────────── price detail & history */
+button.price-hero { width: 100%; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+button.price-hero:active { transform: scale(0.99); }
+.hist-link { margin-top: 6px; font-size: 12.5px; font-weight: 700; color: var(--brass); }
+.kv2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.kv2 > div { background: var(--surface-2); border-radius: 10px; padding: 9px 10px; }
+.kv2 span { display: block; font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.kv2 b { display: block; font-size: 15px; margin-top: 2px; }
+.kv2 small { display: block; color: var(--text-2); font-size: 11.5px; }
+.hist { display: flex; flex-direction: column; gap: 12px; }
+.hist h2 { font-size: 14px; }
+.hist-head { display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: center; }
+.hist-head img { width: 44px; border-radius: 4px; }

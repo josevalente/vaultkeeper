@@ -41,6 +41,11 @@ Puntaje = ganancia % sobre tu compra + monto de la ganancia + tendencia del prec
 ## Instalar en el iPhone
 Abre la URL en **Safari** → botón **Compartir** → **Agregar a pantalla de inicio**. Abre a pantalla completa, funciona sin conexión con los últimos precios y iOS no borra los datos de apps instaladas.
 
+## Qué significa cada precio
+- **TCGplayer market:** promedio de ventas recientes en TCGplayer (EE.UU.). Es el que usa la app para valorizar y para el veredicto de feria.
+- **Más barata publicada / Mediana publicada:** lo que piden hoy los vendedores en TCGplayer (no lo que se pagó). El precio más alto publicado no se muestra porque suele ser un aviso desactualizado o absurdo.
+- **Cardmarket · Europa:** referencia del mercado europeo en euros, con su equivalente en pesos. Su tendencia (promedio 7 días vs 30 días) ayuda a decidir cuándo vender. Solo se usa para valorizar si no hay precio de TCGplayer.
+
 ## Cómo se calculan los montos
 - **Costo:** se guarda en CLP y en USD con el dólar del momento de la compra (o del día que indiques si la registras con fecha pasada: dólar observado de mindicador.cl; si no responde, tipo de mercado de ese día). Ese costo no cambia aunque el dólar se mueva.
 - **Valor:** precio TCGplayer *market* de la versión exacta (Normal / Holo / Reverse); si no hay, *mid*, luego *low*; si la carta tiene una sola versión listada se usa esa; si no hay TCGplayer, Cardmarket (EUR→USD). Nunca se toma el precio de otra versión. Sin precio, la carta cuenta a su costo.
@@ -58,9 +63,10 @@ TCGdex a veces tarda semanas en cargar precios de una expansión recién salida 
 - `scripts/precios-faltantes.mjs` detecta las expansiones recientes sin precio en TCGdex, busca su equivalente en [TCGCSV](https://tcgcsv.com) (espejo diario de TCGplayer) y cruza carta por carta por número y nombre. También trae la rareza y la versión reales.
 - El resultado (`data/precios-extra.json`) se publica en la rama `datos`, así nunca choca con tus push a `main`. La app lo lee desde `raw.githubusercontent.com`; la copia en `main` es solo respaldo.
 - Cuando TCGdex carga sus propios precios, la app vuelve a usarlos sola.
+- El mismo robot guarda el **historial diario de precios** de TCGplayer de todas las cartas Pokémon desde US$5 (`scripts/historial.mjs` → `data/hist/` en la rama `datos`): diario los últimos 120 días y semanal antes. TCGplayer no publica historial, así que empieza a acumularse desde el 08-10-2026. En la app: toca el precio de una carta → **Historial de precio** (también suma lo que consultas en el teléfono y los promedios 1/7/30 días de Cardmarket).
 - No hay nada que configurar. Para forzarlo: pestaña **Actions → Precios faltantes → Run workflow**.
 
-Para probarlo en tu computador: `node scripts/precios-faltantes.mjs` y `node tests/match.test.mjs`.
+Para probarlo en tu computador: `node scripts/precios-faltantes.mjs`, `node scripts/historial.mjs --dir data/hist`, `node tests/match.test.mjs` y `node tests/historial.test.mjs`.
 
 ## Datos y respaldo
 Todo vive en el `localStorage` del teléfono. En **Ajustes → Exportar respaldo** descargas un `.json`; con **Importar** lo cargas en otro teléfono.

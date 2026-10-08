@@ -200,3 +200,78 @@ export function renderPortfolioChart(root, points, { currency, fmt }) {
   hit.addEventListener('pointerdown', (e) => show(e.clientX));
   hit.addEventListener('pointerleave', hide);
 }
+
+// Single-series price history (TCGplayer market, USD) with crosshair + tooltip.
+// points: [{ d: 'YYYY-MM-DD', v: number }] sorted by date. Time-scaled x axis.
+export function renderPriceChart(root, points, { fmt, fmtAlt }) {
+  root.innerHTML = '';
+  const W = Math.max(280, root.clientWidth || 340);
+  const padL = 50, padR = 14, padT = 12, padB = 24, H1 = 190;
+  const H = padT + H1 + padB;
+  const iw = W - padL - padR;
+  const n = points.length;
+  const ts = points.map((p) => new Date(p.d + 'T12:00:00').getTime());
+  const span = ts[n - 1] - ts[0] || 1;
+  const xs = (i) => padL + (n === 1 ? iw / 2 : ((ts[i] - ts[0]) / span) * iw);
+  const vals = points.map((p) => p.v);
+  const t = niceTicks(Math.min(...vals) * 0.95, Math.max(...vals) * 1.05);
+  const y = (v) => padT + H1 - ((v - t.lo) / (t.hi - t.lo)) * H1;
+
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, class: 'pchart', role: 'img', 'aria-label': 'Historial de precio' });
+  root.appendChild(svg);
+  const grid = el('g', { class: 'grid' });
+  t.ticks.forEach((v) => {
+    grid.appendChild(el('line', { x1: padL, x2: W - padR, y1: y(v), y2: y(v) }));
+    const tx = el('text', { x: padL - 6, y: y(v) + 3.5, 'text-anchor': 'end', class: 'tick' });
+    tx.textContent = compact(v, 'USD');
+    grid.appendChild(tx);
+  });
+  svg.appendChild(grid);
+
+  const line = points.map((p, i) => `${i ? 'L' : 'M'}${xs(i).toFixed(1)} ${y(p.v).toFixed(1)}`).join('');
+  if (n > 1) {
+    svg.appendChild(el('path', { d: `${line}L${xs(n - 1)} ${padT + H1}L${xs(0)} ${padT + H1}Z`, class: 'area-value' }));
+    svg.appendChild(el('path', { d: line, class: 'line line-value' }));
+  }
+  if (n <= 2) points.forEach((p, i) => svg.appendChild(el('circle', { cx: xs(i), cy: y(p.v), r: 4, class: 'dot dot-value' })));
+
+  [0, n - 1]
+    .filter((v, i, a) => a.indexOf(v) === i)
+    .forEach((i) => {
+      const tx = el('text', { x: xs(i), y: H - 6, 'text-anchor': n === 1 ? 'middle' : i === 0 ? 'start' : 'end', class: 'tick' });
+      tx.textContent = fmtDate(points[i].d);
+      svg.appendChild(tx);
+    });
+
+  const cross = el('g', { class: 'cross', style: 'display:none' });
+  const vline = el('line', { y1: padT, y2: padT + H1, class: 'vline' });
+  const dot = el('circle', { r: 5, class: 'dot dot-value ring' });
+  cross.append(vline, dot);
+  svg.appendChild(cross);
+  const tip = document.createElement('div');
+  tip.className = 'ctip';
+  root.appendChild(tip);
+  const hit = el('rect', { x: padL - 10, y: 0, width: iw + 20, height: H, fill: 'transparent' });
+  svg.appendChild(hit);
+  const show = (clientX) => {
+    const r = svg.getBoundingClientRect();
+    const x = ((clientX - r.left) / r.width) * W;
+    let k = 0;
+    for (let i = 1; i < n; i++) if (Math.abs(xs(i) - x) < Math.abs(xs(k) - x)) k = i;
+    const p = points[k];
+    cross.style.display = '';
+    vline.setAttribute('x1', xs(k));
+    vline.setAttribute('x2', xs(k));
+    dot.setAttribute('cx', xs(k));
+    dot.setAttribute('cy', y(p.v));
+    const ch = k > 0 && points[k - 1].v ? p.v / points[k - 1].v - 1 : null;
+    tip.innerHTML = `<div class="ctip-d">${esc(fmtDate(p.d))}</div><div><b>${fmt(p.v)}</b> <span class="muted">${fmtAlt ? fmtAlt(p.v) : ''}</span></div>${ch != null && Math.abs(ch) >= 0.0005 ? `<div class="${ch > 0 ? 'pos' : 'neg'}">${ch > 0 ? '▲' : '▼'} ${fmtPct(ch)} vs. punto anterior</div>` : ''}`;
+    tip.style.display = 'block';
+    const left = (xs(k) / W) * r.width, tw = tip.offsetWidth;
+    tip.style.left = `${Math.max(4, Math.min(r.width - tw - 4, left + (left > r.width / 2 ? -tw - 12 : 12)))}px`;
+    tip.style.top = '8px';
+  };
+  hit.addEventListener('pointermove', (e) => show(e.clientX));
+  hit.addEventListener('pointerdown', (e) => show(e.clientX));
+  hit.addEventListener('pointerleave', () => ((cross.style.display = 'none'), (tip.style.display = 'none')));
+}

@@ -1,6 +1,8 @@
-# Fills TCGplayer prices that TCGdex doesn't have yet (new sets) from TCGCSV, once a day.
-# The result is published on the `datos` branch (data/precios-extra.json) so it never conflicts
-# with your pushes to main; the app reads it from raw.githubusercontent.com.
+# Once a day, from TCGCSV (daily mirror of TCGplayer):
+#  · data/precios-extra.json — prices TCGdex doesn't have yet (new sets);
+#  · data/hist/*.json — daily price history of every card worth US$5 or more.
+# Published on the `datos` branch so it never conflicts with your pushes to main; the app reads
+# it from raw.githubusercontent.com.
 name: Precios faltantes
 
 on:
@@ -23,7 +25,7 @@ concurrency:
 jobs:
   actualizar:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -31,26 +33,40 @@ jobs:
         with:
           node-version: 20
 
-      - name: Pruebas del cruce de cartas
-        run: node tests/match.test.mjs
+      - name: Pruebas
+        run: |
+          node tests/match.test.mjs
+          node tests/historial.test.mjs
 
-      - name: Buscar precios faltantes en TCGCSV
-        run: node scripts/precios-faltantes.mjs --out "$RUNNER_TEMP/precios-extra.json"
+      - name: Traer la rama datos (con el historial acumulado)
+        run: |
+          set -e
+          dir="$RUNNER_TEMP/datos"
+          if git ls-remote --exit-code --heads origin datos >/dev/null; then
+            git clone -q --depth 1 -b datos "https://github.com/${GITHUB_REPOSITORY}.git" "$dir"
+          else
+            mkdir -p "$dir"
+          fi
+          rm -rf "$dir/.git"
+          mkdir -p "$dir/data"
+
+      - name: Precios faltantes de expansiones nuevas
+        run: node scripts/precios-faltantes.mjs --out "$RUNNER_TEMP/datos/data/precios-extra.json"
+
+      - name: Historial diario de precios
+        run: node scripts/historial.mjs --dir "$RUNNER_TEMP/datos/data/hist"
 
       - name: Publicar en la rama datos
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
-          dir="$RUNNER_TEMP/datos"
-          mkdir -p "$dir/data"
-          cp "$RUNNER_TEMP/precios-extra.json" "$dir/data/precios-extra.json"
-          cd "$dir"
+          cd "$RUNNER_TEMP/datos"
           git init -q -b datos
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/precios-extra.json
-          git commit -q -m "Precios faltantes $(date -u +%F)"
-          # One commit only (history isn't needed): replace the branch each day.
+          git add -A
+          git commit -q -m "Precios $(date -u +%F)"
+          # The history lives in the files; one commit is enough, so the branch is replaced each day.
           git push -f -q "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" datos
-          echo "Publicado: https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/datos/data/precios-extra.json"
+          echo "Publicado en https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/datos/data/"

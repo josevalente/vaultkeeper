@@ -2,7 +2,8 @@
 
 import { h, esc, $, $$, fmtCLP, fmtUSD, fmtPct, fmtDate, localDate, parseAmount, toast, debounce, timeAgo } from './util.js';
 import { state, save, addItems, recordExit, removeItem, snapshot, ownedCount, marketUSD, setPrice, pushHist, dealVerdict, defaultPurpose, toUSD, toCLP, itemValueUSD } from './store.js';
-import { getCard, img, variantLabel, tcgplayerUrl, searchByName, findByNumber } from './api.js';
+import { getCard, img, variantLabel, tcgplayerUrl, searchByName, findByNumber, getHistory } from './api.js';
+import { renderPriceChart } from './chart.js';
 import { rarityInfo, raritySymbol } from './rarity.js';
 import { refreshFx, fxOn } from './fx.js';
 import { openScanner } from './scan.js';
@@ -171,18 +172,77 @@ export function openSearch({ onPick, initial = '', title = 'Buscar carta' } = {}
 
 // ───────────────────────── card detail (from the API)
 
+const eurToCLP = (eur) => eur * state.fx.eurusd * state.fx.usdclp;
+
+// Cardmarket trend: the European market, in euros (with its peso equivalent).
+function cardmarketBlock(cm) {
+  if (!cm) return '';
+  const mom = cm.avg7 && cm.avg30 ? cm.avg7 / cm.avg30 - 1 : null;
+  const ref = cm.trend ?? cm.avg;
+  return `<div class="cm"><div class="label">Cardmarket · Europa</div><div>€${ref != null ? ref.toFixed(2) : '—'}</div>${ref != null ? `<div class="muted small">≈ ${fmtCLP(eurToCLP(ref))}</div>` : ''}${mom != null ? `<div class="${pctClass(mom)} small">${arrow(mom)} ${fmtPct(mom)} 7d vs 30d</div>` : ''}</div>`;
+}
+
 function priceTable(prices, variant) {
   const p = prices.tp?.[variant];
   const fx = state.fx.usdclp;
   const cm = prices.cm;
-  const mom = cm?.avg7 && cm?.avg30 ? cm.avg7 / cm.avg30 - 1 : null;
   if (!p && !cm) return `<div class="empty small"><p>Sin precio de mercado para esta carta.</p></div>`;
+  // Market = recent sales. Low / median = what is listed for sale right now. The highest listing is
+  // left out on purpose: it's usually a stale, absurd ask (e.g. US$10,000) and only misleads.
   return `
-    <div class="price-hero">
-      <div><div class="label">TCGplayer market</div><div class="big">${p?.market != null ? fmtUSD(p.market) : '—'}</div><div class="muted">${p?.market != null ? fmtCLP(p.market * fx) : ''}</div></div>
-      ${cm ? `<div class="cm"><div class="label">Cardmarket</div><div>€${(cm.trend ?? cm.avg ?? 0).toFixed(2)}</div>${mom != null ? `<div class="${pctClass(mom)} small">${arrow(mom)} ${fmtPct(mom)} 7d/30d</div>` : ''}</div>` : ''}
-    </div>
-    ${p ? `<div class="kv3"><div><span>Bajo</span><b>${fmtUSD(p.low)}</b></div><div><span>Medio</span><b>${fmtUSD(p.mid)}</b></div><div><span>Alto</span><b>${fmtUSD(p.high)}</b></div></div>` : ''}`;
+    <button class="price-hero hist-open" aria-label="Ver historial de precio">
+      <div><div class="label">TCGplayer market</div><div class="big">${p?.market != null ? fmtUSD(p.market) : '—'}</div><div class="muted">${p?.market != null ? fmtCLP(p.market * fx) : ''}</div><div class="hist-link">Ver historial ›</div></div>
+      ${cardmarketBlock(cm)}
+    </button>
+    ${p ? `<div class="kv2"><div><span>Más barata publicada</span><b>${fmtUSD(p.low)}</b><small>${p.low != null ? fmtCLP(p.low * fx) : ''}</small></div><div><span>Mediana publicada</span><b>${fmtUSD(p.mid)}</b><small>${p.mid != null ? fmtCLP(p.mid * fx) : ''}</small></div></div>
+    <p class="muted tiny">Market = promedio de ventas recientes. Las otras dos son precios publicados hoy (lo que piden, no lo que se pagó).</p>` : ''}`;
+}
+
+// Price history sheet: TCGplayer daily market (workflow) + what this phone recorded + Cardmarket averages.
+export async function openPriceHistory(card, prices, variant) {
+  const body = h(`<div class="hist"><div class="loading">Cargando historial…</div></div>`);
+  const s = openSheet({ title: 'Historial de precio', body, cls: 'tall' });
+  const pid = prices.tp?.[variant]?.pid;
+  const remote = await getHistory(pid, variant).catch(() => []);
+  const local = (state.priceHist[`${card.id}|${variant}`] || []).map(([d, v]) => ({ d, v }));
+  const byDay = new Map(local.map((p) => [p.d, p.v]));
+  remote.forEach((p) => byDay.set(p.d, p.v)); // the workflow's daily value wins over the phone's
+  const all = [...byDay.entries()].map(([d, v]) => ({ d, v })).sort((a, b) => a.d.localeCompare(b.d));
+  const fx = state.fx.usdclp;
+  let range = 'all';
+  const cm = prices.cm;
+  const cmRow = (lbl, eur) => (eur != null ? `<div><span>${lbl}</span><b>€${eur.toFixed(2)}</b><small>≈ ${fmtCLP(eurToCLP(eur))}</small></div>` : '');
+  const change = (pts, days) => {
+    if (pts.length < 2) return null;
+    const last = pts[pts.length - 1];
+    const from = new Date(new Date(last.d + 'T12:00:00').getTime() - days * 86400000).toISOString().slice(0, 10);
+    const ref = [...pts].reverse().find((p) => p.d <= from);
+    return ref ? last.v / ref.v - 1 : null;
+  };
+  const paint = () => {
+    const from = range === 'all' ? '' : new Date(Date.now() - Number(range) * 86400000).toISOString().slice(0, 10);
+    const pts = all.filter((p) => p.d >= from);
+    const c7 = change(all, 7), c30 = change(all, 30);
+    body.innerHTML = `
+      <div class="hist-head">
+        <img src="${esc(img(card.image))}" alt="" onerror="this.src='icons/card-back.svg'">
+        <div><b>${esc(card.name)}</b><div class="muted small">${esc(card.setName)} · ${esc(card.number)} · ${esc(variantLabel(variant))}</div></div>
+      </div>
+      <div class="panel-head"><h2>TCGplayer market (USD)</h2><div class="seg small ranges">${[['30', '1M'], ['90', '3M'], ['all', 'Todo']].map(([k, l]) => `<button data-r="${k}" class="${range === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+      ${pts.length ? `<div class="chart-box hist-chart"></div>` : `<div class="empty"><p>Todavía no hay puntos guardados para esta carta.</p></div>`}
+      <div class="kv2">
+        <div><span>Cambio 7 días</span><b class="${c7 == null ? '' : pctClass(c7)}">${c7 == null ? '—' : `${arrow(c7)} ${fmtPct(c7)}`}</b></div>
+        <div><span>Cambio 30 días</span><b class="${c30 == null ? '' : pctClass(c30)}">${c30 == null ? '—' : `${arrow(c30)} ${fmtPct(c30)}`}</b></div>
+      </div>
+      <p class="muted tiny">${all.length ? `${all.length} punto${all.length === 1 ? '' : 's'} desde el ${esc(fmtDate(all[0].d))}. ` : ''}El historial diario de TCGplayer se empezó a guardar el 08-10-2026 (cartas desde US$5) y suma un punto por día; lo que consultas en este teléfono también se agrega. TCGplayer no publica historial anterior: para eso usa su página.</p>
+      ${cm ? `<h2>Cardmarket · Europa (EUR)</h2><div class="kv2 kv4">${cmRow('Promedio 30 días', cm.avg30)}${cmRow('Promedio 7 días', cm.avg7)}${cmRow('Promedio ayer', cm.avg1 ?? null)}${cmRow('Tendencia', cm.trend)}</div>` : ''}
+      <a class="btn ghost full" target="_blank" rel="noopener" href="${esc(tcgplayerUrl(prices, variant, card))}">Ver gráfico completo en TCGplayer ↗</a>`;
+    const box = $('.hist-chart', body);
+    if (box) requestAnimationFrame(() => renderPriceChart(box, pts, { fmt: (v) => fmtUSD(v), fmtAlt: (v) => fmtCLP(v * fx) }));
+    $$('.ranges button', body).forEach((b) => (b.onclick = () => ((range = b.dataset.r), paint())));
+  };
+  paint();
+  return s;
 }
 
 export async function openCardSheet(cardId, { onPick, pickLabel = 'Agregar al intercambio', ask } = {}) {
@@ -197,6 +257,8 @@ export async function openCardSheet(cardId, { onPick, pickLabel = 'Agregar al in
   }
   const { card, prices } = data;
   setPrice(card.id, prices);
+  // Every card you look at adds a point to this phone's own price history.
+  for (const [k, v] of Object.entries(prices.tp || {})) pushHist(`${card.id}|${k}`, v?.market ?? v?.mid ?? null);
   save({ silent: true });
   const r = rarityInfo(card.rarity);
   const owned = ownedCount(card.id);
@@ -229,7 +291,7 @@ export async function openCardSheet(cardId, { onPick, pickLabel = 'Agregar al in
       ${onPick ? `<button class="btn primary pick">${esc(pickLabel)}</button>` : `<button class="btn primary buy">Registrar compra</button>`}
       <div class="btn-row">
         <button class="btn ghost wish">${inWish ? '♥ En wishlist' : '♡ Wishlist'}</button>
-        <a class="btn ghost" target="_blank" rel="noopener" href="${esc(tcgplayerUrl(prices, variant, card))}">TCGplayer ↗</a>
+        <a class="btn ghost tcgp" target="_blank" rel="noopener" href="${esc(tcgplayerUrl(prices, variant, card))}">TCGplayer ↗</a>
       </div>
     </div>
     <p class="muted tiny">Precios ${prices.src === 'pokemontcg.io' ? 'vía pokemontcg.io' : prices.src === 'tcgcsv' ? `TCGplayer vía TCGCSV (TCGdex aún no los tiene) · del ${esc(fmtDate(String(prices.srcUpdated || '').slice(0, 10)))}` : 'vía TCGdex'} · consultados ${timeAgo(state.prices[card.id]?.at)} · TC ${fmtCLP(state.fx.usdclp)}${card.printed && !String(card.printed).startsWith(String(card.number)) ? ` · impreso ${esc(card.printed)}` : ''}</p>`;
@@ -237,7 +299,11 @@ export async function openCardSheet(cardId, { onPick, pickLabel = 'Agregar al in
   const pricesEl = $('.prices', body);
   const verdictEl = $('.verdict', body);
   const askIn = $('.ask', body);
-  const renderPrices = () => (pricesEl.innerHTML = priceTable(prices, variant));
+  const renderPrices = () => {
+    pricesEl.innerHTML = priceTable(prices, variant);
+    $('.hist-open', pricesEl)?.addEventListener('click', () => openPriceHistory(card, prices, variant));
+    $('.tcgp', body).href = tcgplayerUrl(prices, variant, card);
+  };
   const renderVerdict = () => {
     const amount = parseAmount(askIn.value, askCur);
     const m = prices.tp?.[variant]?.market ?? marketUSD(card.id, variant);
