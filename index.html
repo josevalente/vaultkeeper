@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>VaultKeeper</title>
+  <meta name="description" content="Escanea cartas Pokémon, compara con TCGplayer y lleva tu portafolio de compras, ventas e intercambios.">
+  <meta name="theme-color" content="#0c0f16" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f4f1e8" media="(prefers-color-scheme: light)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="VaultKeeper">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="icons/favicon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://api.tcgdex.net">
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Unbounded:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#/inicio" aria-label="VaultKeeper inicio">
+      <img src="icons/favicon.png" alt="" width="28" height="28">
+      <span>Vault<em>Keeper</em></span>
+    </a>
+    <div class="top-right">
+      <span class="fxchip" title="Tipo de cambio usado">US$1 = $—</span>
+      <span class="offline-dot" title="Sin conexión">sin red</span>
+      <a class="gear icon-btn" href="#/ajustes" aria-label="Ajustes">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
+      </a>
+    </div>
+    <div class="statusbar" hidden><i></i><span></span></div>
+  </header>
+
+  <main id="view"></main>
+
+  <nav class="tabbar" aria-label="Secciones">
+    <a href="#/inicio" data-route="inicio">
+      <svg viewBox="0 0 24 24"><path d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1z"/></svg><span>Inicio</span>
+    </a>
+    <a href="#/coleccion" data-route="coleccion">
+      <svg viewBox="0 0 24 24"><rect x="4" y="5" width="9" height="13" rx="1.6"/><path d="M15.5 7.2 19 8.1a1 1 0 0 1 .7 1.2l-2.6 9.6"/></svg><span>Colección</span>
+    </a>
+    <button class="scan-fab" aria-label="Escanear carta"><span><svg viewBox="0 0 24 24"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3.4"/></svg></span></button>
+    <a href="#/faltantes" data-route="faltantes">
+      <svg viewBox="0 0 24 24"><path d="m12 4 2.3 4.7 5.2.8-3.8 3.6.9 5.1L12 15.8l-4.6 2.4.9-5.1L4.5 9.5l5.2-.8z"/></svg><span>Faltantes</span>
+    </a>
+    <a href="#/intercambio" data-route="intercambio">
+      <svg viewBox="0 0 24 24"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg><span>Intercambio</span>
+    </a>
+  </nav>
+
+  <div id="sheets"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
