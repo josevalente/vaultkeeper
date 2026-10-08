@@ -5,7 +5,7 @@
 
 import { h, esc, $, norm, similarity } from './util.js';
 import { state } from './store.js';
-import { findByNumber, searchByName, getSets } from './api.js';
+import { findByNumber, searchByName, getSets, setCards } from './api.js';
 
 const TESSERACT_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
 const ANTHROPIC_SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.130.0/+esm';
@@ -59,7 +59,7 @@ export function openScanner({ title = 'Escanear carta' } = {}) {
     };
 
     navigator.mediaDevices
-      ?.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false })
+      ?.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 } }, audio: false })
       .then((s) => {
         stream = s;
         video.srcObject = s;
@@ -75,6 +75,7 @@ export function openScanner({ title = 'Escanear carta' } = {}) {
       ov.classList.add('busy');
       try {
         const res = await identify(canvas, cropped, setStatus);
+        res.shot = thumb(canvas);
         close(res);
       } catch (e) {
         console.error(e);
@@ -93,10 +94,24 @@ export function openScanner({ title = 'Escanear carta' } = {}) {
     $('input[type=file]', ov).onchange = async (e) => {
       const f = e.target.files?.[0];
       if (!f) return;
-      const bmp = await loadImage(f);
-      run(bmp, false);
+      setStatus('Abriendo foto…');
+      try {
+        run(await loadImage(f), false);
+      } catch (err) {
+        setStatus(`No pude abrir la foto (${err.message}).`);
+      }
     };
   });
+}
+
+// Small preview of what was captured, shown next to the matches so a bad crop is obvious.
+function thumb(canvas) {
+  const t = document.createElement('canvas');
+  const s = 260 / canvas.width;
+  t.width = 260;
+  t.height = Math.round(canvas.height * s);
+  t.getContext('2d').drawImage(canvas, 0, 0, t.width, t.height);
+  return t.toDataURL('image/jpeg', 0.7);
 }
 
 function captureFrame(video, frame) {
@@ -109,7 +124,7 @@ function captureFrame(video, frame) {
   const sy = (fr.top - vr.top - oy) / scale;
   const sw = fr.width / scale, sh = fr.height / scale;
   const c = document.createElement('canvas');
-  const outW = Math.min(1100, Math.round(sw));
+  const outW = Math.min(1500, Math.round(sw));
   c.width = outW;
   c.height = Math.round((outW * sh) / sw);
   c.getContext('2d').drawImage(video, sx, sy, sw, sh, 0, 0, c.width, c.height);
@@ -117,17 +132,25 @@ function captureFrame(video, frame) {
 }
 
 async function loadImage(file) {
-  const url = URL.createObjectURL(file);
-  const im = new Image();
-  im.src = url;
-  await im.decode();
-  const max = 1600;
-  const s = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight));
+  let src;
+  try {
+    src = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  } catch {
+    const url = URL.createObjectURL(file);
+    src = await new Promise((res, rej) => {
+      const im = new Image();
+      im.onload = () => res(im);
+      im.onerror = () => rej(new Error('no pude abrir la imagen'));
+      im.src = url;
+    });
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  const w = src.naturalWidth || src.width, hgt = src.naturalHeight || src.height;
+  const s = Math.min(1, 1600 / Math.max(w, hgt));
   const c = document.createElement('canvas');
-  c.width = Math.round(im.naturalWidth * s);
-  c.height = Math.round(im.naturalHeight * s);
-  c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-  URL.revokeObjectURL(url);
+  c.width = Math.round(w * s);
+  c.height = Math.round(hgt * s);
+  c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
   return c;
 }
 
@@ -137,7 +160,7 @@ export async function identify(canvas, cropped, setStatus) {
     try {
       const info = await identifyWithClaude(canvas);
       setStatus(`Buscando ${[info.name, info.number && `${info.number}/${info.total || '?'}`].filter(Boolean).join(' · ')}…`);
-      let cands = info.number ? await findByNumber(info.number, info.total, info.name) : [];
+      let cands = info.number ? await findByNumber(info.number, info.total, info.name, { nameFallback: false }) : [];
       if (info.name && cands.length && !cands.some((c) => nameMatch(c.name, info.name))) cands = [];
       if (!cands.length && info.name) cands = await searchByName(info.name);
       if (cands.length) return { info, cands };
@@ -261,11 +284,35 @@ function region(src, x, y, w, hgt, { scale = 2, mode = 'gray' } = {}) {
     sum += g;
   }
   const mean = sum / (d.length / 4);
-  if (mode !== 'gray') {
+  if (mode === 'bright' || mode === 'dark') {
     for (let i = 0; i < d.length; i += 4) {
       const g = d[i];
       const ink = mode === 'bright' ? g > 200 : g < Math.min(110, mean * 0.7);
       d[i] = d[i + 1] = d[i + 2] = ink ? 0 : 255;
+    }
+  } else if (mode === 'abright' || mode === 'adark') {
+    // Adaptive (local-mean) threshold: copes with glare and with white digits outlined in black.
+    const W = c.width, H = c.height, r = Math.max(6, Math.round(H / 7));
+    const I = new Float64Array((W + 1) * (H + 1));
+    for (let y = 0; y < H; y++) {
+      let row = 0;
+      for (let x = 0; x < W; x++) {
+        row += d[(y * W + x) * 4];
+        I[(y + 1) * (W + 1) + x + 1] = I[y * (W + 1) + x + 1] + row;
+      }
+    }
+    const gray = new Uint8ClampedArray(W * H);
+    for (let i = 0; i < W * H; i++) gray[i] = d[i * 4];
+    for (let y = 0; y < H; y++) {
+      const y0 = Math.max(0, y - r), y1 = Math.min(H, y + r + 1);
+      for (let x = 0; x < W; x++) {
+        const x0 = Math.max(0, x - r), x1 = Math.min(W, x + r + 1);
+        const m = (I[y1 * (W + 1) + x1] - I[y0 * (W + 1) + x1] - I[y1 * (W + 1) + x0] + I[y0 * (W + 1) + x0]) / ((x1 - x0) * (y1 - y0));
+        const g = gray[y * W + x];
+        const ink = mode === 'abright' ? g > m + 28 && g > 150 : g < m - 28;
+        const o = (y * W + x) * 4;
+        d[o] = d[o + 1] = d[o + 2] = ink ? 0 : 255;
+      }
     }
   }
   ctx.putImageData(img, 0, 0);
@@ -276,42 +323,67 @@ const fixDigits = (t) => t.replace(/[Oo]/g, '0').replace(/[lI|]/g, '1').replace(
 
 // `totals` = printed set sizes that exist (165, 131…). Used to validate reads and to split
 // runs like "19971654" where the italic slash was read as a 7 → 199/165.
-function parseNumber(text, totals) {
+// Returns every plausible reading, best first.
+function parseNumbers(text, totals) {
   const t = text.toUpperCase();
-  const g = t.match(/\b(TG|GG|RC|SV)\s?(\d{1,3})\s*\/\s*(TG|GG|RC|SV)?\s?(\d{2,3})/);
-  if (g) return { number: `${g[1]}${g[2]}`, total: `${g[3] || g[1]}${g[4]}` };
+  const out = [];
+  const add = (number, total) => !out.some((o) => o.number === number && o.total === total) && out.push({ number, total });
+  for (const g of t.matchAll(/\b(TG|GG|RC|SV)\s?(\d{1,3})\s*\/\s*(TG|GG|RC|SV)?\s?(\d{2,3})/g)) add(`${g[1]}${g[2]}`, `${g[3] || g[1]}${g[4]}`);
   const ok = (a, b) => {
     const A = parseInt(a, 10), B = parseInt(b, 10);
     return A >= 1 && B >= 10 && A <= B * 2 + 20 && (!totals?.size || totals.has(B));
   };
   const clean = fixDigits(t);
-  for (const m of clean.matchAll(/(\d{1,3})\s*\/\s*(\d{2,3})/g)) if (ok(m[1], m[2])) return { number: m[1], total: m[2] };
+  for (const m of clean.matchAll(/(\d{1,3})\s*\/\s*(\d{2,3})/g)) if (ok(m[1], m[2])) add(m[1].padStart(3, '0'), m[2]);
+  // Digit runs where the slash was misread ("119971650220" → 199/165): try every offset,
+  // keep the plausible splits and rank 3-digit/3-digit reads with a "7" separator first.
+  const splits = [];
   for (const run of clean.replace(/[^\d]+/g, ' ').split(' ')) {
-    if (run.length < 4) continue;
-    for (let p = Math.min(3, run.length - 3); p >= 1; p--) {
-      if (!'71'.includes(run[p])) continue;
-      for (const L of [3, 2]) {
-        const a = run.slice(0, p), b = run.slice(p + 1, p + 1 + L);
-        if (b.length === L && ok(a, b)) return { number: a, total: b };
+    if (run.length < 5) continue;
+    for (let st = 0; st < run.length - 3; st++) {
+      for (let p = 1; p <= 3; p++) {
+        const sep = run[st + p];
+        if (!sep || !'71'.includes(sep)) continue;
+        for (const L of [3, 2]) {
+          const a = run.slice(st, st + p), b = run.slice(st + p + 1, st + p + 1 + L);
+          if (b.length === L && ok(a, b)) splits.push({ a, b, q: (a.length === 3 ? 2 : 0) + (L === 3 ? 2 : 0) + (sep === '7' ? 1 : 0) - st * 0.1 });
+        }
       }
     }
   }
-  return null;
+  splits.sort((x, y) => y.q - x.q).slice(0, 2).forEach((x) => add(x.a.padStart(3, '0'), x.b));
+  return out;
 }
 
-const NAME_STOP = /^(basic|stage|stage1|stage2|hp|pokemon|pokémon|trainer|item|supporter|tool|energy|evolves|from|ex|v|vmax|vstar|gx|tera)$/i;
+const NAME_STOP = /^(basic|stage|stage1|stage2|hp|pokemon|pokémon|trainer|trainers|item|supporter|tool|energy|evolves|from|ex|v|vmax|vstar|gx|tera|weakness|resistance|retreat|ability|rule|illus)$/i;
+const PREFIX = /^(Mega|Dark|Light|Alolan|Galarian|Hisuian|Paldean|Radiant|Shining|Team|Iron|Great|Scream|Walking|Roaring|Gouging|Raging|Mr\.?)$/i;
 
-function parseName(text) {
-  const words = text
-    .replace(/[^A-Za-zÀ-ÿ'\.\- \n]/g, ' ')
-    .split(/\s+/)
-    .map((w) => w.replace(/^[^A-Za-zÀ-ÿ]+|[^A-Za-zÀ-ÿ\.]+$/g, ''))
-    .filter((w) => w.length >= 3 && !NAME_STOP.test(w));
-  // Prefer Capitalised words (card names are printed in title case); keep "Mega"/"Dark" style prefixes.
-  const caps = words.filter((w) => /^[A-ZÀ-Ý]/.test(w));
-  const pick = (caps.length ? caps : words).slice(0, 2);
-  if (pick.length === 2 && !/^(Mega|Dark|Light|Alolan|Galarian|Hisuian|Paldean|Radiant|Shining|Team|Iron|Great|Scream|Walking|Roaring|Gouging|Raging)$/i.test(pick[0])) pick.pop();
-  return pick.join(' ');
+// Tesseract word list (works whether the build returns data.words or nested blocks).
+async function readWords(worker, canvas, params) {
+  await worker.setParameters(params);
+  const { data } = await worker.recognize(canvas, {}, { text: true, blocks: true });
+  const words = data.words?.length
+    ? data.words
+    : (data.blocks || []).flatMap((b) => (b.paragraphs || []).flatMap((p) => (p.lines || []).flatMap((l) => l.words || [])));
+  return { text: data.text || '', words };
+}
+
+// The card name is the biggest line of letters near the top (HP is digits, so it's ignored).
+function pickName(words) {
+  const ws = words
+    .map((w) => ({ ...w, clean: String(w.text || '').replace(/^[^A-Za-zÀ-ÿ]+|[^A-Za-zÀ-ÿ.'-]+$/g, '') }))
+    .filter((w) => /^[A-Za-zÀ-ÿ.'-]{3,}$/.test(w.clean) && !NAME_STOP.test(w.clean) && !/from|evolve|ability|pok[eé]mon/i.test(w.clean) && w.clean.length <= 13 && (w.confidence ?? 100) > 35 && /[aeiouyáéíóú]/i.test(w.clean))
+    .map((w) => ({ ...w, h: w.bbox.y1 - w.bbox.y0 }));
+  if (!ws.length) return '';
+  ws.sort((a, b) => b.h - a.h);
+  const top = ws[0];
+  const line = ws
+    .filter((w) => Math.abs(w.bbox.y0 - top.bbox.y0) < top.h * 0.6 && w.h > top.h * 0.7)
+    .sort((a, b) => a.bbox.x0 - b.bbox.x0);
+  const i = line.indexOf(top);
+  const prev = line[i - 1], next = line[i + 1];
+  const name = PREFIX.test(top.clean) && next ? `${top.clean} ${next.clean}` : prev && PREFIX.test(prev.clean) ? `${prev.clean} ${top.clean}` : top.clean;
+  return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
 async function ocr(worker, canvas, params) {
@@ -320,68 +392,174 @@ async function ocr(worker, canvas, params) {
   return data.text || '';
 }
 
+// Name printed in a tight crop (card fills the frame): first Capitalised word, keeping prefixes like "Mega".
+function parseName(text) {
+  const words = text
+    .split(/\s+/)
+    .map((w) => w.replace(/^[^A-Za-zÀ-ÿ]+|[^A-Za-zÀ-ÿ.]+$/g, ''))
+    .filter((w) => /^[A-Za-zÀ-ÿ.'-]{3,13}$/.test(w) && !NAME_STOP.test(w) && /[aeiouy]/i.test(w));
+  const caps = words.filter((w) => /^[A-ZÀ-Ý]/.test(w));
+  const pick = (caps.length ? caps : words).slice(0, 2);
+  if (pick.length === 2 && !PREFIX.test(pick[0])) pick.pop();
+  return pick.join(' ');
+}
+
+// Two strategies, cheapest first:
+//  1) tight crops that assume the card fills the camera frame (fast and accurate when framed well);
+//  2) position-independent reads of the top/bottom zones for loosely framed or tilted photos.
+// Several name guesses are kept; a collector number is only accepted when its card matches one.
 async function identifyWithOCR(canvas, cropped, setStatus) {
   const worker = await getWorker(setStatus);
+  const k = Math.min(3, Math.max(1, 1400 / canvas.width)); // upscale small captures
 
-  // 1) Name (top-left). Used to validate whatever the number passes read.
+  // ── names
   setStatus('Leyendo nombre…');
-  const NAME = { tessedit_char_whitelist: '', tessedit_pageseg_mode: cropped ? '7' : '11' };
-  let name = '';
-  const namePasses = cropped
-    ? [
-        [0.16, 0.025, 0.5, 0.07, 'gray'],
-        [0.16, 0.025, 0.5, 0.07, 'dark'],
-        [0.04, 0.02, 0.7, 0.09, 'gray'],
-      ]
-    : [[0, 0, 1, 0.3, 'gray']];
-  for (const [x, y, w, hh, mode] of namePasses) {
-    name = parseName(await ocr(worker, region(canvas, x, y, w, hh, { mode, scale: cropped ? 2 : 1 }), NAME));
-    if (name.length >= 4) break;
-  }
+  const names = [];
+  const addName = (n) => {
+    if (!n || n.length < 4) return false;
+    const dup = names.find((x) => similarity(baseName(x), baseName(n)) >= 0.8);
+    if (!dup) names.push(n);
+    return !!dup; // true = two passes agree
+  };
+  const NAME7 = { tessedit_char_whitelist: '', tessedit_pageseg_mode: '7' };
+  const TOPH = cropped ? 0.3 : 0.5; // a gallery photo may have the card anywhere in the middle
+  const SPARSE = { tessedit_char_whitelist: '', tessedit_pageseg_mode: '11' };
+  const nameSteps = [
+    ...(cropped
+      ? [
+          () => ocr(worker, region(canvas, 0.16, 0.025, 0.5, 0.07, { mode: 'gray', scale: 2 }), NAME7).then(parseName),
+          () => ocr(worker, region(canvas, 0.16, 0.025, 0.5, 0.07, { mode: 'dark', scale: 2 }), NAME7).then(parseName),
+          () => ocr(worker, region(canvas, 0.04, 0.02, 0.7, 0.09, { mode: 'gray', scale: 2 }), NAME7).then(parseName),
+        ]
+      : []),
+    () => readWords(worker, region(canvas, 0, 0, 1, TOPH, { mode: 'gray', scale: k }), SPARSE).then((r) => pickName(r.words)),
+    () => readWords(worker, region(canvas, 0, 0, 1, TOPH, { mode: 'adark', scale: k }), SPARSE).then((r) => pickName(r.words)),
+  ];
+  for (const step of nameSteps) if (addName(await step().catch(() => ''))) break;
+  const name = names[0] || '';
+  const matches = (c) => names.some((n) => nameMatch(c.name, n));
 
-  // 2) Collector number (bottom). Each read is checked against the name before accepting it.
+  // ── collector number
   setStatus(name ? `Leí “${name}”. Buscando el número…` : 'Leyendo número…');
-  const totals = new Set((await getSets().catch(() => [])).map((x) => x.official).filter(Boolean));
-  const P = (psm) => ({ tessedit_char_whitelist: '0123456789/TGRCSV', tessedit_pageseg_mode: psm });
-  const T1 = [0.15, 0.93, 0.2, 0.045], T2 = [0.1, 0.92, 0.32, 0.07], WIDE = [0, 0.9, 0.55, 0.09], RIGHT = [0.5, 0.9, 0.5, 0.09];
-  const passes = cropped
-    ? [
-        [T1, 'bright', '6'], // full-art: white numbers with dark outline
-        [T1, 'dark', '6'], // regular frame: black numbers
-        [T2, 'bright', '6'],
-        [T2, 'dark', '6'],
-        [T1, 'gray', '7'],
-        [WIDE, 'gray', '11'],
-        [T2, 'bright', '11'],
-        [RIGHT, 'gray', '11'], // older layouts print the number bottom-right
-        [RIGHT, 'dark', '6'],
-      ]
-    : [
-        [[0, 0.55, 1, 0.45], 'gray', '11'],
-        [[0, 0.55, 1, 0.45], 'bright', '11'],
-      ];
-  const tried = new Set();
-  let fallback = null;
-  for (const [[x, y, w, hh], mode, psm] of passes) {
-    const num = parseNumber(await ocr(worker, region(canvas, x, y, w, hh, { mode, scale: cropped ? 3 : 1.2 }), P(psm)), totals);
-    if (!num || tried.has(num.number + '/' + num.total)) continue;
-    tried.add(num.number + '/' + num.total);
-    const cands = await findByNumber(num.number, num.total, name).catch(() => []);
-    if (!cands.length) continue;
-    const info = { name, number: num.number, total: num.total, via: 'ocr' };
-    if (!name) return { info, cands };
-    const good = cands.filter((c) => nameMatch(c.name, name));
-    if (good.length) return { info, cands: good };
-    fallback ||= { info, cands };
+  const sets = await getSets().catch(() => []);
+  const totals = new Set(sets.map((x) => x.official).filter(Boolean));
+  const maxIdx = Math.max(1, ...sets.map((x) => x.idx));
+  const NUM = (psm) => ({ tessedit_char_whitelist: '0123456789/', tessedit_pageseg_mode: psm });
+  const T1 = [0.15, 0.93, 0.2, 0.045], T2 = [0.1, 0.92, 0.32, 0.07]; // card fills the frame
+  const BL = cropped ? [0, 0.8, 0.65, 0.2] : [0, 0.5, 1, 0.5]; // bottom zone, wherever the card sits in it
+  const passes = [
+    ...(cropped
+      ? [
+          [T1, 'bright', '6', 3, true], // full-art: white numbers with dark outline
+          [T1, 'dark', '6', 3, true], // regular frame: black numbers
+          [T2, 'bright', '6', 3, true],
+          [T2, 'dark', '6', 3, true],
+          [[0, 0.9, 0.55, 0.09], 'gray', '11', 2.4, true],
+        ]
+      : []),
+    [BL, 'dark', '11'],
+    [BL, 'abright', '11'],
+    [BL, 'bright', '11'],
+    [BL, 'adark', '11'],
+    [BL, 'gray', '11'],
+    [[0.35, 0.8, 0.65, 0.2], 'adark', '11'], // older layouts print it bottom-right
+  ];
+  const keyOf = (r) => r.number + '/' + r.total;
+  const votes = new Map(), first = new Map(), lookups = new Map();
+  const reads = [];
+  const lookup = (num) => {
+    if (!lookups.has(keyOf(num))) lookups.set(keyOf(num), findByNumber(num.number, num.total, name, { nameFallback: false }).catch(() => []));
+    return lookups.get(keyOf(num));
+  };
+  const deadline = Date.now() + 12000;
+  let pi = 0;
+  for (const [[x, y, w, hh], mode, psm, sc, tight] of passes) {
+    if (Date.now() > deadline) break;
+    const text = await ocr(worker, region(canvas, x, y, w, hh, { mode, scale: sc ? Math.max(sc, k) : Math.min(3.2, k * 1.6) }), NUM(psm));
+    for (const num of parseNumbers(text, totals)) {
+      const key = keyOf(num);
+      if (!votes.has(key)) reads.push(num), first.set(key, pi);
+      votes.set(key, (votes.get(key) || 0) + 1);
+      // Accept right away when a tight read (or any read seen twice) points to a card with our name.
+      if (names.length && (tight || votes.get(key) >= 2)) {
+        const good = (await lookup(num)).filter(matches);
+        if (good.length) return { info: { name, ...num, via: 'ocr' }, cands: good.sort((a, b) => b.setIdx - a.setIdx) };
+      }
+    }
+    pi++;
   }
 
-  // 3) No number agreed with the name → search by name (user picks from the images).
-  if (name) {
-    setStatus(`Buscando “${name}”…`);
-    const cands = await searchByName(name).catch(() => []);
-    if (cands.length) return { info: { name, via: 'ocr' }, cands };
+  // Score what we have: votes + name + early pass + recency (ferias move mostly modern sets).
+  reads.sort((a, b) => votes.get(keyOf(b)) - votes.get(keyOf(a)) || first.get(keyOf(a)) - first.get(keyOf(b)));
+  const scored = new Map();
+  let fallback = null;
+  for (const num of reads.slice(0, 8)) {
+    const cands = await lookup(num);
+    if (!cands.length) continue;
+    fallback ||= { info: { name, ...num, via: 'ocr' }, cands };
+    for (const c of cands) {
+      const nm = matches(c);
+      if (names.length && !nm) continue;
+      const sc = votes.get(keyOf(num)) + (nm ? 3 : 0) + (first.get(keyOf(num)) <= 1 ? 1 : 0) + (c.setIdx / maxIdx) * 1.5;
+      if (!scored.has(c.id) || scored.get(c.id).sc < sc) scored.set(c.id, { c, sc, num });
+    }
+  }
+  if (scored.size) {
+    const best = [...scored.values()].sort((a, b) => b.sc - a.sc);
+    return { info: { name, ...best[0].num, via: 'ocr' }, cands: best.map((x) => x.c) };
+  }
+  if (!names.length && fallback) return fallback;
+
+  // The printed total ("/165") is often right even when the number isn't: look for the name
+  // inside the sets with that total, ranked by how close the number looks.
+  if (reads.length) {
+    setStatus(`Buscando “${name}” en la expansión…`);
+    const tot = [...new Set(reads.map((r) => parseInt(r.total, 10)))].slice(0, 4);
+    const pool = [];
+    for (const t of tot) for (const st of sets.filter((x) => x.official === t)) pool.push(...(await setCards(st.id).catch(() => [])));
+    const hits = pool.filter(matches);
+    if (hits.length) {
+      const dist = (c) => Math.min(...reads.map((r) => digitDistance(String(c.number), r.number)));
+      hits.sort((a, b) => dist(a) - dist(b) || b.setIdx - a.setIdx);
+      return { info: { name, number: reads[0].number, total: reads[0].total, via: 'ocr' }, cands: hits };
+    }
+  }
+
+  // Nothing agreed → fuzzy search by each name guess (the user picks from the images).
+  const exact = [];
+  for (const n of names) exact.push(await searchByName(n).catch(() => []));
+  const hitIdx = exact.findIndex((l) => l.length);
+  if (hitIdx >= 0) return { info: { name: names[hitIdx], via: 'ocr' }, cands: fallback ? mergeById(exact[hitIdx], fallback.cands) : exact[hitIdx] };
+  for (const n of names) {
+    setStatus(`Buscando “${n}”…`);
+    const cands = await fuzzyName(n);
+    if (cands.length) return { info: { name: n, via: 'ocr' }, cands: fallback ? mergeById(cands, fallback.cands) : cands };
   }
   return fallback || { info: { name, via: 'ocr' }, cands: [] };
+}
+
+function digitDistance(a, b) {
+  a = a.replace(/^0+/, '').padStart(3, '0');
+  b = b.replace(/^0+/, '').padStart(3, '0');
+  let d = Math.abs(a.length - b.length);
+  for (let i = 0; i < Math.min(a.length, b.length); i++) if (a[i] !== b[i]) d++;
+  return d;
+}
+
+const mergeById = (a, b) => [...a, ...b.filter((x) => !a.some((y) => y.id === x.id))];
+
+// OCR often garbles a letter ("Umbheon"), so fall back to prefixes and rank by similarity.
+async function fuzzyName(name) {
+  const base = baseName(name);
+  let cands = await searchByName(name).catch(() => []);
+  if (cands.length) return cands;
+  const word = base.split(' ').sort((a, b) => b.length - a.length)[0] || '';
+  for (const n of [5, 4, 3]) {
+    if (word.length < n) continue;
+    cands = (await searchByName(word.slice(0, n)).catch(() => [])).filter((c) => similarity(baseName(c.name), base) >= 0.45);
+    if (cands.length) return cands.sort((a, b) => similarity(baseName(b.name), base) - similarity(baseName(a.name), base));
+  }
+  return [];
 }
 
 export async function testClaudeKey() {

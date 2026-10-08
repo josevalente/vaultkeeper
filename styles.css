@@ -483,3 +483,8 @@ em.deal-bad { color: var(--neg); background: none; border: 0; font-weight: 700; 
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 [hidden] { display: none !important; }
+
+.shot-row { display: grid; grid-template-columns: 84px 1fr; gap: 12px; align-items: start; }
+.shot { width: 84px; border-radius: 8px; border: 1px solid var(--line-2); }
+.tip { font-size: 13px; padding: 10px 12px; border-radius: 12px; background: color-mix(in oklab, var(--brass) 12%, transparent); border: 1px solid color-mix(in oklab, var(--brass) 40%, transparent); }
+.tip a { color: var(--brass); font-weight: 700; }

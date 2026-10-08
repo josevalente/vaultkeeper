@@ -188,11 +188,13 @@ export async function searchByName(q) {
   if (q.length < 2) return [];
   const list = await fetchJSON(`${TD}/cards?name=${encodeURIComponent(q)}`, { retries: 1 });
   const out = await decorate(list);
-  return out.sort((a, b) => similarity(b.name, q) - similarity(a.name, q) || b.setIdx - a.setIdx).slice(0, 150);
+  const base = (n) => String(n || '').toLowerCase().replace(/\b(ex|v|vmax|vstar|gx)\b/g, '').trim();
+  const sim = (c) => Math.round(similarity(base(c.name), base(q)) * 4);
+  return out.sort((a, b) => sim(b) - sim(a) || b.setIdx - a.setIdx).slice(0, 150);
 }
 
 // Number as printed on the card ("199/165", "TG05/TG30"). Name is optional and used to rank.
-export async function findByNumber(number, total, name) {
+export async function findByNumber(number, total, name, { nameFallback = true } = {}) {
   number = String(number || '').trim().toUpperCase();
   if (!number) return name ? searchByName(name) : [];
   const variantsOfNum = new Set([number, number.replace(/^0+(?=\d)/, ''), number.padStart(3, '0')]);
@@ -211,8 +213,19 @@ export async function findByNumber(number, total, name) {
   const sim = (c) => Math.round(similarity(base(c.name), base(name)) * 4);
   if (name) cands.sort((a, b) => sim(b) - sim(a) || b.setIdx - a.setIdx);
   else cands.sort((a, b) => b.setIdx - a.setIdx);
-  if (!cands.length && name) return searchByName(name);
+  if (!cands.length && name && nameFallback) return searchByName(name);
   return cands.slice(0, 40);
+}
+
+// All cards of one set (brief), cached — used to match an OCR'd name inside the sets that share a printed total.
+export async function setCards(setId) {
+  const key = 'set:' + setId;
+  const cached = cacheGet(key, 7 * 86400000);
+  if (cached) return cached;
+  const s = await fetchJSON(`${TD}/sets/${encodeURIComponent(setId)}`, { retries: 1 });
+  const out = await decorate(s?.cards || []);
+  cacheSet(key, out);
+  return out;
 }
 
 export async function listByRarity(apiRarity) {

@@ -1,5 +1,5 @@
 // VaultKeeper service worker: works offline at the feria with the last saved data.
-const VERSION = 'vk-v1';
+const VERSION = 'vk-v2';
 const SHELL = [
   './', 'index.html', 'styles.css', 'manifest.webmanifest',
   'js/app.js', 'js/util.js', 'js/store.js', 'js/api.js', 'js/fx.js', 'js/scan.js', 'js/chart.js', 'js/rarity.js', 'js/ui.js',
@@ -35,7 +35,7 @@ const networkFirst = async (req, name, timeout = 8000) => {
     if (res.ok) cache.put(req, res.clone());
     return res;
   } catch (err) {
-    const hit = await cache.match(req);
+    const hit = await cache.match(req, { ignoreSearch: true });
     if (hit) return hit;
     throw err;
   }
@@ -55,7 +55,7 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  if (url.origin === location.origin) return e.respondWith(staleWhileRevalidate(req, VERSION));
+  if (url.origin === location.origin) return e.respondWith(networkFirst(req, VERSION, 3500));
   if (url.hostname === 'assets.tcgdex.net' || url.hostname === 'images.pokemontcg.io') return e.respondWith(cacheFirst(req, 'vk-img'));
   if (/^(api\.tcgdex\.net|api\.pokemontcg\.io|mindicador\.cl|open\.er-api\.com)$/.test(url.hostname)) return e.respondWith(networkFirst(req, 'vk-data'));
   if (/^(cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)$/.test(url.hostname)) return e.respondWith(cacheFirst(req, 'vk-lib'));

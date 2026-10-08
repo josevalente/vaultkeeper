@@ -89,18 +89,26 @@ export async function scanFlow({ onPick, title } = {}) {
   if (r.manual) return openSearch({ onPick });
   const { info, cands } = r;
   if (cands.length === 1 && cands[0].number && info.number) return onPick(cands[0]);
-  openCandidates(info, cands, onPick);
+  openCandidates(r, onPick);
 }
 
-function openCandidates(info, cands, onPick) {
-  const read = [info.name, info.number && `${info.number}/${info.total || '?'}`].filter(Boolean).join(' · ') || 'nada legible';
+function openCandidates({ info, cands, shot }, onPick) {
+  const read = [info.name, info.number && `${info.number}/${info.total || '?'}`].filter(Boolean).join(' · ');
+  const noKey = !state.settings.claudeKey;
   const body = h(`
     <div>
-      <p class="muted small">Leí <b>${esc(read)}</b> (${info.via === 'claude' ? 'Claude' : 'OCR'}). Toca la carta que coincide con la tuya.</p>
-      ${cands.length ? `<div class="grid grid-tight">${cands.map((c) => cardTile(c)).join('')}</div>` : `<div class="empty"><p>No encontré coincidencias.</p></div>`}
+      <div class="shot-row">
+        ${shot ? `<img class="shot" src="${shot}" alt="Foto capturada">` : ''}
+        <div>
+          <p class="small">${read ? `Leí <b>${esc(read)}</b>` : '<b>No pude leer el nombre ni el número.</b>'} <span class="muted">(${info.via === 'claude' ? 'Claude' : 'OCR'})</span></p>
+          ${cands.length ? `<p class="muted small">Toca la carta que coincide con la tuya.</p>` : `<p class="muted small">Acerca la carta para que llene el marco, evita reflejos de la funda y enfoca bien el número de abajo a la izquierda.</p>`}
+        </div>
+      </div>
+      ${noKey && (!cands.length || !info.number) ? `<div class="tip"><b>Tip:</b> el OCR del teléfono falla con fundas, brillos y full-arts. Con una API key de Claude en Ajustes el reconocimiento es mucho más preciso. <a href="#/ajustes">Configurar</a></div>` : ''}
+      ${cands.length ? `<div class="grid grid-tight">${cands.slice(0, 60).map((c) => cardTile(c)).join('')}</div>` : ''}
       <div class="btn-row"><button class="btn ghost search">Buscar por nombre</button><button class="btn ghost again">Escanear de nuevo</button></div>
     </div>`);
-  const s = openSheet({ title: 'Elige tu carta', body });
+  const s = openSheet({ title: cands.length ? 'Elige tu carta' : 'No la reconocí', body, cls: cands.length ? 'tall' : '' });
   body.addEventListener('click', (e) => {
     const t = e.target.closest('.tile');
     if (t) {
@@ -110,7 +118,7 @@ function openCandidates(info, cands, onPick) {
   });
   $('.search', body).onclick = () => {
     s.close();
-    openSearch({ onPick, initial: info.name });
+    openSearch({ onPick, initial: info.name || '' });
   };
   $('.again', body).onclick = () => {
     s.close();
