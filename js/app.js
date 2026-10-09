@@ -118,6 +118,22 @@ actions.refreshPrices = refreshPrices;
 
 $('.scan-fab').onclick = () => scanFlow({ title: 'Escanear carta', onPick: (c) => openCardSheet(c.id) });
 
+// "Volver arriba": appears after scrolling about two screens; sits above the sticky totals
+// bar of Lote/Intercambio when there is one.
+const toTop = $('.to-top');
+function placeToTop() {
+  const show = window.scrollY > Math.max(600, innerHeight * 1.5);
+  toTop.classList.toggle('show', show);
+  toTop.tabIndex = show ? 0 : -1;
+  const bar = show && $('.balance', view);
+  toTop.style.bottom = bar ? `${innerHeight - bar.getBoundingClientRect().top + 10}px` : '';
+}
+window.addEventListener('scroll', placeToTop, { passive: true });
+toTop.onclick = () => {
+  const smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' });
+};
+
 window.addEventListener('hashchange', route);
 let rz;
 window.addEventListener('resize', () => {

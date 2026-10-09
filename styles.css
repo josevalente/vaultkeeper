@@ -464,6 +464,11 @@ em.deal-bad { color: var(--neg); background: none; border: 0; font-weight: 700; 
 .scanner.busy .shutter span { background: #e2b33c; }
 
 /* ───────────── toast */
+.to-top { position: fixed; z-index: 29; right: calc((100% - min(560px, 100% - 20px)) / 2 + 4px); bottom: calc(var(--tabbar-h) + var(--safe-b) + 22px); width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; padding: 0; color: var(--text); background: color-mix(in oklab, var(--surface-2) 88%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--line-2); box-shadow: var(--shadow); opacity: 0; transform: translateY(12px) scale(0.9); pointer-events: none; transition: opacity 0.2s, transform 0.2s; }
+.to-top svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.to-top.show { opacity: 1; transform: none; pointer-events: auto; }
+.to-top:active { transform: scale(0.92); }
+body.has-sheet .to-top { opacity: 0; pointer-events: none; }
 .toast { position: fixed; z-index: 100; left: 50%; bottom: calc(var(--tabbar-h) + var(--safe-b) + 24px); transform: translate(-50%, 20px); opacity: 0; pointer-events: none; padding: 11px 16px; border-radius: 14px; background: var(--surface-3); border: 1px solid var(--line-2); font-weight: 700; font-size: 14px; box-shadow: var(--shadow); transition: all 0.25s; max-width: calc(100% - 32px); text-align: center; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .toast.ok { border-color: var(--pos); }
