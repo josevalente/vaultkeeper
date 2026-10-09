@@ -2,7 +2,7 @@
 // Primary: TCGdex (free, CORS, includes TCGplayer USD + Cardmarket EUR with 7/30-day averages).
 // Fallback for prices: pokemontcg.io (same TCGplayer feed).
 
-import { fetchJSON, similarity, pool } from './util.js';
+import { fetchJSON, similarity, pool, norm } from './util.js';
 import { state } from './store.js';
 
 const TD = 'https://api.tcgdex.net/v2/en';
@@ -10,8 +10,12 @@ const PTCG = 'https://api.pokemontcg.io/v2';
 
 export const PLACEHOLDER = 'icons/card-back.svg';
 
+// TCGdex images are a base URL ("…/sv03.5/199" + "/low.webp"); TCGplayer catalog items (Japanese
+// cards, sealed products) are stored as "tcgp:<productId>".
 export function img(image, q = 'low') {
-  return image ? `${image}/${q}.webp` : PLACEHOLDER;
+  if (!image) return PLACEHOLDER;
+  if (image.startsWith('tcgp:')) return `https://tcgplayer-cdn.tcgplayer.com/product/${image.slice(5)}_${q === 'high' ? '400w' : '200w'}.jpg`;
+  return `${image}/${q}.webp`;
 }
 
 export function variantLabel(k) {
@@ -220,10 +224,124 @@ export async function getHistory(pid, variant) {
   return sh.days.map((day, i) => ({ d: new Date(day * DAY).toISOString().slice(0, 10), v: arr[i] == null ? null : arr[i] / 100 })).filter((p) => p.v != null);
 }
 
+// ───────────────────────── TCGplayer catalogs: Japanese cards and sealed products
+// Built daily by scripts/tcgcsv-diario.mjs (data/catalogo/jp.json, data/catalogo/sellados.json).
+
+// TCGplayer's Japanese rarity names → the English equivalents the app uses
+// (in Japan "Super Rare" = SR ≈ English Ultra Rare and "Ultra Rare" = UR ≈ Hyper Rare).
+const JP_RARITY = {
+  'art rare': 'Illustration rare',
+  'special art rare': 'Special illustration rare',
+  'super rare': 'Ultra Rare',
+  'ultra rare': 'Hyper rare',
+  'hyper rare': 'Hyper rare',
+  'mega ultra rare': 'Mega Hyper Rare',
+  'double rare': 'Double rare',
+  'shiny rare': 'Shiny rare',
+  'shiny super rare': 'Shiny Ultra Rare',
+  'shiny secret rare': 'Shiny Ultra Rare',
+  'ace rare': 'ACE SPEC Rare',
+  'character rare': 'Illustration rare',
+  'character super rare': 'Special illustration rare',
+};
+const mapJpRarity = (r) => (!r || r === 'None' ? null : JP_RARITY[r.toLowerCase()] || r);
+
+const catMem = {};
+export function getCatalog(kind) {
+  if (!catMem[kind]) {
+    catMem[kind] = (async () => {
+      for (const base of dataBases()) {
+        try {
+          const d = await fetchJSON(`${base}catalogo/${kind}.json`, { timeout: 25000, retries: 1 });
+          if (d?.items) {
+            d.byPid = new Map(d.items.map((e) => [e.p, e]));
+            d.norms = d.items.map((e) => norm(e.n));
+            return d;
+          }
+        } catch {
+          /* next source */
+        }
+      }
+      throw new Error('catálogo no disponible');
+    })().catch((e) => {
+      catMem[kind] = null;
+      throw e;
+    });
+  }
+  return catMem[kind];
+}
+
+const catalogKind = (id) => (id.startsWith('jp-') ? 'jp' : id.startsWith('sealed-') ? 'sellados' : null);
+
+function catalogCard(e, kind, groups) {
+  const g = groups[e.g] || {};
+  const sealed = kind === 'sellados';
+  const lang = sealed ? (e.l === 'jp' ? 'ja' : 'en') : 'ja';
+  const [num, tot] = String(e.no || '').split('/');
+  return {
+    id: `${sealed ? 'sealed' : 'jp'}-${e.p}`,
+    name: e.n.replace(/\s+-\s+[A-Z]*\d+[A-Za-z]?(\/[A-Z]*\d+)?\s*$/, ''), // "Pikachu ex - 132/106" → "Pikachu ex"
+    number: num || '',
+    total: parseInt(tot, 10) || null,
+    printed: e.no || null,
+    setId: `tcg${e.g}`,
+    setName: `${g.n || ''}${lang === 'ja' ? ' · JP' : ''}`,
+    setIdx: g.d ? Date.parse(g.d) / 1e9 : 0,
+    rarity: sealed ? null : mapJpRarity(e.r),
+    image: `tcgp:${e.p}`,
+    variants: Object.keys(e.t),
+    kind: sealed ? 'sealed' : 'card',
+    lang,
+    pid: e.p,
+  };
+}
+
+function catalogPrices(e, updated) {
+  const tp = {};
+  for (const [k, [market, low]] of Object.entries(e.t)) tp[k] = { market, low, mid: null, high: null, pid: e.p };
+  return { tp, cm: null, src: 'tcgcsv', srcUpdated: updated };
+}
+
+async function getCatalogCard(id) {
+  const kind = catalogKind(id);
+  const cat = await getCatalog(kind);
+  const e = cat.byPid.get(Number(id.split('-').pop()));
+  if (!e) throw new Error('Este producto ya no está en el catálogo');
+  return { card: catalogCard(e, kind, cat.groups), prices: catalogPrices(e, cat.updated) };
+}
+
+// Search Japanese cards or sealed products by name and/or printed number ("132/106").
+export async function searchCatalog(kind, q, number = '', total = '') {
+  const cat = await getCatalog(kind);
+  const tokens = norm(q).split(' ').filter(Boolean);
+  const nk = (x) => String(x || '').toUpperCase().replace(/^([A-Z]*)0*(\d)/, '$1$2');
+  const want = number ? nk(number) : null;
+  const wantTotal = parseInt(String(total || '').replace(/\D/g, ''), 10);
+  const hits = [];
+  cat.items.forEach((e, i) => {
+    if (tokens.length && !tokens.every((t) => cat.norms[i].includes(t))) return;
+    if (want) {
+      const [n, t] = String(e.no || '').split('/');
+      if (nk(n) !== want) return;
+      if (wantTotal && parseInt(t, 10) !== wantTotal) return;
+    }
+    hits.push(e);
+  });
+  const date = (e) => cat.groups[e.g]?.d || '';
+  const qn = norm(q);
+  hits.sort((a, b) => (qn ? similarity(norm(b.n), qn) - similarity(norm(a.n), qn) : 0) || date(b).localeCompare(date(a)));
+  return hits.slice(0, 120).map((e) => catalogCard(e, kind, cat.groups));
+}
+
 const cardMem = new Map();
 
 export async function getCard(id, { fresh = false } = {}) {
   if (!fresh && cardMem.has(id)) return cardMem.get(id);
+  if (catalogKind(id)) {
+    const out = await getCatalogCard(id);
+    cardMem.set(id, out);
+    return out;
+  }
   const raw = await fetchJSON(`${TD}/cards/${encodeURIComponent(id)}`, { retries: 2 });
   if (!raw) throw new Error('Carta no encontrada');
   const card = normCard(raw);

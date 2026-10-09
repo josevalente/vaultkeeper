@@ -14,6 +14,17 @@ Es 100 % estática: se publica gratis en GitHub Pages y los datos quedan guardad
 | **Colección** | Tus cartas filtradas por rareza (con los símbolos oficiales), reventa/colección, vendidas. Vender, editar, mover. |
 | **Faltantes** | Eliges una rareza (Illustration Rare, Special Illustration Rare, Hyper Rare, Mega Hyper Rare…) y ves **todas** las cartas que existen con esa rareza, por expansión, cuáles tienes y cuáles te faltan, con precio y ordenadas de la más barata (las más fáciles de conseguir). Incluye wishlist. |
 | **Intercambio** | Tus cartas (valorizadas) vs. las del otro (por foto o búsqueda, valorizadas igual) + dinero extra. Te dice si es justo, a favor o en contra, y al confirmar actualiza el vault. |
+| **Lote** | Varias cartas a la vez (cámara en ráfaga, una por una o buscando): valor total, **oferta máxima** para tu margen y veredicto sobre lo que piden. “Comprar el lote” reparte lo pagado según el valor de cada carta; “Solo agregar” carga cartas que ya tenías (costo = mercado). |
+| **Reporte** | Ganancia realizada por **mes**, por **feria/evento** y por **canal**, menos **gastos** (entrada, transporte, fundas, envíos…). Exporta inventario y gastos a CSV (Excel). |
+| **Novedades** | En Inicio (y como número en el ícono de la app): carta de la wishlist bajo tu precio meta, carta del vault que se movió más de X% en 7 días, carta que ya rinde tu margen objetivo. |
+| **Lista de venta** | En Colección: elige qué vendes, ajusta precios y comparte una imagen o texto para WhatsApp / Instagram. |
+
+### Más funciones
+- **Paga como máximo**: en cada carta, el precio que todavía te deja tu margen objetivo (Ajustes) después de la comisión de tu canal habitual. Avisa si lo que piden lo supera.
+- **Estado y gradeadas**: NM / LP / MP / HP / DMG (85%, 70%, 50% y 35% del precio Near Mint, valores de referencia del mercado) y cartas gradeadas (PSA, CGC, BGS…) con el valor que ingreses tú: no hay fuente gratuita confiable para precios de gradeadas.
+- **Cartas japonesas** (precio TCGplayer Japón) y **productos sellados** (cajas, ETB, sobres…), en Buscar → *Japonesas* / *Sellados*. El escáner tiene un botón **EN/JP**: en japonés busca por el número impreso (y con Claude, también por el nombre).
+- **Canales de venta** con su comisión (% + monto fijo) en Ajustes; al vender eliges el canal y se descuenta solo.
+- **Respaldo a iCloud** con un toque (Ajustes o el aviso semanal en Inicio): en el iPhone elige “Guardar en Archivos”.
 
 ### Cómo se elige qué vender
 Puntaje = ganancia % sobre tu compra + monto de la ganancia + tendencia del precio (si el promedio de 7 días está bajo el de 30, conviene vender antes; si sube, quizás esperar) + tiempo en el vault. Las cartas marcadas como **colección** no aparecen salvo que actives “Incluir colección”.
@@ -54,7 +65,7 @@ Abre la URL en **Safari** → botón **Compartir** → **Agregar a pantalla de i
 - **Intercambio:** tus cartas salen a valor de mercado y las que recibes entran con ese valor (± efectivo) como costo. Si te pagan más efectivo que lo que valen tus cartas, el exceso cuenta como ganancia realizada. Siempre se cumple: Σ ventas − Σ costos nuevos = efectivo neto recibido.
 - **Tipo de cambio fijado a mano** en Ajustes se respeta hasta que presiones *Actualizar*.
 
-Pruebas de los cálculos: `node tests/calc.test.mjs` · del cruce de cartas: `node tests/match.test.mjs`
+Pruebas: `node tests/calc.test.mjs`, `node tests/features.test.mjs`, `node tests/match.test.mjs`, `node tests/historial.test.mjs`
 
 ## Precios de expansiones nuevas (automático)
 TCGdex a veces tarda semanas en cargar precios de una expansión recién salida (pasó con 30th Celebration, 30th Classic Collection y las promos MEP). Para cubrir ese hueco, el repositorio trae un robot:
@@ -63,10 +74,11 @@ TCGdex a veces tarda semanas en cargar precios de una expansión recién salida 
 - `scripts/precios-faltantes.mjs` detecta las expansiones recientes sin precio en TCGdex, busca su equivalente en [TCGCSV](https://tcgcsv.com) (espejo diario de TCGplayer) y cruza carta por carta por número y nombre. También trae la rareza y la versión reales.
 - El resultado (`data/precios-extra.json`) se publica en la rama `datos`, así nunca choca con tus push a `main`. La app lo lee desde `raw.githubusercontent.com`; la copia en `main` es solo respaldo.
 - Cuando TCGdex carga sus propios precios, la app vuelve a usarlos sola.
+- También publica el **catálogo de cartas japonesas** (desde US$2) y de **productos sellados** (desde US$3) de TCGplayer, en `data/catalogo/` (`scripts/tcgcsv-diario.mjs`, una sola pasada diaria de ~1.400 consultas a TCGCSV).
 - El mismo robot guarda el **historial diario de precios** de TCGplayer de todas las cartas Pokémon desde US$5 (`scripts/historial.mjs` → `data/hist/` en la rama `datos`): diario los últimos 120 días y semanal antes. TCGplayer no publica historial, así que empieza a acumularse desde el 08-10-2026. En la app: toca el precio de una carta → **Historial de precio** (también suma lo que consultas en el teléfono y los promedios 1/7/30 días de Cardmarket).
 - No hay nada que configurar. Para forzarlo: pestaña **Actions → Precios faltantes → Run workflow**.
 
-Para probarlo en tu computador: `node scripts/precios-faltantes.mjs`, `node scripts/historial.mjs --dir data/hist`, `node tests/match.test.mjs` y `node tests/historial.test.mjs`.
+Para probarlo en tu computador: `node scripts/precios-faltantes.mjs`, `node scripts/tcgcsv-diario.mjs --data data`, `node tests/match.test.mjs` y `node tests/historial.test.mjs`.
 
 ## Datos y respaldo
 Todo vive en el `localStorage` del teléfono. En **Ajustes → Exportar respaldo** descargas un `.json`; con **Importar** lo cargas en otro teléfono.
@@ -76,7 +88,8 @@ Todo vive en el `localStorage` del teléfono. En **Ajustes → Exportar respaldo
 - Tipo de cambio: [mindicador.cl](https://mindicador.cl) (dólar observado), respaldo [open.er-api.com](https://open.er-api.com).
 
 ## Limitaciones conocidas
-- Los precios son de cartas en **inglés** (TCGplayer). Las japonesas se pueden registrar buscando su equivalente, pero el precio será el de la versión en inglés.
+- Cartas japonesas: precio de TCGplayer Japón (mercado de EE.UU. para cartas japonesas). Sin Claude, el escáner japonés solo puede leer el número impreso.
+- Gradeadas: el valor lo ingresas tú. Notificaciones push no están activadas (las alertas aparecen al abrir la app y en el ícono).
 - El gráfico guarda un punto por día en que la app actualiza precios; la historia empieza el día que empiezas a usarla.
 - TCGplayer “market” es el precio de venta reciente en EE.UU.; en Chile el precio real de reventa puede ser distinto. Ajusta la comisión en Ajustes.
 

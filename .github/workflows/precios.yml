@@ -1,6 +1,7 @@
-# Once a day, from TCGCSV (daily mirror of TCGplayer):
+# Once a day, from TCGCSV (daily mirror of TCGplayer, English + Japanese Pokémon):
 #  · data/precios-extra.json — prices TCGdex doesn't have yet (new sets);
-#  · data/hist/*.json — daily price history of every card worth US$5 or more.
+#  · data/hist/*.json — daily price history of every card/product worth US$5 or more;
+#  · data/catalogo/jp.json, data/catalogo/sellados.json — Japanese cards and sealed products.
 # Published on the `datos` branch so it never conflicts with your pushes to main; the app reads
 # it from raw.githubusercontent.com.
 name: Precios faltantes
@@ -25,7 +26,7 @@ concurrency:
 jobs:
   actualizar:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
@@ -37,6 +38,8 @@ jobs:
         run: |
           node tests/match.test.mjs
           node tests/historial.test.mjs
+          node tests/calc.test.mjs
+          node tests/features.test.mjs
 
       - name: Traer la rama datos (con el historial acumulado)
         run: |
@@ -53,8 +56,8 @@ jobs:
       - name: Precios faltantes de expansiones nuevas
         run: node scripts/precios-faltantes.mjs --out "$RUNNER_TEMP/datos/data/precios-extra.json"
 
-      - name: Historial diario de precios
-        run: node scripts/historial.mjs --dir "$RUNNER_TEMP/datos/data/hist"
+      - name: Historial, cartas japonesas y sellados
+        run: node scripts/tcgcsv-diario.mjs --data "$RUNNER_TEMP/datos/data"
 
       - name: Publicar en la rama datos
         env:

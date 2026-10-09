@@ -1,7 +1,7 @@
 // VaultKeeper — app shell: router, tab bar, price refresh, offline support.
 
 import { $, $$, fmtCLP, pool, toast, localDate } from './util.js';
-import { state, save, onChange, held, setPrice, pushHist, marketUSD, snapshot, actions, repairItems } from './store.js';
+import { state, save, onChange, held, setPrice, pushHist, marketUSD, snapshot, actions, repairItems, computeAlerts } from './store.js';
 import { getCard } from './api.js';
 import { refreshFx } from './fx.js';
 import { scanFlow, openCardSheet } from './ui.js';
@@ -10,6 +10,8 @@ import { renderCollection } from './views/collection.js';
 import { renderChecklist } from './views/checklist.js';
 import { renderTrade } from './views/trade.js';
 import { renderSettings } from './views/settings.js';
+import { renderLote } from './views/lote.js';
+import { renderReporte } from './views/reporte.js';
 
 const ROUTES = {
   inicio: renderHome,
@@ -17,6 +19,8 @@ const ROUTES = {
   faltantes: renderChecklist,
   intercambio: renderTrade,
   ajustes: renderSettings,
+  lote: renderLote,
+  reporte: renderReporte,
 };
 
 const view = $('#view');
@@ -94,6 +98,8 @@ async function refreshPrices({ force = false } = {}) {
       save();
     }
     if (force) toast('Precios actualizados', 'ok');
+    // App icon badge = pending alerts (iOS 16.4+ when installed on the home screen).
+    navigator.setAppBadge?.(computeAlerts().length).catch?.(() => {});
   } catch (e) {
     console.warn(e);
     toast('No pude actualizar todos los precios', 'err');

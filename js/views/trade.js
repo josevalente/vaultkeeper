@@ -2,7 +2,7 @@
 // (scanned or searched, valued the same way), plus any cash on top.
 
 import { h, esc, $, $$, fmtCLP, fmtUSD, fmtPct, parseAmount, uid, localDate, toast } from '../util.js';
-import { state, save, held, itemValueUSD, recordExit, addItems, snapshot, setPrice, toUSD, marketUSD, planTrade } from '../store.js';
+import { state, save, held, itemValueUSD, recordExit, addItems, snapshot, setPrice, toUSD, marketUSD, planTrade, condFactor } from '../store.js';
 import { img, variantLabel } from '../api.js';
 import { openSheet, cardTile, scanFlow, openSearch, openCardSheet, money, moneyAlt, pctClass, confirmSheet } from '../ui.js';
 
@@ -76,10 +76,10 @@ export function renderTrade(root) {
   const addTheirs = (c) =>
     openCardSheet(c.id, {
       pickLabel: 'Agregar a lo que recibo',
-      onPick: ({ card, prices, variant }) => {
+      onPick: ({ card, prices, variant, condition }) => {
         setPrice(card.id, prices);
         const m = prices.tp?.[variant]?.market ?? prices.tp?.[variant]?.mid ?? marketUSD(card.id, variant);
-        t.get.push({ card, variant, marketUSD: m || 0 });
+        t.get.push({ card, variant, condition, marketUSD: (m || 0) * (card.kind === 'sealed' ? 1 : condFactor(condition)) });
         save();
       },
     });
@@ -151,7 +151,7 @@ async function confirmTrade() {
   T.give.forEach((it, i) => recordExit(it, { kind: 'trade', price: plan.proceeds[i], currency: 'USD', date, tradeId: id }));
   const created = [];
   t.get.forEach((g, i) => {
-    created.push(...addItems({ card: g.card, variant: g.variant, price: plan.basis[i], currency: 'USD', date, source: 'Intercambio', notes: 'Recibida en intercambio' }));
+    created.push(...addItems({ card: g.card, variant: g.variant, condition: g.condition || 'NM', price: plan.basis[i], currency: 'USD', date, source: 'Intercambio', notes: 'Recibida en intercambio' }));
   });
   state.trades.push({ id, date, give: T.give.map((x) => x.id), get: created.map((x) => x.id), cash: t.cash, cashCur: t.cashCur, cashDir: t.cashDir, giveUSD: T.giveUSD, getUSD: T.getUSD });
   state.tradeDraft = { give: [], get: [], cash: 0, cashCur: 'CLP', cashDir: 'pay' };

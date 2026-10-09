@@ -6,6 +6,16 @@ import { rarityInfo } from './rarity.js';
 
 const KEY = 'vaultkeeper:v1';
 
+// Where you sell and what each place costs you. Mercado Libre's fee depends on the category and
+// listing type: check yours in Mercado Libre and adjust it in Ajustes.
+const DEFAULT_CHANNELS = () => [
+  { id: 'feria', name: 'En la feria', feePct: 0, fixedCLP: 0 },
+  { id: 'insta', name: 'Instagram / WhatsApp', feePct: 0, fixedCLP: 0 },
+  { id: 'ml', name: 'Mercado Libre', feePct: 13, fixedCLP: 0 },
+  { id: 'fb', name: 'Facebook Marketplace', feePct: 0, fixedCLP: 0 },
+  { id: 'otro', name: 'Otro', feePct: 0, fixedCLP: 0 },
+];
+
 const DEFAULTS = () => ({
   version: 1,
   settings: {
@@ -17,7 +27,16 @@ const DEFAULTS = () => ({
     minUSD: 15, // rango medio-alto: ignora cartas bajo este valor
     feePct: 0, // comisión/costos al revender
     keepRarities: ['illustration rare', 'special illustration rare', 'hyper rare', 'mega hyper rare'],
+    targetMargin: 30, // % de ganancia que buscas al revender ("paga como máximo")
+    alertPct: 10, // avisar si una carta del vault se mueve más que esto en 7 días
+    channels: DEFAULT_CHANNELS(),
+    defaultChannel: 'feria',
+    lastBackup: 0,
+    scanLang: 'en',
   },
+  alertsSeen: {},
+  expenses: [],
+  lotDraft: { items: [], ask: '', askCur: 'CLP' },
   fx: { usdclp: 950, eurusd: 1.08, at: 0, src: 'valor inicial' },
   items: [],
   prices: {},
@@ -41,7 +60,13 @@ function load() {
 
 function merge(s) {
   const d = DEFAULTS();
-  return { ...d, ...s, settings: { ...d.settings, ...s.settings }, fx: { ...d.fx, ...s.fx }, tradeDraft: { ...d.tradeDraft, ...s.tradeDraft } };
+  // Before sale channels existed there was one global "comisión al revender": keep it as the
+  // fee of the default channel so estimates don't change after the update.
+  if (s.settings && !s.settings.channels && s.settings.feePct > 0) {
+    s.settings.channels = DEFAULT_CHANNELS();
+    s.settings.channels[0].feePct = s.settings.feePct;
+  }
+  return { ...d, ...s, settings: { ...d.settings, ...s.settings }, fx: { ...d.fx, ...s.fx }, tradeDraft: { ...d.tradeDraft, ...s.tradeDraft }, lotDraft: { ...d.lotDraft, ...s.lotDraft } };
 }
 
 export const state = load();
@@ -102,6 +127,13 @@ export function marketUSD(cardId, variant) {
   return priceOf(cardId, variant)?.usd ?? null;
 }
 
+// Cheapest priced version (for wishlist targets, where any version will do).
+export function minMarketUSD(cardId) {
+  const tp = state.prices[cardId]?.tp || {};
+  const vals = Object.keys(tp).map((k) => pickPrice(tp[k])).filter((v) => v != null);
+  return vals.length ? Math.min(...vals) : marketUSD(cardId);
+}
+
 export function pushHist(key, value) {
   if (!value) return;
   const h = (state.priceHist[key] ||= []);
@@ -128,7 +160,36 @@ export function repairItems(card, prices) {
   }
 }
 export const ownedCount = (cardId) => state.items.filter((it) => it.status === 'held' && it.cardId === cardId).length;
-export const itemValueUSD = (it) => marketUSD(it.cardId, it.variant);
+// Card condition → share of the Near Mint price. TCGplayer's market price is for Near Mint;
+// these factors are the usual market discounts (approximate, same for every card).
+export const CONDITIONS = {
+  NM: { label: 'Near Mint', f: 1 },
+  LP: { label: 'Lightly Played', f: 0.85 },
+  MP: { label: 'Moderately Played', f: 0.7 },
+  HP: { label: 'Heavily Played', f: 0.5 },
+  DMG: { label: 'Dañada', f: 0.35 },
+};
+export const GRADERS = ['PSA', 'CGC', 'BGS', 'TAG', 'ACE', 'Otra'];
+export const condFactor = (c) => CONDITIONS[c]?.f ?? 1;
+export const isSealed = (it) => String(it.cardId || it.id || '').startsWith('sealed-');
+
+// Value of one copy: a graded copy uses the value you set (no free source for slab prices);
+// otherwise the market price of its version × its condition.
+export function itemValueUSD(it) {
+  if (it.graded?.usd) return it.graded.usd;
+  const m = marketUSD(it.cardId, it.variant);
+  return m == null ? null : m * (isSealed(it) ? 1 : condFactor(it.condition));
+}
+
+// Highest price that still leaves `marginPct` profit after the sale fee.
+export function maxPayUSD(marketUSDv, { feePct = feeNow(), marginPct = state.settings.targetMargin } = {}) {
+  if (!marketUSDv) return null;
+  return (marketUSDv * (1 - feePct / 100)) / (1 + marginPct / 100);
+}
+
+export const channelById = (id) => state.settings.channels.find((c) => c.id === id) || state.settings.channels[0];
+// Fee (%) used for every estimate: the one of the channel you usually sell through.
+export const feeNow = () => channelById(state.settings.defaultChannel)?.feePct || 0;
 
 export function defaultPurpose(rarity) {
   return state.settings.keepRarities.includes(String(rarity || '').toLowerCase()) ? 'coleccion' : 'reventa';
@@ -141,7 +202,7 @@ export function toCLP(amount, currency, fx = state.fx.usdclp) {
   return currency === 'CLP' ? amount : amount * fx;
 }
 
-export function addItems({ card, variant, price, currency, date, purpose, notes, source, qty = 1, fx }) {
+export function addItems({ card, variant, price, currency, date, purpose, notes, source, qty = 1, fx, condition = 'NM', graded = null, event = '' }) {
   fx = fx || state.fx.usdclp;
   const created = [];
   for (let i = 0; i < qty; i++) {
@@ -156,11 +217,16 @@ export function addItems({ card, variant, price, currency, date, purpose, notes,
       rarity: card.rarity,
       image: card.image,
       variant,
-      buy: { price, currency, fx, date, source: source || '' },
+      kind: card.kind || 'card',
+      lang: card.lang || 'en',
+      pid: card.pid || null,
+      condition: card.kind === 'sealed' ? null : condition,
+      graded,
+      buy: { price, currency, fx, date, source: source || '', event: event || '' },
       costUSD: toUSD(price, currency, fx),
       costCLP: toCLP(price, currency, fx),
-      marketAtBuy: marketUSD(card.id, variant),
-      purpose: purpose || defaultPurpose(card.rarity),
+      marketAtBuy: marketUSD(card.id, variant) == null ? null : marketUSD(card.id, variant) * (card.kind === 'sealed' ? 1 : condFactor(condition)),
+      purpose: purpose || (card.kind === 'sealed' ? 'reventa' : defaultPurpose(card.rarity)),
       notes: notes || '',
       status: 'held',
       addedAt: Date.now(),
@@ -174,10 +240,30 @@ export function addItems({ card, variant, price, currency, date, purpose, notes,
 }
 
 // `price` is what you actually receive (net of fees). `gross`/`feePct` are kept for reference.
-export function recordExit(item, { kind, price, currency, date, fx, tradeId, gross, feePct = 0 }) {
+export function recordExit(item, { kind, price, currency, date, fx, tradeId, gross, feePct = 0, fixedCLP = 0, channel = '', event = '' }) {
   fx = fx || state.fx.usdclp;
   item.status = kind === 'trade' ? 'traded' : 'sold';
-  item.exit = { kind, price, gross: gross ?? price, feePct, currency, fx, date, tradeId, usd: toUSD(price, currency, fx), clp: toCLP(price, currency, fx) };
+  item.exit = { kind, price, gross: gross ?? price, feePct, fixedCLP, channel, event, currency, fx, date, tradeId, usd: toUSD(price, currency, fx), clp: toCLP(price, currency, fx) };
+}
+
+// Net amount you receive from a sale through a channel (percentage fee + fixed fee in CLP).
+export function netOfChannel(gross, currency, channel, fx = state.fx.usdclp) {
+  const pct = channel?.feePct || 0;
+  const fixed = channel?.fixedCLP || 0;
+  const net = gross * (1 - pct / 100) - (currency === 'CLP' ? fixed : fixed / fx);
+  return Math.max(0, net);
+}
+
+// ───────────────────────── Expenses (entrada a la feria, transporte, fundas, envíos…)
+
+export const EXPENSE_CATS = ['Entrada feria', 'Transporte', 'Insumos (fundas, toploaders)', 'Envíos', 'Comida', 'Otro'];
+export function addExpense({ date, amountCLP, cat, note = '', event = '' }) {
+  state.expenses.push({ id: uid(), date, amountCLP, cat, note, event, addedAt: Date.now() });
+  save();
+}
+export function removeExpense(id) {
+  state.expenses = state.expenses.filter((e) => e.id !== id);
+  save();
 }
 
 export function removeItem(id) {
@@ -214,8 +300,12 @@ export function summary() {
     realUSD += it.exit.usd - it.costUSD;
     realCLP += it.exit.clp - it.costCLP;
   }
+  const expensesCLP = state.expenses.reduce((a, e) => a + (e.amountCLP || 0), 0);
   return {
     n, missing, exits, costUSD, costCLP, valueUSD, valueCLP, realUSD, realCLP,
+    expensesCLP,
+    realNetCLP: realCLP - expensesCLP,
+    realNetUSD: realUSD - expensesCLP / fx,
     gainUSD: valueUSD - costUSD,
     gainCLP: valueCLP - costCLP,
     pctUSD: costUSD ? (valueUSD - costUSD) / costUSD : 0,
@@ -249,7 +339,7 @@ export function momentum(it) {
 
 export function sellRanking({ includeKeep = false } = {}) {
   const fx = state.fx.usdclp;
-  const fee = state.settings.feePct / 100;
+  const fee = feeNow() / 100;
   const today = localDate();
   return held()
     .filter((it) => includeKeep || it.purpose !== 'coleccion')
@@ -286,6 +376,124 @@ export function sellRanking({ includeKeep = false } = {}) {
     .sort((a, b) => b.score - a.score);
 }
 
+// ───────────────────────── Report (por mes, por feria/evento y por canal)
+
+export function report() {
+  const months = new Map(), events = new Map(), channels = new Map();
+  const bucket = (map, key) => {
+    if (!map.has(key)) map.set(key, { key, buys: 0, buyN: 0, sales: 0, saleN: 0, profit: 0, expenses: 0 });
+    return map.get(key);
+  };
+  for (const it of state.items) {
+    const m = (it.buy.date || '').slice(0, 7);
+    if (m) {
+      const b = bucket(months, m);
+      b.buys += it.costCLP;
+      b.buyN++;
+    }
+    if (it.buy.event) {
+      const e = bucket(events, it.buy.event);
+      e.buys += it.costCLP;
+      e.buyN++;
+    }
+    if (it.status !== 'held' && it.exit) {
+      const profit = it.exit.clp - it.costCLP;
+      const targets = [bucket(months, (it.exit.date || '').slice(0, 7))];
+      if (it.exit.event) targets.push(bucket(events, it.exit.event));
+      if (it.exit.kind === 'sale') targets.push(bucket(channels, it.exit.channel || 'sin canal'));
+      for (const b of targets) {
+        b.sales += it.exit.clp;
+        b.saleN++;
+        b.profit += profit;
+      }
+    }
+  }
+  for (const e of state.expenses) {
+    bucket(months, (e.date || '').slice(0, 7)).expenses += e.amountCLP;
+    if (e.event) bucket(events, e.event).expenses += e.amountCLP;
+  }
+  const fin = (m) => [...m.values()].map((b) => ({ ...b, net: b.profit - b.expenses }));
+  return {
+    months: fin(months).sort((a, b) => b.key.localeCompare(a.key)),
+    events: fin(events).sort((a, b) => b.buys + b.sales - (a.buys + a.sales)),
+    channels: fin(channels).sort((a, b) => b.sales - a.sales),
+  };
+}
+
+export const knownEvents = () =>
+  [...new Set([...state.items.flatMap((it) => [it.buy.event, it.exit?.event]), ...state.expenses.map((e) => e.event)].filter(Boolean))].slice(-30).reverse();
+
+// ───────────────────────── Lot (lote en la feria)
+
+// items: [{ marketUSD }] already adjusted for condition. Returns totals and the max offer that keeps
+// the target margin after the default channel's fee.
+export function lotTotals(items, askAmount, askCur) {
+  const fx = state.fx.usdclp;
+  const ch = channelById(state.settings.defaultChannel);
+  const marketUSDv = items.reduce((a, x) => a + (x.marketUSD || 0), 0);
+  const netUSD = marketUSDv * (1 - (ch?.feePct || 0) / 100) - ((ch?.fixedCLP || 0) * items.length) / fx;
+  const maxUSD = Math.max(0, netUSD / (1 + state.settings.targetMargin / 100));
+  const askUSD = askAmount ? toUSD(askAmount, askCur) : null;
+  return {
+    marketUSD: marketUSDv,
+    marketCLP: marketUSDv * fx,
+    maxUSD,
+    maxCLP: Math.floor((maxUSD * fx) / 500) * 500,
+    askUSD,
+    verdict: askUSD ? dealVerdict(askUSD, marketUSDv) : null,
+    profitUSD: askUSD != null ? netUSD - askUSD : null,
+    priced: items.filter((x) => x.marketUSD).length,
+  };
+}
+
+// Split what you paid for a lot across its cards, proportional to their market value.
+export function splitLot(totalPaid, marketValues) {
+  const sum = marketValues.reduce((a, b) => a + (b || 0), 0);
+  return marketValues.map((v) => (sum ? (totalPaid * (v || 0)) / sum : totalPaid / (marketValues.length || 1)));
+}
+
+// ───────────────────────── Alerts (shown in Inicio + app icon badge)
+
+export function computeAlerts() {
+  const fx = state.fx.usdclp;
+  const out = [];
+  const pct = state.settings.alertPct / 100;
+  for (const w of Object.values(state.wishlist)) {
+    if (!w.targetCLP) continue;
+    const m = minMarketUSD(w.id);
+    if (m != null && m * fx <= w.targetCLP) out.push({ key: `wish:${w.id}`, kind: 'wish', cardId: w.id, name: w.name, image: w.image, text: `Bajó a ${Math.round(m * fx).toLocaleString('es-CL')} CLP (tu meta: ${w.targetCLP.toLocaleString('es-CL')})` });
+  }
+  for (const it of held()) {
+    const hist = state.priceHist[`${it.cardId}|${it.variant}`];
+    if (hist?.length >= 2) {
+      const last = hist[hist.length - 1];
+      const from = new Date(new Date(last[0] + 'T12:00:00').getTime() - 7 * 86400000).toLocaleDateString('sv-SE');
+      const ref = [...hist].reverse().find(([d]) => d <= from) || hist[0];
+      if (ref !== last && ref[1]) {
+        const ch = last[1] / ref[1] - 1;
+        if (Math.abs(ch) >= pct) out.push({ key: `move:${it.cardId}:${ch > 0 ? 'up' : 'down'}`, kind: ch > 0 ? 'up' : 'down', cardId: it.cardId, itemId: it.id, name: it.name, image: it.image, change: ch, text: `${ch > 0 ? 'Subió' : 'Bajó'} ${Math.round(Math.abs(ch) * 100)}% desde el ${ref[0].slice(8, 10)}-${ref[0].slice(5, 7)}` });
+      }
+    }
+    if (it.purpose !== 'coleccion') {
+      const v = itemValueUSD(it);
+      const ch = channelById(state.settings.defaultChannel);
+      if (v != null && it.costCLP > 0) {
+        const g = (v * fx * (1 - (ch?.feePct || 0) / 100)) / it.costCLP - 1;
+        if (g >= state.settings.targetMargin / 100) out.push({ key: `sell:${it.id}`, kind: 'sell', cardId: it.cardId, itemId: it.id, name: it.name, image: it.image, text: `Ya rinde ${Math.round(g * 100)}% sobre tu compra: buen momento para vender` });
+      }
+    }
+  }
+  // A dismissed alert stays hidden for 7 days.
+  const now = Date.now();
+  return out.filter((a) => !(state.alertsSeen[a.key] && now - state.alertsSeen[a.key] < 7 * 86400000));
+}
+
+export function dismissAlert(key) {
+  state.alertsSeen[key] = Date.now();
+  for (const [k, t] of Object.entries(state.alertsSeen)) if (Date.now() - t > 30 * 86400000) delete state.alertsSeen[k];
+  save();
+}
+
 // ───────────────────────── Trades
 
 // giveUSD: market value of each card you hand over. getUSD: market value of each card you get.
@@ -313,7 +521,7 @@ export function dealVerdict(askUSD, marketUSDv) {
   const s = state.settings;
   if (!marketUSDv || !askUSD) return null;
   const off = 1 - askUSD / marketUSDv;
-  const profitUSD = marketUSDv * (1 - s.feePct / 100) - askUSD;
+  const profitUSD = marketUSDv * (1 - feeNow() / 100) - askUSD;
   let label, cls;
   if (off >= s.dealPct / 100) (label = 'Ganga'), (cls = 'deal-hot');
   else if (off >= 0.1) (label = 'Buen precio'), (cls = 'deal-good');

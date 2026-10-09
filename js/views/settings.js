@@ -6,6 +6,7 @@ import { RARITIES, raritySymbol } from '../rarity.js';
 import { refreshFx, setManualFx } from '../fx.js';
 import { testClaudeKey } from '../scan.js';
 import { confirmSheet } from '../ui.js';
+import { backupNow, isInstalled } from '../backup.js';
 
 const MODELS = [
   ['claude-opus-5-5', 'Claude Opus 5.5 (más preciso)'],
@@ -31,10 +32,28 @@ export function renderSettings(root) {
       <h2>Ferias y reventa</h2>
       <label class="field"><span>Considerar “Ganga” desde (% bajo mercado)</span><input class="input num" data-k="dealPct" inputmode="numeric" value="${s.dealPct}"></label>
       <label class="field"><span>Tu rango: valor mínimo de mercado (US$)</span><input class="input num" data-k="minUSD" inputmode="decimal" value="${s.minUSD}"></label>
-      <label class="field"><span>Comisión/costos al revender (%)</span><input class="input num" data-k="feePct" inputmode="decimal" value="${s.feePct}"></label>
+      <label class="field"><span>Margen que buscas al revender (%)</span><input class="input num" data-k="targetMargin" inputmode="decimal" value="${s.targetMargin}"></label>
+      <p class="muted tiny">Se usa para “Paga como máximo” y para avisarte cuándo una carta ya rinde lo que buscas.</p>
+      <label class="field"><span>Avisarme si una carta del vault se mueve más de (% en 7 días)</span><input class="input num" data-k="alertPct" inputmode="decimal" value="${s.alertPct}"></label>
       <div class="field"><span>Rarezas que se guardan como colección por defecto</span>
         <div class="chips-wrap">${RARITIES.map((r) => `<button class="rchip ${s.keepRarities.includes(r.api.toLowerCase()) ? 'on' : ''}" data-keep="${esc(r.api.toLowerCase())}">${raritySymbol(r.key, 16)}<span>${esc(r.label)}</span></button>`).join('')}</div>
       </div>
+    </section>
+
+    <section class="panel rise" style="--d:3">
+      <h2>Dónde vendes</h2>
+      <p class="muted small">Comisión de cada canal: se descuenta al registrar una venta. El canal habitual se usa para las estimaciones (veredicto, “paga como máximo”, ranking). La comisión de Mercado Libre depende de la categoría y del tipo de publicación: revisa la tuya y ajústala.</p>
+      <div class="channels">${s.channels
+        .map(
+          (c) => `<div class="ch-row" data-id="${esc(c.id)}">
+            <label class="radio"><input type="radio" name="defch" ${s.defaultChannel === c.id ? 'checked' : ''}><span></span></label>
+            <input class="input ch-name" value="${esc(c.name)}">
+            <label class="ch-num"><input class="input ch-pct" inputmode="decimal" value="${c.feePct}"><em>%</em></label>
+            <label class="ch-num"><em>+$</em><input class="input ch-fix" inputmode="numeric" value="${c.fixedCLP || 0}"></label>
+          </div>`
+        )
+        .join('')}</div>
+      <p class="muted tiny">● = canal habitual · % comisión · + monto fijo por venta (CLP)</p>
     </section>
 
     <section class="panel rise" style="--d:3">
@@ -49,7 +68,9 @@ export function renderSettings(root) {
     <section class="panel rise" style="--d:4">
       <h2>Tus datos</h2>
       <p class="muted small">Todo se guarda en este teléfono. Exporta un respaldo de vez en cuando (y antes de cambiar de teléfono).</p>
-      <div class="btn-row"><button class="btn ghost export">Exportar respaldo</button><label class="btn ghost">Importar<input type="file" accept="application/json,.json" hidden class="import"></label></div>
+      <button class="btn primary full backup">Respaldar en iCloud / Archivos</button>
+      <p class="muted tiny">${s.lastBackup ? `Último respaldo: ${new Date(s.lastBackup).toLocaleString('es-CL')}` : 'Aún no has hecho un respaldo.'} En el iPhone elige “Guardar en Archivos” → iCloud Drive.${isInstalled() ? '' : ' Estás en Safari: los datos de Safari y de la app instalada en inicio son distintos.'}</p>
+      <div class="btn-row"><button class="btn ghost export">Descargar respaldo</button><label class="btn ghost">Importar<input type="file" accept="application/json,.json" hidden class="import"></label></div>
       <p class="muted small persist"></p>
       <button class="btn ghost danger full wipe">Borrar todos los datos</button>
     </section>
@@ -85,6 +106,22 @@ export function renderSettings(root) {
       save();
     }
   }));
+  // Sale channels: name, % fee, fixed fee; the default one feeds every estimate (settings.feePct).
+  const syncFee = () => (s.feePct = s.channels.find((c) => c.id === s.defaultChannel)?.feePct || 0);
+  $$('.ch-row', root).forEach((row) => {
+    const c = s.channels.find((x) => x.id === row.dataset.id);
+    $('input[type=radio]', row).onchange = () => ((s.defaultChannel = c.id), syncFee(), save());
+    $('.ch-name', row).onchange = (e) => ((c.name = e.target.value.trim() || c.name), save({ silent: true }));
+    $('.ch-pct', row).onchange = (e) => {
+      const v = parseAmount(e.target.value, 'USD');
+      if (!isNaN(v) && v >= 0 && v < 100) (c.feePct = v), syncFee(), save({ silent: true });
+    };
+    $('.ch-fix', row).onchange = (e) => {
+      const v = parseAmount(e.target.value, 'CLP');
+      if (!isNaN(v) && v >= 0) (c.fixedCLP = v), save({ silent: true });
+    };
+  });
+  $('.backup', root).onclick = () => backupNow();
   $$('[data-keep]', root).forEach((b) => (b.onclick = () => {
     const k = b.dataset.keep;
     s.keepRarities = s.keepRarities.includes(k) ? s.keepRarities.filter((x) => x !== k) : [...s.keepRarities, k];

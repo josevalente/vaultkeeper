@@ -4,8 +4,10 @@ import { esc, $, $$, fmtPct, norm, fmtCLP, fmtUSD } from '../util.js';
 import { state, itemValueUSD } from '../store.js';
 import { RARITIES, rarityInfo } from '../rarity.js';
 import { cardTile, rarityChip, money, pctClass, openItemSheet, disp } from '../ui.js';
+import { openSaleList } from '../salelist.js';
 
-const ui = { q: '', rarity: null, status: 'held', purpose: 'all', sort: 'value' };
+const ui = { q: '', rarity: null, status: 'held', purpose: 'all', sort: 'value', kind: 'all' };
+const kindOf = (it) => (it.kind === 'sealed' || String(it.cardId).startsWith('sealed-') ? 'sealed' : it.lang === 'ja' ? 'jp' : 'en');
 
 export function renderCollection(root) {
   const all = state.items;
@@ -19,6 +21,7 @@ export function renderCollection(root) {
   if (counts.other) present.push({ key: 'other', label: 'Otras' });
 
   let list = base.filter((it) => {
+    if (ui.kind !== 'all' && kindOf(it) !== ui.kind) return false;
     if (ui.rarity && rarityInfo(it.rarity).key !== ui.rarity) return false;
     if (ui.purpose !== 'all' && it.purpose !== ui.purpose) return false;
     if (ui.q && !norm(`${it.name} ${it.setName} ${it.number}`).includes(norm(ui.q))) return false;
@@ -38,13 +41,20 @@ export function renderCollection(root) {
   root.innerHTML = `
     <div class="view-head rise">
       <h1>Colección</h1>
-      <p class="muted">${list.length} carta${list.length === 1 ? '' : 's'}${ui.status !== 'out' ? ` · ${money(totalV)}` : ''}</p>
+      <p class="muted">${list.length} ítem${list.length === 1 ? '' : 's'}${ui.status !== 'out' ? ` · ${money(totalV)}` : ''}</p>
+      <button class="btn ghost sale-list">Lista de venta para compartir</button>
     </div>
     <div class="filters rise" style="--d:1">
       <input class="input" type="search" placeholder="Buscar en tu vault" value="${esc(ui.q)}">
       <div class="chips-scroll">
         <button class="rchip ${!ui.rarity ? 'on' : ''}" data-r=""><span>Todas</span><em>${base.length}</em></button>
         ${present.map((r) => rarityChip(r, { active: ui.rarity === r.key, count: counts[r.key] })).join('')}
+      </div>
+      <div class="seg small kinds">
+        <button data-k="all" class="${ui.kind === 'all' ? 'on' : ''}">Todo</button>
+        <button data-k="en" class="${ui.kind === 'en' ? 'on' : ''}">Cartas</button>
+        <button data-k="jp" class="${ui.kind === 'jp' ? 'on' : ''}">Japonesas</button>
+        <button data-k="sealed" class="${ui.kind === 'sealed' ? 'on' : ''}">Sellados</button>
       </div>
       <div class="filter-row">
         <div class="seg small status">
@@ -80,6 +90,8 @@ export function renderCollection(root) {
   $$('.chips-scroll .rchip', root).forEach((b) => (b.onclick = () => ((ui.rarity = b.dataset.r || null), renderCollection(root))));
   $$('.status button', root).forEach((b) => (b.onclick = () => ((ui.status = b.dataset.s), (ui.rarity = null), renderCollection(root))));
   $$('.purpose button', root).forEach((b) => (b.onclick = () => ((ui.purpose = b.dataset.p), renderCollection(root))));
+  $$('.kinds button', root).forEach((b) => (b.onclick = () => ((ui.kind = b.dataset.k), (ui.rarity = null), renderCollection(root))));
+  $('.sale-list', root).onclick = () => openSaleList();
   $('.sort', root).onchange = (e) => ((ui.sort = e.target.value), renderCollection(root));
   $('.grid', root).onclick = (e) => {
     const t = e.target.closest('.tile');
@@ -100,6 +112,6 @@ function tile(it) {
     const g = v != null ? (usd ? (v - it.costUSD) / it.costUSD : (v * state.fx.usdclp - it.costCLP) / it.costCLP) : null;
     extra = `<div class="tile-val"><b>${v != null ? money(v) : '—'}</b>${g != null ? `<em class="${pctClass(g)}">${fmtPct(g, { digits: 0 })}</em>` : ''}</div>`;
   }
-  const badge = it.purpose === 'coleccion' ? `<span class="badge keep" title="Colección">★</span>` : '';
+  const badge = (it.purpose === 'coleccion' ? `<span class="badge keep" title="Colección">★</span>` : '') + (it.graded ? `<span class="slab">${esc(it.graded.co)} ${esc(it.graded.grade)}</span>` : it.condition && it.condition !== 'NM' ? `<span class="slab cond">${esc(it.condition)}</span>` : '');
   return cardTile({ ...it, id: it.cardId, itemId: it.id }, { extra, badge, dim: it.status !== 'held' });
 }

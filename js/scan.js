@@ -4,8 +4,8 @@
 // Either way the user confirms the match against the official card image.
 
 import { h, esc, $, norm, similarity } from './util.js';
-import { state } from './store.js';
-import { findByNumber, searchByName, getSets, setCards } from './api.js';
+import { state, save } from './store.js';
+import { findByNumber, searchByName, getSets, setCards, searchCatalog, getCatalog } from './api.js';
 
 const TESSERACT_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
 const ANTHROPIC_SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.130.0/+esm';
@@ -17,8 +17,9 @@ function stopStream() {
   stream = null;
 }
 
-// Opens the full-screen camera. Resolves with candidate cards (brief objects) or null if closed.
-export function openScanner({ title = 'Escanear carta' } = {}) {
+// Opens the full-screen camera. Resolves with { info, cands, shot } (or { burst: [...] } in burst
+// mode, several cards one after another), { manual: true } to search instead, or null if closed.
+export function openScanner({ title = 'Escanear carta', burst = false } = {}) {
   return new Promise((resolve) => {
     const ov = h(`
       <div class="scanner" role="dialog" aria-label="${esc(title)}">
@@ -27,16 +28,18 @@ export function openScanner({ title = 'Escanear carta' } = {}) {
         <div class="scan-top">
           <button class="icon-btn scan-close" aria-label="Cerrar">✕</button>
           <div class="scan-title">${esc(title)}</div>
-          <span class="scan-mode">${state.settings.claudeKey ? 'Claude Vision' : 'OCR en el teléfono'}</span>
+          <button class="scan-lang" aria-label="Idioma de la carta">${state.settings.scanLang === 'ja' ? 'JP' : 'EN'}</button>
+          <span class="scan-mode">${state.settings.claudeKey ? 'Claude' : 'OCR'}</span>
         </div>
-        <div class="scan-hint">Encaja la carta en el marco, con buena luz y sin reflejos.</div>
+        <div class="scan-hint">${burst ? 'Ráfaga: captura una carta, cambia a la siguiente y vuelve a capturar. Toca “Listo” al terminar.' : 'Encaja la carta en el marco, con buena luz y sin reflejos.'}</div>
         <div class="scan-status" hidden></div>
+        ${burst ? '<div class="burst-strip"></div>' : ''}
         <div class="scan-bottom">
           <label class="pill-btn ghost">Foto
             <input type="file" accept="image/*" hidden>
           </label>
           <button class="shutter" aria-label="Capturar"><span></span></button>
-          <button class="pill-btn ghost scan-manual">Buscar</button>
+          ${burst ? '<button class="pill-btn scan-done">Listo</button>' : '<button class="pill-btn ghost scan-manual">Buscar</button>'}
         </div>
       </div>`);
     document.body.appendChild(ov);
@@ -67,9 +70,46 @@ export function openScanner({ title = 'Escanear carta' } = {}) {
       .catch(() => setStatus('No pude abrir la cámara. Usa “Foto” para tomar o elegir una imagen.'));
 
     $('.scan-close', ov).onclick = () => close(null);
-    $('.scan-manual', ov).onclick = () => close({ manual: true });
+    $('.scan-manual', ov)?.addEventListener('click', () => close({ manual: true }));
+    $('.scan-lang', ov).onclick = (e) => {
+      state.settings.scanLang = state.settings.scanLang === 'ja' ? 'en' : 'ja';
+      save({ silent: true });
+      e.target.textContent = state.settings.scanLang === 'ja' ? 'JP' : 'EN';
+      setStatus(state.settings.scanLang === 'ja' ? 'Modo carta japonesa: busco por el número impreso.' : 'Modo carta en inglés.');
+    };
+
+    // Burst: every capture is identified in the background, one after another.
+    const results = [];
+    let queue = Promise.resolve();
+    const strip = $('.burst-strip', ov);
+    const paintStrip = () => {
+      if (!strip) return;
+      strip.innerHTML = results.map((r) => `<span class="${r.state}"><img src="${r.shot}" alt=""></span>`).join('');
+      const done = results.filter((r) => r.state !== 'wait').length;
+      setStatus(results.length ? `${results.length} capturada${results.length === 1 ? '' : 's'} · ${done} leída${done === 1 ? '' : 's'}` : '');
+    };
+    const enqueue = (canvas, cropped) => {
+      const r = { shot: thumb(canvas), state: 'wait' };
+      results.push(r);
+      paintStrip();
+      queue = queue.then(async () => {
+        try {
+          Object.assign(r, await identify(canvas, cropped, () => {}));
+          r.state = r.cands?.length ? 'ok' : 'bad';
+        } catch {
+          Object.assign(r, { info: {}, cands: [], state: 'bad' });
+        }
+        paintStrip();
+      });
+    };
+    $('.scan-done', ov)?.addEventListener('click', async (e) => {
+      e.target.textContent = 'Terminando…';
+      await queue;
+      close(results.length ? { burst: results } : null);
+    });
 
     const run = async (canvas, cropped) => {
+      if (burst) return enqueue(canvas, cropped);
       if (busy) return;
       busy = true;
       ov.classList.add('busy');
@@ -155,10 +195,18 @@ async function loadImage(file) {
 }
 
 export async function identify(canvas, cropped, setStatus) {
+  if (state.settings.scanLang === 'ja') return identifyJapanese(canvas, cropped, setStatus);
   if (state.settings.claudeKey && navigator.onLine) {
     setStatus('Claude está leyendo la carta…');
     try {
       const info = await identifyWithClaude(canvas);
+      // Claude noticed it's a Japanese card even though the scanner is in English mode.
+      if (info.lang === 'ja') {
+        const en = info.nameEn || info.name;
+        let cands = info.number ? (await searchCatalog('jp', '', info.number, info.total).catch(() => [])).filter((c) => nameMatch(c.name, en)) : [];
+        if (!cands.length && en) cands = await searchCatalog('jp', en).catch(() => []);
+        if (cands.length) return { info: { ...info, name: en }, cands };
+      }
       setStatus(`Buscando ${[info.name, info.number && `${info.number}/${info.total || '?'}`].filter(Boolean).join(' · ')}…`);
       let cands = info.number ? await findByNumber(info.number, info.total, info.name, { nameFallback: false }) : [];
       if (info.name && cands.length && !cands.some((c) => nameMatch(c.name, info.name))) cands = [];
@@ -170,6 +218,43 @@ export async function identify(canvas, cropped, setStatus) {
     }
   }
   return identifyWithOCR(canvas, cropped, setStatus);
+}
+
+// Japanese cards: prices come from TCGplayer Japan (data/catalogo/jp.json). Claude reads the card and
+// gives the English name; without Claude, the on-device OCR reads only the printed number.
+async function identifyJapanese(canvas, cropped, setStatus) {
+  let info = null;
+  if (state.settings.claudeKey && navigator.onLine) {
+    setStatus('Claude está leyendo la carta japonesa…');
+    try {
+      info = await identifyWithClaude(canvas);
+      const en = info.nameEn || info.name;
+      let cands = info.number ? await searchCatalog('jp', '', info.number, info.total) : [];
+      const byName = cands.filter((c) => nameMatch(c.name, en));
+      if (byName.length) cands = byName;
+      if (!cands.length && en) cands = await searchCatalog('jp', en);
+      if (cands.length) return { info: { ...info, name: en }, cands };
+    } catch (e) {
+      console.warn('Claude falló, uso OCR', e);
+    }
+  }
+  setStatus('Leyendo el número (OCR)…');
+  const worker = await getWorker(setStatus);
+  const cat = await getCatalog('jp');
+  const totals = new Set(cat.items.map((e) => parseInt(String(e.no || '').split('/')[1], 10)).filter(Boolean));
+  const k = Math.min(3, Math.max(1, 1400 / canvas.width));
+  const NUM = (psm) => ({ tessedit_char_whitelist: '0123456789/', tessedit_pageseg_mode: psm });
+  const zones = cropped
+    ? [[[0.0, 0.9, 0.55, 0.1], 'dark', '11'], [[0.0, 0.9, 0.55, 0.1], 'bright', '11'], [[0, 0.8, 0.65, 0.2], 'adark', '11'], [[0, 0.8, 0.65, 0.2], 'abright', '11'], [[0.35, 0.85, 0.65, 0.15], 'adark', '11']]
+    : [[[0, 0.5, 1, 0.5], 'gray', '11'], [[0, 0.5, 1, 0.5], 'adark', '11']];
+  for (const [[x, y, w, hh], mode, psm] of zones) {
+    const text = await ocr(worker, region(canvas, x, y, w, hh, { mode, scale: Math.min(3.2, k * 1.8) }), NUM(psm));
+    for (const num of parseNumbers(text, totals)) {
+      const cands = await searchCatalog('jp', '', num.number, num.total).catch(() => []);
+      if (cands.length) return { info: { ...(info || {}), number: num.number, total: num.total, via: info ? 'claude' : 'ocr' }, cands };
+    }
+  }
+  return { info: { ...(info || {}), via: info ? 'claude' : 'ocr' }, cands: [] };
 }
 
 const baseName = (n) => norm(n).replace(/\b(ex|v|vmax|vstar|gx|ex|break|lv x|prime)\b/g, '').trim();
@@ -186,8 +271,9 @@ const CARD_SCHEMA = {
     set_total: { type: 'string', description: 'Number after the slash, e.g. "165"; empty if none' },
     set_name: { type: 'string', description: 'Set/expansion name if you can tell, else empty' },
     language: { type: 'string', description: 'Language of the card text, e.g. "en", "ja", "es"' },
+    name_en: { type: 'string', description: 'The official English name of this card (e.g. "Pikachu ex"); same as name if the card is in English' },
   },
-  required: ['is_pokemon_card', 'name', 'number', 'set_total', 'set_name', 'language'],
+  required: ['is_pokemon_card', 'name', 'number', 'set_total', 'set_name', 'language', 'name_en'],
   additionalProperties: false,
 };
 
@@ -234,7 +320,7 @@ async function identifyWithClaude(canvas) {
   if (!text) throw new Error('Respuesta vacía');
   const out = JSON.parse(text);
   if (!out.is_pokemon_card) throw new Error('No parece una carta Pokémon');
-  return { name: out.name, number: out.number, total: out.set_total, setName: out.set_name, via: 'claude' };
+  return { name: out.name, nameEn: out.name_en, lang: out.language, number: out.number, total: out.set_total, setName: out.set_name, via: 'claude' };
 }
 
 // ───────────────────────── Tesseract OCR

@@ -30,7 +30,8 @@ function reset({ fx = 1000, fee = 0, display = 'CLP' } = {}) {
   state.priceHist = {};
   state.history = [];
   state.fx = { usdclp: fx, eurusd: 1.1, at: Date.now(), src: 'test' };
-  state.settings.feePct = fee;
+  state.settings.channels = [{ id: 'feria', name: 'Feria', feePct: fee, fixedCLP: 0 }];
+  state.settings.defaultChannel = 'feria';
   state.settings.display = display;
   state.settings.dealPct = 25;
   state.settings.minUSD = 15;
@@ -179,7 +180,7 @@ test('deal verdict thresholds', () => {
   assert.equal(S.dealVerdict(103, 100).label, 'Precio justo');
   assert.equal(S.dealVerdict(120, 100).label, 'Caro');
   near(S.dealVerdict(240000 / 1000, 326.74).profitUSD, 86.74);
-  state.settings.feePct = 10;
+  state.settings.channels[0].feePct = 10;
   near(S.dealVerdict(200, 300).profitUSD, 70, 1e-9, 'ganancia descuenta comisión');
   assert.equal(S.dealVerdict(5, 10).belowRange, true);
 });

@@ -1,10 +1,11 @@
 // Inicio: vault value, cost vs. value chart, and the "what to sell" ranking.
 
 import { h, esc, $, $$, fmtCLP, fmtUSD, fmtPct, timeAgo } from '../util.js';
-import { state, summary, sellRanking, actions } from '../store.js';
+import { state, save, summary, sellRanking, actions, computeAlerts, dismissAlert } from '../store.js';
 import { renderPortfolioChart } from '../chart.js';
 import { img, variantLabel } from '../api.js';
 import { money, moneyAlt, disp, pctClass, arrow, openItemSheet, openSellForm, scanFlow, openCardSheet, openSearch } from '../ui.js';
+import { backupNow, backupDue, isInstalled } from '../backup.js';
 
 let range = 'all';
 let showAll = false;
@@ -26,7 +27,8 @@ function figures(s) {
     cost: usd ? s.costUSD : s.costCLP,
     gain: usd ? s.gainUSD : s.gainCLP,
     pct: usd ? s.pctUSD : s.pctCLP,
-    real: usd ? s.realUSD : s.realCLP,
+    real: usd ? s.realNetUSD : s.realNetCLP,
+    exp: usd ? s.expensesCLP / state.fx.usdclp : s.expensesCLP,
     alt: usd ? fmtCLP(s.valueCLP) : fmtUSD(s.valueUSD),
   };
 }
@@ -48,7 +50,26 @@ export function renderHome(root) {
   const winners = ranking.filter((r) => r.profitable);
   const top = showAll ? ranking : winners.slice(0, 5);
 
+  const alerts = computeAlerts();
+  navigator.setAppBadge?.(alerts.length).catch?.(() => {});
+  const notices = [];
+  if (!isInstalled() && !state.settings.hideInstallTip)
+    notices.push(`<div class="notice"><b>Instala la app en tu iPhone</b>: Safari → Compartir → “Agregar a inicio”. Así funciona sin conexión y iOS no borra tus datos. Ojo: los datos de Safari y de la app instalada son distintos; si ya tienes cartas aquí, haz un respaldo y luego impórtalo en la app instalada (Ajustes). <button class="link hide-install">Entendido</button></div>`);
+  if (backupDue())
+    notices.push(`<div class="notice"><b>${state.settings.lastBackup ? `Tu último respaldo fue ${timeAgo(state.settings.lastBackup)}` : 'Aún no tienes respaldo'}</b>. Tus datos viven solo en este teléfono. <button class="link do-backup">Respaldar en iCloud</button></div>`);
+
   root.innerHTML = `
+    ${notices.join('')}
+    ${
+      alerts.length
+        ? `<section class="panel alerts rise"><div class="panel-head"><h2>Novedades</h2><span class="badge-count">${alerts.length}</span></div>${alerts
+            .slice(0, 6)
+            .map(
+              (a) => `<div class="alert-row ${a.kind}" data-card="${esc(a.cardId)}" data-item="${esc(a.itemId || '')}"><img src="${esc(img(a.image))}" alt="" onerror="this.src='icons/card-back.svg'"><div><b>${esc(a.name)}</b><small>${esc(a.text)}</small></div><button class="icon-btn dismiss" data-key="${esc(a.key)}" aria-label="Descartar">✕</button></div>`
+            )
+            .join('')}${alerts.length > 6 ? `<p class="muted tiny">y ${alerts.length - 6} más…</p>` : ''}</section>`
+        : ''
+    }
     <section class="hero rise">
       <div class="hero-label">Valor del vault</div>
       <div class="hero-value">${F.f(F.value)}</div>
@@ -56,7 +77,7 @@ export function renderHome(root) {
       <div class="hero-stats">
         <div><span>Invertido</span><b>${F.f(F.cost)}</b></div>
         <div><span>Ganancia</span><b class="${pctClass(F.gain)}">${arrow(F.gain)} ${F.f(F.gain, { sign: true })}<small>${fmtPct(F.pct)}</small></b></div>
-        <div><span>Realizada</span><b class="${pctClass(F.real)}">${F.f(F.real, { sign: true })}<small>${s.exits} venta${s.exits === 1 ? '' : 's'}</small></b></div>
+        <div><span>Realizada neta</span><b class="${pctClass(F.real)}">${F.f(F.real, { sign: true })}<small>${s.exits} venta${s.exits === 1 ? '' : 's'}${s.expensesCLP ? ` · gastos ${F.f(F.exp)}` : ''}</small></b></div>
       </div>
       <div class="hero-foot">
         <span>${state.lastRefresh ? `Precios TCGplayer ${timeAgo(state.lastRefresh)}` : "Precios TCGplayer: se actualizan solos"}${s.missing ? ` · ${s.missing} sin precio` : ''}</span>
@@ -66,7 +87,9 @@ export function renderHome(root) {
 
     <section class="quick rise" style="--d:1">
       <button class="qa scan"><span class="qa-ico">◎</span><b>Evaluar en feria</b><small>Foto → precio y veredicto</small></button>
-      <button class="qa find"><span class="qa-ico">⌕</span><b>Buscar carta</b><small>Por nombre o número</small></button>
+      <a class="qa" href="#/lote"><span class="qa-ico">▦</span><b>Evaluar un lote</b><small>Varias cartas, oferta máxima</small></a>
+      <button class="qa find"><span class="qa-ico">⌕</span><b>Buscar</b><small>Inglés, japonesas, sellados</small></button>
+      <a class="qa" href="#/reporte"><span class="qa-ico">∑</span><b>Reporte y gastos</b><small>Ganancia por feria y mes</small></a>
     </section>
 
     <section class="panel rise" style="--d:2">
@@ -108,6 +131,21 @@ export function renderHome(root) {
   $('.keep', root).onchange = (e) => ((includeKeep = e.target.checked), renderHome(root));
   $('.more', root)?.addEventListener('click', () => ((showAll = !showAll), renderHome(root)));
   $('.refresh', root).onclick = () => actions.refreshPrices?.({ force: true });
+  $('.do-backup', root)?.addEventListener('click', () => backupNow());
+  $('.hide-install', root)?.addEventListener('click', () => {
+    state.settings.hideInstallTip = true;
+    save({ silent: true });
+    renderHome(root);
+  });
+  $('.alerts', root)?.addEventListener('click', (e) => {
+    const d = e.target.closest('.dismiss');
+    if (d) return dismissAlert(d.dataset.key);
+    const row = e.target.closest('.alert-row');
+    if (!row) return;
+    const it = row.dataset.item && state.items.find((x) => x.id === row.dataset.item);
+    if (it) openItemSheet(it);
+    else openCardSheet(row.dataset.card);
+  });
   $('.scan', root).onclick = () => scanFlow({ title: 'Evaluar en feria', onPick: (c) => openCardSheet(c.id) });
   $('.find', root).onclick = () => openSearch({ onPick: (c) => openCardSheet(c.id) });
 

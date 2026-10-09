@@ -1,8 +1,8 @@
 // Shared UI: bottom sheets, card tiles, card detail, buy/sell forms, search, scan flow.
 
 import { h, esc, $, $$, fmtCLP, fmtUSD, fmtPct, fmtDate, localDate, parseAmount, toast, debounce, timeAgo } from './util.js';
-import { state, save, addItems, recordExit, removeItem, snapshot, ownedCount, marketUSD, setPrice, pushHist, dealVerdict, defaultPurpose, toUSD, toCLP, itemValueUSD } from './store.js';
-import { getCard, img, variantLabel, tcgplayerUrl, searchByName, findByNumber, getHistory } from './api.js';
+import { state, save, addItems, recordExit, removeItem, snapshot, ownedCount, marketUSD, setPrice, pushHist, dealVerdict, defaultPurpose, toUSD, toCLP, itemValueUSD, maxPayUSD, CONDITIONS, GRADERS, condFactor, channelById, netOfChannel, knownEvents } from './store.js';
+import { getCard, img, variantLabel, tcgplayerUrl, searchByName, findByNumber, getHistory, searchCatalog } from './api.js';
 import { renderPriceChart } from './chart.js';
 import { rarityInfo, raritySymbol } from './rarity.js';
 import { refreshFx, fxOn } from './fx.js';
@@ -72,11 +72,19 @@ export function cardTile(c, { sub = '', badge = '', dim = false, extra = '' } = 
       <div class="tile-img"><img loading="lazy" src="${esc(img(c.image))}" alt="${esc(c.name)}" onerror="this.src='icons/card-back.svg'">${badge}</div>
       <div class="tile-meta">
         <div class="tile-name">${c.rarity ? raritySymbol(r.key, 14) : ''}<span>${esc(c.name)}</span></div>
-        <div class="tile-sub">${sub || `${esc(c.setName || '')} · ${esc(c.number)}${c.total ? '/' + esc(c.total) : ''}`}</div>
+        <div class="tile-sub">${sub || `${esc(c.setName || '')}${c.number ? ` · ${esc(c.number)}${c.total ? '/' + esc(c.total) : ''}` : ''}`}</div>
         ${extra}
       </div>
     </button>`;
 }
+
+// Free-text "feria / evento" with suggestions from what you've used before.
+export function eventField(value = '', label = 'Feria / evento (opcional)') {
+  const id = 'ev' + Math.random().toString(36).slice(2, 7);
+  return `<label class="field"><span>${esc(label)}</span><input class="input event" list="${id}" value="${esc(value)}" placeholder="Ej: Feria Persa 12-oct" autocomplete="off"><datalist id="${id}">${knownEvents().map((e) => `<option value="${esc(e)}">`).join('')}</datalist></label>`;
+}
+
+export const kindPill = (c) => (c.kind === 'sealed' ? '<span class="kpill">Sellado</span>' : c.lang === 'ja' ? '<span class="kpill jp">Japonesa</span>' : '');
 
 export function rarityChip(r, { active = false, count = null } = {}) {
   return `<button class="rchip ${active ? 'on' : ''}" data-r="${esc(r.key)}">${raritySymbol(r.key, 18)}<span>${esc(r.label)}</span>${count != null ? `<em>${count}</em>` : ''}</button>`;
@@ -84,10 +92,11 @@ export function rarityChip(r, { active = false, count = null } = {}) {
 
 // ───────────────────────── scan → pick a card
 
-export async function scanFlow({ onPick, title } = {}) {
-  const r = await openScanner({ title });
+export async function scanFlow({ onPick, title, burst = false, onBurst } = {}) {
+  const r = await openScanner({ title, burst });
   if (!r) return;
   if (r.manual) return openSearch({ onPick });
+  if (r.burst) return onBurst?.(r.burst);
   const { info, cands } = r;
   if (cands.length === 1 && cands[0].number && info.number) return onPick(cands[0]);
   openCandidates(r, onPick);
@@ -127,30 +136,46 @@ function openCandidates({ info, cands, shot }, onPick) {
   };
 }
 
-export function openSearch({ onPick, initial = '', title = 'Buscar carta' } = {}) {
+const SEARCH_KINDS = [
+  ['en', 'Inglés'],
+  ['jp', 'Japonesas'],
+  ['sellados', 'Sellados'],
+];
+let lastSearchKind = 'en';
+
+export function openSearch({ onPick, initial = '', title = 'Buscar carta', kind } = {}) {
+  let k = kind || lastSearchKind;
   const body = h(`
     <div>
+      <div class="seg kinds">${SEARCH_KINDS.map(([id, l]) => `<button data-k="${id}" class="${k === id ? 'on' : ''}">${l}</button>`).join('')}</div>
       <div class="search-row">
         <input class="input" type="search" placeholder="Nombre (ej: Umbreon ex)" value="${esc(initial)}" autocomplete="off" enterkeyhint="search">
         <input class="input num" inputmode="text" placeholder="N° 161/131" autocomplete="off">
       </div>
-      <div class="results"><div class="empty small"><p>Escribe el nombre, y si quieres el número impreso abajo a la izquierda.</p></div></div>
+      <div class="results"></div>
     </div>`);
-  const s = openSheet({ title, body });
+  const s = openSheet({ title, body, cls: 'tall' });
   const [nameIn, numIn] = $$('input', body);
   const results = $('.results', body);
+  const hint = () => {
+    numIn.hidden = k === 'sellados';
+    nameIn.placeholder = k === 'sellados' ? 'Producto (ej: 151 Elite Trainer Box)' : k === 'jp' ? 'Nombre en inglés (ej: Pikachu ex)' : 'Nombre (ej: Umbreon ex)';
+    results.innerHTML = `<div class="empty small"><p>${
+      k === 'sellados' ? 'Cajas, ETB, sobres, colecciones… con precio TCGplayer.' : k === 'jp' ? 'Cartas japonesas con precio TCGplayer Japón. Busca por nombre en inglés o por número impreso.' : 'Escribe el nombre, y si quieres el número impreso abajo a la izquierda.'
+    }</p></div>`;
+  };
   let seq = 0;
   const go = debounce(async () => {
     const q = nameIn.value.trim();
     const num = numIn.value.trim();
-    if (q.length < 2 && !num) return;
+    if (q.length < 2 && !num) return hint();
     const my = ++seq;
     results.innerHTML = `<div class="loading">Buscando…</div>`;
     try {
       let list;
       const m = num.match(/^([A-Z]{0,3}\d{1,3})\s*(?:\/\s*([A-Z]{0,3}\d{1,3}))?$/i);
-      if (m) list = await findByNumber(m[1], m[2], q);
-      else list = await searchByName(q);
+      if (k === 'en') list = m ? await findByNumber(m[1], m[2], q) : await searchByName(q);
+      else list = await searchCatalog(k, q, k === 'jp' && m ? m[1] : '', k === 'jp' && m ? m[2] : '');
       if (my !== seq) return;
       results.innerHTML = list.length ? `<div class="grid grid-tight">${list.map((c) => cardTile(c)).join('')}</div>` : `<div class="empty"><p>Sin resultados.</p></div>`;
       results.onclick = (e) => {
@@ -160,11 +185,18 @@ export function openSearch({ onPick, initial = '', title = 'Buscar carta' } = {}
         onPick(list.find((c) => c.id === t.dataset.id));
       };
     } catch (e) {
-      results.innerHTML = `<div class="empty"><p>Error de conexión. Intenta otra vez.</p></div>`;
+      results.innerHTML = `<div class="empty"><p>${k === 'en' ? 'Error de conexión. Intenta otra vez.' : 'No pude cargar el catálogo (se publica a diario; revisa tu conexión).'}</p></div>`;
     }
   }, 380);
+  $$('.kinds button', body).forEach((b) => (b.onclick = () => {
+    k = lastSearchKind = b.dataset.k;
+    $$('.kinds button', body).forEach((x) => x.classList.toggle('on', x === b));
+    hint();
+    go();
+  }));
   nameIn.oninput = go;
   numIn.oninput = go;
+  hint();
   if (initial) go();
   setTimeout(() => nameIn.focus(), 300);
   return s;
@@ -265,14 +297,17 @@ export async function openCardSheet(cardId, { onPick, pickLabel = 'Agregar al in
   const inWish = !!state.wishlist[card.id];
   let variant = card.variants.find((v) => prices.tp?.[v]?.market != null) || card.variants[0] || 'normal';
   let askCur = 'CLP';
+  let cond = 'NM';
+  const sealed = card.kind === 'sealed';
 
   body.innerHTML = `
     <div class="cd-top">
       <img class="cd-img" src="${esc(img(card.image, 'high'))}" alt="${esc(card.name)}" onerror="this.src='icons/card-back.svg'">
       <div class="cd-info">
         <h3>${esc(card.name)}</h3>
-        <div class="muted">${esc(card.setName)} · ${esc(card.number)}/${esc(card.total ?? '?')}</div>
-        <div class="rline">${raritySymbol(r.key, 20)} <span>${esc(r.label)}</span>${r.jp ? `<em class="jp">${esc(r.jp)}</em>` : ''}</div>
+        <div class="muted">${esc(card.setName)}${card.number ? ` · ${esc(card.number)}/${esc(card.total ?? '?')}` : ''}</div>
+        ${kindPill(card)}
+        ${sealed ? '' : `<div class="rline">${raritySymbol(r.key, 20)} <span>${esc(r.label)}</span>${r.jp ? `<em class="jp">${esc(r.jp)}</em>` : ''}</div>`}
         ${card.illustrator ? `<div class="muted small">Ilustración: ${esc(card.illustrator)}</div>` : ''}
         ${owned ? `<div class="owned-pill">Tienes ${owned} en tu vault</div>` : ''}
       </div>
@@ -280,6 +315,9 @@ export async function openCardSheet(cardId, { onPick, pickLabel = 'Agregar al in
     ${card.variants.length > 1 ? `<div class="seg variants">${card.variants.map((v) => `<button data-v="${esc(v)}" class="${v === variant ? 'on' : ''}">${esc(variantLabel(v))}</button>`).join('')}</div>` : ''}
     <div class="prices"></div>
     <div class="deal">
+      ${sealed ? '' : `<div class="label">Estado de la carta que te ofrecen</div>
+      <div class="seg conds">${Object.entries(CONDITIONS).map(([k2, c]) => `<button data-c="${k2}" class="${k2 === 'NM' ? 'on' : ''}" title="${esc(c.label)}">${k2}</button>`).join('')}</div>`}
+      <div class="maxpay"></div>
       <div class="label">¿Cuánto piden en la feria?</div>
       <div class="money-in">
         <input class="input ask" inputmode="decimal" placeholder="0" value="${ask ? esc(ask) : ''}">
@@ -293,6 +331,7 @@ export async function openCardSheet(cardId, { onPick, pickLabel = 'Agregar al in
         <button class="btn ghost wish">${inWish ? '♥ En wishlist' : '♡ Wishlist'}</button>
         <a class="btn ghost tcgp" target="_blank" rel="noopener" href="${esc(tcgplayerUrl(prices, variant, card))}">TCGplayer ↗</a>
       </div>
+      <label class="field wish-target" ${inWish ? '' : 'hidden'}><span>Avísame si baja de (CLP)</span><input class="input target" inputmode="numeric" placeholder="Ej: 25.000" value="${state.wishlist[card.id]?.targetCLP ? Math.round(state.wishlist[card.id].targetCLP) : ''}"></label>
     </div>
     <p class="muted tiny">Precios ${prices.src === 'pokemontcg.io' ? 'vía pokemontcg.io' : prices.src === 'tcgcsv' ? `TCGplayer vía TCGCSV (TCGdex aún no los tiene) · del ${esc(fmtDate(String(prices.srcUpdated || '').slice(0, 10)))}` : 'vía TCGdex'} · consultados ${timeAgo(state.prices[card.id]?.at)} · TC ${fmtCLP(state.fx.usdclp)}${card.printed && !String(card.printed).startsWith(String(card.number)) ? ` · impreso ${esc(card.printed)}` : ''}</p>`;
 
@@ -304,9 +343,16 @@ export async function openCardSheet(cardId, { onPick, pickLabel = 'Agregar al in
     $('.hist-open', pricesEl)?.addEventListener('click', () => openPriceHistory(card, prices, variant));
     $('.tcgp', body).href = tcgplayerUrl(prices, variant, card);
   };
+  const maxEl = $('.maxpay', body);
   const renderVerdict = () => {
     const amount = parseAmount(askIn.value, askCur);
-    const m = prices.tp?.[variant]?.market ?? marketUSD(card.id, variant);
+    const m0 = prices.tp?.[variant]?.market ?? marketUSD(card.id, variant);
+    const m = m0 == null ? null : m0 * (sealed ? 1 : condFactor(cond));
+    const ch = channelById(state.settings.defaultChannel);
+    const mp = maxPayUSD(m, { feePct: ch?.feePct || 0 });
+    maxEl.innerHTML = mp
+      ? `<div class="maxpay-box"><span>Paga como máximo</span><b>${fmtCLP(Math.floor((mp * state.fx.usdclp) / 500) * 500)}</b><small>para ganar ${state.settings.targetMargin}% vendiendo ${esc(ch?.name || '')}${!sealed && cond !== 'NM' ? ` · estado ${cond} (${Math.round(condFactor(cond) * 100)}% del NM)` : ''}</small></div>`
+      : '';
     if (!amount || !m) return (verdictEl.innerHTML = m ? '' : `<p class="muted small">Sin precio de mercado para comparar.</p>`);
     const v = dealVerdict(toUSD(amount, askCur), m);
     verdictEl.innerHTML = `
@@ -314,6 +360,7 @@ export async function openCardSheet(cardId, { onPick, pickLabel = 'Agregar al in
         <div class="vb-label">${v.label}</div>
         <div class="vb-main">${v.off >= 0 ? `${fmtPct(v.off, { sign: false })} bajo mercado` : `${fmtPct(-v.off, { sign: false })} sobre mercado`}</div>
         <div class="vb-sub">Si la revendes a mercado: <b class="${pctClass(v.profitUSD)}">${money(v.profitUSD, { sign: true })}</b></div>
+        ${mp && toUSD(amount, askCur) > mp ? `<div class="vb-warn">Sobre tu máximo (${fmtCLP(Math.floor((mp * state.fx.usdclp) / 500) * 500)}): a este precio no llegas a tu ${state.settings.targetMargin}%.</div>` : ''}
         ${v.belowRange ? `<div class="vb-warn">Ojo: vale menos de ${fmtUSD(state.settings.minUSD)} (bajo tu rango objetivo).</div>` : ''}
       </div>`;
   };
@@ -332,20 +379,34 @@ export async function openCardSheet(cardId, { onPick, pickLabel = 'Agregar al in
     renderVerdict();
   }));
   askIn.oninput = renderVerdict;
+  $$('.conds button', body).forEach((b) => (b.onclick = () => {
+    cond = b.dataset.c;
+    $$('.conds button', body).forEach((x) => x.classList.toggle('on', x === b));
+    renderVerdict();
+  }));
 
   $('.wish', body).onclick = (e) => {
     if (state.wishlist[card.id]) delete state.wishlist[card.id];
-    else state.wishlist[card.id] = { id: card.id, name: card.name, setName: card.setName, number: card.number, total: card.total, rarity: card.rarity, image: card.image, addedAt: Date.now() };
-    save();
+    else state.wishlist[card.id] = { id: card.id, name: card.name, setName: card.setName, number: card.number, total: card.total, rarity: card.rarity, image: card.image, kind: card.kind, lang: card.lang, addedAt: Date.now() };
+    save({ silent: true });
     e.target.textContent = state.wishlist[card.id] ? '♥ En wishlist' : '♡ Wishlist';
+    $('.wish-target', body).hidden = !state.wishlist[card.id];
+  };
+  $('.target', body).onchange = (e) => {
+    const w = state.wishlist[card.id];
+    if (!w) return;
+    const v = parseAmount(e.target.value, 'CLP');
+    w.targetCLP = v > 0 ? v : null;
+    save({ silent: true });
+    toast(w.targetCLP ? `Te aviso si baja de ${fmtCLP(w.targetCLP)}` : 'Aviso quitado');
   };
   $('.buy', body)?.addEventListener('click', () => {
     s.close();
-    openBuyForm(card, prices, { variant, ask: parseAmount(askIn.value, askCur) || '', askCur });
+    openBuyForm(card, prices, { variant, ask: parseAmount(askIn.value, askCur) || '', askCur, condition: cond });
   });
   $('.pick', body)?.addEventListener('click', () => {
     s.close();
-    onPick({ card, prices, variant });
+    onPick({ card, prices, variant, condition: sealed ? null : cond });
   });
 }
 
@@ -386,8 +447,44 @@ function fxForDate(body, onUpdate) {
 
 // ───────────────────────── buy
 
-export function openBuyForm(card, prices, { variant, ask = '', askCur = 'CLP' } = {}) {
-  const purpose = defaultPurpose(card.rarity);
+function conditionFields(cond = 'NM', graded = null) {
+  return `
+      <div class="field"><span>Estado</span>
+        <div class="seg conds">${Object.entries(CONDITIONS).map(([k, c]) => `<button type="button" data-c="${k}" class="${k === (cond || 'NM') ? 'on' : ''}" title="${esc(c.label)}">${k}</button>`).join('')}</div>
+      </div>
+      <label class="switch"><input type="checkbox" class="is-graded" ${graded ? 'checked' : ''}><span>Carta gradeada (PSA, CGC…)</span></label>
+      <div class="graded-box" ${graded ? '' : 'hidden'}>
+        <div class="row2">
+          <label class="field"><span>Empresa</span><select class="input g-co">${GRADERS.map((g) => `<option ${graded?.co === g ? 'selected' : ''}>${g}</option>`).join('')}</select></label>
+          <label class="field"><span>Nota</span><input class="input g-grade" inputmode="decimal" placeholder="10" value="${esc(graded?.grade || '')}"></label>
+        </div>
+        <label class="field"><span>N° de certificado (opcional)</span><input class="input g-cert" value="${esc(graded?.cert || '')}"></label>
+        <label class="field"><span>Valor de la gradeada (CLP)</span><input class="input g-value" inputmode="numeric" placeholder="Revisa ventas recientes de esa nota" value="${graded?.usd ? Math.round(graded.usd * state.fx.usdclp) : ''}"></label>
+        <p class="muted tiny">No hay una fuente gratuita confiable de precios de gradeadas: ingresa el valor tú (por ejemplo, ventas recientes en eBay de esa nota).</p>
+      </div>`;
+}
+
+function wireConditionFields(body) {
+  let cond = $('.conds button.on', body)?.dataset.c || 'NM';
+  $$('.conds button', body).forEach((b) => (b.onclick = () => {
+    cond = b.dataset.c;
+    $$('.conds button', body).forEach((x) => x.classList.toggle('on', x === b));
+    body.dispatchEvent(new Event('condchange'));
+  }));
+  $('.is-graded', body)?.addEventListener('change', (e) => ($('.graded-box', body).hidden = !e.target.checked));
+  return {
+    condition: () => cond,
+    graded: () => {
+      if (!$('.is-graded', body)?.checked) return null;
+      const clp = parseAmount($('.g-value', body).value, 'CLP');
+      return { co: $('.g-co', body).value, grade: $('.g-grade', body).value.trim(), cert: $('.g-cert', body).value.trim(), usd: clp > 0 ? clp / state.fx.usdclp : null };
+    },
+  };
+}
+
+export function openBuyForm(card, prices, { variant, ask = '', askCur = 'CLP', condition = 'NM' } = {}) {
+  const sealed = card.kind === 'sealed';
+  const purpose = sealed ? 'reventa' : defaultPurpose(card.rarity);
   const body = h(`
     <form class="form">
       <div class="mini-card">${cardTile(card)}</div>
@@ -404,7 +501,9 @@ export function openBuyForm(card, prices, { variant, ask = '', askCur = 'CLP' } 
       <div class="field"><span>Destino</span>
         <div class="seg purpose"><button type="button" data-p="reventa" class="${purpose === 'reventa' ? 'on' : ''}">Para revender</button><button type="button" data-p="coleccion" class="${purpose === 'coleccion' ? 'on' : ''}">Para mi colección</button></div>
       </div>
-      <label class="field"><span>Dónde / nota</span><input class="input notes" placeholder="Ej: Feria Persa Bío Bío, puesto 12"></label>
+      ${sealed ? '' : conditionFields(condition)}
+      ${eventField()}
+      <label class="field"><span>Nota</span><input class="input notes" placeholder="Ej: puesto 12, venía con funda"></label>
       <div class="buy-sum"></div>
       <button class="btn primary" type="submit">Guardar en el vault</button>
     </form>`);
@@ -414,17 +513,22 @@ export function openBuyForm(card, prices, { variant, ask = '', askCur = 'CLP' } 
   const sum = $('.buy-sum', body);
   const getVariant = () => $('.variant', body)?.value || variant || card.variants[0];
   let fxNow = () => state.fx.usdclp;
+  const cf = sealed ? { condition: () => null, graded: () => null } : wireConditionFields(body);
   const renderSum = () => {
     const amount = parseAmount(priceIn.value, cur);
     const qty = Math.max(1, parseInt($('.qty', body).value) || 1);
     if (!amount) return (sum.innerHTML = '');
     const usd = toUSD(amount, cur, fxNow()), clp = toCLP(amount, cur, fxNow());
-    const m = prices.tp?.[getVariant()]?.market ?? marketUSD(card.id, getVariant());
+    const m0 = prices.tp?.[getVariant()]?.market ?? marketUSD(card.id, getVariant());
+    const g = cf.graded();
+    const m = g?.usd || (m0 == null ? null : m0 * (sealed ? 1 : condFactor(cf.condition())));
     const v = m ? dealVerdict(usd, m) : null;
     sum.innerHTML = `
       <div class="kv"><span>Costo</span><b>${fmtCLP(clp * qty)} · ${fmtUSD(usd * qty)}</b></div>
-      ${m ? `<div class="kv"><span>Mercado hoy</span><b>${fmtUSD(m * qty)} <em class="${v.cls}">${v.label}</em></b></div>` : ''}`;
+      ${m ? `<div class="kv"><span>${g?.usd ? 'Valor gradeada' : 'Mercado hoy'}</span><b>${fmtUSD(m * qty)} <em class="${v.cls}">${v.label}</em></b></div>` : ''}`;
   };
+  body.addEventListener('condchange', renderSum);
+  body.addEventListener('input', (e) => e.target.classList.contains('g-value') && renderSum());
   $$('.cur button', body).forEach((b) => (b.onclick = () => {
     cur = b.dataset.c;
     $$('.cur button', body).forEach((x) => x.classList.toggle('on', x === b));
@@ -453,6 +557,7 @@ export function openBuyForm(card, prices, { variant, ask = '', askCur = 'CLP' } 
     const created = addItems({
       card, variant: v, price: amount, currency: cur, fx: fxNow(), date: $('.date', body).value || localDate(),
       purpose: dest, notes: $('.notes', body).value.trim(), qty: Math.max(1, parseInt($('.qty', body).value) || 1),
+      condition: cf.condition(), graded: cf.graded(), event: $('.event', body).value.trim(),
     });
     pushHist(`${card.id}|${v}`, marketUSD(card.id, v));
     if (state.wishlist[card.id]) delete state.wishlist[card.id];
@@ -481,9 +586,10 @@ export function openItemSheet(item) {
         <img class="cd-img" src="${esc(img(item.image, 'high'))}" alt="${esc(item.name)}" onerror="this.src='icons/card-back.svg'">
         <div class="cd-info">
           <h3>${esc(item.name)}</h3>
-          <div class="muted">${esc(item.setName)} · ${esc(item.number)}/${esc(item.total ?? '?')}</div>
+          <div class="muted">${esc(item.setName)}${item.number ? ` · ${esc(item.number)}/${esc(item.total ?? '?')}` : ''}</div>
           <div class="rline">${raritySymbol(r.key, 20)} <span>${esc(r.label)}</span></div>
-          <div class="muted small">${esc(variantLabel(item.variant))}</div>
+          <div class="muted small">${esc(variantLabel(item.variant))}${item.condition && item.condition !== 'NM' ? ` · ${esc(item.condition)}` : ''}${item.graded ? ` · ${esc(item.graded.co)} ${esc(item.graded.grade)}` : ''}</div>
+          ${kindPill({ kind: item.kind, lang: item.lang })}
           <div class="tag ${item.purpose}">${item.purpose === 'coleccion' ? 'Colección' : 'Reventa'}</div>
         </div>
       </div>
@@ -492,7 +598,7 @@ export function openItemSheet(item) {
         <div class="kv"><span>Fecha / TC</span><b>${fmtDate(item.buy.date)} · ${fmtCLP(item.buy.fx)}</b></div>
         ${item.buy.source || item.notes ? `<div class="kv"><span>Nota</span><b>${esc(item.notes || item.buy.source)}</b></div>` : ''}
         ${sold
-          ? `<div class="kv"><span>${item.exit.kind === 'trade' ? 'Intercambiada por' : item.exit.feePct ? `Vendida (neto, −${item.exit.feePct}% comisión)` : 'Vendida en'}</span><b>${item.exit.currency === 'CLP' ? fmtCLP(item.exit.price) : fmtUSD(item.exit.price)} · ${fmtDate(item.exit.date)}</b></div>
+          ? `<div class="kv"><span>${item.exit.kind === 'trade' ? 'Intercambiada por' : `Vendida${item.exit.channel ? ` en ${esc(channelById(item.exit.channel)?.name || item.exit.channel)}` : ''}${item.exit.feePct || item.exit.fixedCLP ? ' (neto de comisión)' : ''}`}</span><b>${item.exit.currency === 'CLP' ? fmtCLP(item.exit.price) : fmtUSD(item.exit.price)} · ${fmtDate(item.exit.date)}</b></div>
              <div class="kv"><span>Resultado</span><b class="${pctClass(item.exit.clp - item.costCLP)}">${fmtCLP(item.exit.clp - item.costCLP, { sign: true })} (${fmtPct((item.exit.clp - item.costCLP) / item.costCLP)})</b></div>`
           : `<div class="kv"><span>Valor hoy</span><b>${v != null ? `${money(v)} <em class="muted">${moneyAlt(v)}</em>` : 'sin precio'}</b></div>
              ${gain != null ? `<div class="kv"><span>Ganancia</span><b class="${pctClass(gain)}">${arrow(gain)} ${fmtGain(gain)} (${fmtPct(gainPct)})</b></div>` : ''}`}
@@ -533,10 +639,13 @@ function openEditBuy(item) {
         <label class="field"><span>Tipo de cambio usado</span><input class="input fx" inputmode="decimal" value="${String(item.buy.fx).replace('.', ',')}"></label>
         <label class="field"><span>Fecha</span><input class="input date" type="date" value="${esc(item.buy.date)}"></label>
       </div>
+      ${item.kind === 'sealed' ? '' : conditionFields(item.condition || 'NM', item.graded)}
+      ${eventField(item.buy.event || '')}
       <label class="field"><span>Nota</span><input class="input notes" value="${esc(item.notes)}"></label>
       <button class="btn primary" type="submit">Guardar cambios</button>
     </form>`);
-  const s = openSheet({ title: 'Editar compra', body });
+  const s = openSheet({ title: 'Editar compra', body, cls: 'tall' });
+  const cf = item.kind === 'sealed' ? null : wireConditionFields(body);
   let cur = item.buy.currency;
   $('.date', body).addEventListener('change', async (e) => {
     const h = e.target.value < localDate() ? await fxOn(e.target.value) : await refreshFx().then(() => ({ usdclp: state.fx.usdclp }));
@@ -551,10 +660,14 @@ function openEditBuy(item) {
     const price = parseAmount($('.price', body).value, cur);
     const fx = parseAmount($('.fx', body).value, 'USD');
     if (!price || !fx) return toast('Revisa precio y tipo de cambio', 'err');
-    item.buy = { ...item.buy, price, currency: cur, fx, date: $('.date', body).value };
+    item.buy = { ...item.buy, price, currency: cur, fx, date: $('.date', body).value, event: $('.event', body).value.trim() };
     item.costUSD = toUSD(price, cur, fx);
     item.costCLP = toCLP(price, cur, fx);
     item.notes = $('.notes', body).value.trim();
+    if (cf) {
+      item.condition = cf.condition();
+      item.graded = cf.graded();
+    }
     snapshot();
     save();
     s.close();
@@ -574,24 +687,28 @@ export function openSellForm(item, { suggestCLP } = {}) {
         <div class="money-in"><input class="input price" inputmode="decimal" required value="${suggest}">
         <div class="seg cur"><button type="button" data-c="CLP" class="on">CLP</button><button type="button" data-c="USD">USD</button></div></div>
       </label>
+      <label class="field"><span>Dónde la vendes</span><select class="input channel">${state.settings.channels.map((c) => `<option value="${esc(c.id)}" ${c.id === state.settings.defaultChannel ? 'selected' : ''}>${esc(c.name)}${c.feePct || c.fixedCLP ? ` · ${c.feePct ? c.feePct + '%' : ''}${c.fixedCLP ? ` + ${fmtCLP(c.fixedCLP)}` : ''}` : ''}</option>`).join('')}</select></label>
       <label class="field"><span>Fecha</span><input class="input date" type="date" value="${localDate()}"></label>
       <div class="fxline muted small"><span class="fxl"></span> <button type="button" class="link fxr">actualizar</button></div>
+      ${eventField()}
       <div class="buy-sum"></div>
       <button class="btn primary" type="submit">Registrar venta</button>
     </form>`);
-  const s = openSheet({ title: 'Vender', body });
+  const s = openSheet({ title: 'Vender', body, cls: 'tall' });
   let cur = 'CLP';
+  const channel = () => channelById($('.channel', body).value);
   let fxNow = () => state.fx.usdclp;
   const sum = $('.buy-sum', body);
   const render = () => {
     const p = parseAmount($('.price', body).value, cur);
     if (!p) return (sum.innerHTML = '');
-    const fx = fxNow(), fee = state.settings.feePct / 100;
-    const netCLP = toCLP(p, cur, fx) * (1 - fee), netUSD = toUSD(p, cur, fx) * (1 - fee);
+    const fx = fxNow(), ch = channel();
+    const grossCLP = toCLP(p, cur, fx);
+    const netCLP = netOfChannel(grossCLP, 'CLP', ch, fx), netUSD = netCLP / fx;
     const g = netCLP - item.costCLP, gu = netUSD - item.costUSD;
     sum.innerHTML = `
       <div class="kv"><span>Tu costo</span><b>${fmtCLP(item.costCLP)} <em class="muted">${fmtUSD(item.costUSD)}</em></b></div>
-      ${fee ? `<div class="kv"><span>Comisión ${state.settings.feePct}%</span><b>${fmtCLP(-toCLP(p, cur, fx) * fee)}</b></div>` : ''}
+      ${grossCLP !== netCLP ? `<div class="kv"><span>Comisión ${esc(ch.name)}</span><b>${fmtCLP(netCLP - grossCLP)}</b></div>` : ''}
       <div class="kv"><span>Recibes</span><b>${fmtCLP(netCLP)} <em class="muted">${fmtUSD(netUSD)}</em></b></div>
       <div class="kv"><span>Ganancia</span><b class="${pctClass(g)}">${fmtCLP(g, { sign: true })} (${fmtPct(g / item.costCLP)}) <em class="muted">${fmtUSD(gu, { sign: true })}</em></b></div>`;
   };
@@ -601,6 +718,7 @@ export function openSellForm(item, { suggestCLP } = {}) {
     render();
   }));
   $('.price', body).oninput = render;
+  $('.channel', body).onchange = render;
   fxNow = fxForDate(body, render);
   render();
   body.onsubmit = async (e) => {
@@ -611,9 +729,12 @@ export function openSellForm(item, { suggestCLP } = {}) {
     body.dataset.saving = '1';
     body.querySelector('[type=submit]').textContent = 'Guardando…';
     await fxNow.ready;
-    const feePct = state.settings.feePct;
-    const net = p * (1 - feePct / 100);
-    recordExit(item, { kind: 'sale', price: net, gross: p, feePct, currency: cur, fx: fxNow(), date: $('.date', body).value || localDate() });
+    const ch = channel();
+    const net = netOfChannel(p, cur, ch, fxNow());
+    recordExit(item, {
+      kind: 'sale', price: net, gross: p, feePct: ch.feePct || 0, fixedCLP: ch.fixedCLP || 0, channel: ch.id,
+      event: $('.event', body).value.trim(), currency: cur, fx: fxNow(), date: $('.date', body).value || localDate(),
+    });
     snapshot();
     save();
     s.close();
