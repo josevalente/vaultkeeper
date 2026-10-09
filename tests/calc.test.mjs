@@ -61,8 +61,11 @@ test('parseAmount USD', () => {
 test('formatting', () => {
   assert.equal(fmtCLP(320156.4), '$320.156');
   assert.equal(fmtCLP(-5000, { sign: true }), '−$5.000');
-  assert.equal(fmtUSD(326.74), 'US$326.74');
-  assert.equal(fmtUSD(10000), 'US$10,000');
+  assert.equal(fmtUSD(326.74), 'US$326,74');
+  assert.equal(fmtUSD(10000), 'US$10.000');
+  assert.equal(fmtUSD(1301.4), 'US$1.301');
+  assert.equal(fmtCLP(5000), '$5.000');
+  assert.equal(fmtCLP(1234567), '$1.234.567');
   assert.equal(fmtPct(0.274), '+27,4%');
 });
 

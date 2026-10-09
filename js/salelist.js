@@ -2,23 +2,20 @@
 // (WhatsApp / Instagram) or as text.
 
 import { h, esc, $, $$, fmtCLP, parseAmount, toast } from './util.js';
-import { state, save, held, itemValueUSD } from './store.js';
+import { state, save, held, itemValueUSD, suggestedAskCLP, setAsk } from './store.js';
 import { img } from './api.js';
 import { openSheet } from './ui.js';
 import { shareFile } from './backup.js';
 
-const roundTo = (n, step = 500) => Math.round(n / step) * step;
-
 export function openSaleList() {
-  const fx = state.fx.usdclp;
   const list = held()
     .filter((it) => it.purpose !== 'coleccion')
     .sort((a, b) => (itemValueUSD(b) ?? 0) - (itemValueUSD(a) ?? 0));
-  const price = (it) => it.askCLP || (itemValueUSD(it) != null ? roundTo(itemValueUSD(it) * fx) : null);
+  const price = (it) => it.askCLP || suggestedAskCLP(it);
   const sel = new Set(list.filter((it) => price(it)).map((it) => it.id));
   const body = h(`
     <div>
-      <p class="muted small">Marca lo que vendes y ajusta el precio. El precio sugerido es el de mercado de hoy; lo que cambies queda guardado en la carta.</p>
+      <p class="muted small">Marca lo que vendes y ajusta el precio. Sin cambios, se usa el precio de mercado del día (se actualiza solo); si lo cambias, ese precio queda guardado en la carta.</p>
       <label class="field"><span>Título</span><input class="input sl-title" value="${esc(state.settings.saleTitle || 'Cartas Pokémon en venta')}"></label>
       <label class="field"><span>Contacto / nota al pie</span><input class="input sl-foot" placeholder="Ej: @micuenta · envíos a todo Chile" value="${esc(state.settings.saleFoot || '')}"></label>
       <div class="sl-list">${
@@ -30,7 +27,7 @@ export function openSaleList() {
           <input type="checkbox" class="sl-on" ${sel.has(it.id) ? 'checked' : ''}>
           <img src="${esc(img(it.image))}" alt="" onerror="this.src='icons/card-back.svg'">
           <div class="sl-main"><b>${esc(it.name)}</b><small>${esc(it.setName)}${it.number ? ` · ${esc(it.number)}` : ''}${it.condition && it.condition !== 'NM' ? ` · ${esc(it.condition)}` : ''}${it.graded ? ` · ${esc(it.graded.co)} ${esc(it.graded.grade)}` : ''}</small></div>
-          <input class="input sl-price" inputmode="numeric" value="${price(it) ?? ''}" placeholder="$">
+          <input class="input sl-price ${it.askCLP ? 'fixed' : ''}" inputmode="numeric" value="${price(it) ?? ''}" placeholder="$" title="${it.askCLP ? 'Precio fijado por ti' : 'Precio de mercado de hoy'}">
         </div>`
               )
               .join('')
@@ -46,7 +43,7 @@ export function openSaleList() {
       .map((r) => {
         const it = state.items.find((x) => x.id === r.dataset.id);
         const p = parseAmount($('.sl-price', r).value, 'CLP');
-        if (p > 0) it.askCLP = p;
+        setAsk(it, p); // remembered only if it differs from today's market price
         return { it, p };
       })
       .filter((x) => x.p > 0);
@@ -74,8 +71,19 @@ export function openSaleList() {
     if (!rows.length) return toast('Marca al menos una carta con precio', 'err');
     e.target.textContent = 'Armando imagen…';
     try {
-      const blob = await renderImage(rows);
-      await shareFile(new File([blob], 'lista-de-venta.png', { type: 'image/png' }), { title: state.settings.saleTitle });
+      // 24 cards per image (iPhone limits canvas size); several images if needed.
+      const pages = [];
+      for (let i = 0; i < rows.length; i += 24) pages.push(rows.slice(i, i + 24));
+      const files = [];
+      for (const [n, pg] of pages.entries()) {
+        const blob = await renderImage(pg, pages.length > 1 ? ` (${n + 1}/${pages.length})` : '');
+        if (!blob) throw new Error('no se pudo crear la imagen');
+        files.push(new File([blob], `lista-de-venta${pages.length > 1 ? '-' + (n + 1) : ''}.png`, { type: 'image/png' }));
+      }
+      if (files.length > 1 && navigator.canShare?.({ files })) await navigator.share({ files, title: state.settings.saleTitle }).catch(() => {});
+      else for (const f of files) await shareFile(f, { title: state.settings.saleTitle });
+    } catch (err) {
+      toast(`No pude crear la imagen: ${err.message}`, 'err');
     } finally {
       e.target.textContent = 'Compartir imagen';
     }
@@ -95,7 +103,7 @@ function loadImg(src) {
 }
 
 // 1080-wide image: 3 cards per row, name + price under each.
-async function renderImage(rows) {
+async function renderImage(rows, suffix = '') {
   const W = 1080, cols = 3, gap = 28, pad = 48, cw = (W - pad * 2 - gap * (cols - 1)) / cols, ch = cw * (88 / 63), textH = 120;
   const nRows = Math.ceil(rows.length / cols);
   const H = pad + 120 + nRows * (ch + textH + gap) + 80;
@@ -107,7 +115,7 @@ async function renderImage(rows) {
   g.fillRect(0, 0, W, H);
   g.fillStyle = '#e2b33c';
   g.font = '700 54px Unbounded, Figtree, sans-serif';
-  g.fillText(state.settings.saleTitle || 'Cartas en venta', pad, pad + 56);
+  g.fillText((state.settings.saleTitle || 'Cartas en venta') + suffix, pad, pad + 56);
   const imgs = await Promise.all(rows.map(({ it }) => loadImg(img(it.image, 'high'))));
   rows.forEach(({ it, p }, i) => {
     const x = pad + (i % cols) * (cw + gap);

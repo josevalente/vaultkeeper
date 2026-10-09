@@ -38,11 +38,15 @@ export const backupDue = () => state.items.length > 0 && Date.now() - (state.set
 
 export const isInstalled = () => window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone === true;
 
+// CSV for Excel in Spanish: semicolons, BOM (accents), decimal comma, and text that starts with
+// = + - @ prefixed with ' so a card name or note can never run as a formula.
 export function csv(rows) {
   const cell = (v) => {
-    const t = v == null ? '' : String(v);
+    if (v == null) return '';
+    if (typeof v === 'number') return Number.isFinite(v) ? String(v).replace('.', ',') : '';
+    let t = String(v);
+    if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
     return /[";\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
   };
-  // Semicolon + BOM so Excel in Spanish opens it with accents and columns right.
   return '﻿' + rows.map((r) => r.map(cell).join(';')).join('\n');
 }

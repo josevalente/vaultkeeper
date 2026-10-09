@@ -21,18 +21,23 @@ export function daysBetween(a, b) {
   return Math.round((new Date(b) - new Date(a)) / 86400000);
 }
 
+// Chilean style for both currencies: dot for thousands, comma for decimals ($320.156 · US$326,74).
+// Grouping is done by hand: some browsers don't group 4-digit numbers in es-CL ("5000").
+const group = (intStr) => intStr.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
 export function fmtCLP(n, { sign = false } = {}) {
   if (n == null || isNaN(n)) return '—';
   const s = sign && n > 0 ? '+' : n < 0 ? '−' : '';
-  return `${s}$${Math.round(Math.abs(n)).toLocaleString('es-CL')}`;
+  return `${s}$${group(String(Math.round(Math.abs(n))))}`;
 }
 
 export function fmtUSD(n, { sign = false } = {}) {
   if (n == null || isNaN(n)) return '—';
   const s = sign && n > 0 ? '+' : n < 0 ? '−' : '';
   const abs = Math.abs(n);
-  const digits = abs >= 1000 ? 0 : 2;
-  return `${s}US$${abs.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
+  if (abs >= 1000) return `${s}US$${group(String(Math.round(abs)))}`;
+  const [i, d] = abs.toFixed(2).split('.');
+  return `${s}US$${group(i)},${d}`;
 }
 
 export function fmtPct(n, { sign = true, digits = 1 } = {}) {

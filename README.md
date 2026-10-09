@@ -14,9 +14,10 @@ Es 100 % estática: se publica gratis en GitHub Pages y los datos quedan guardad
 | **Colección** | Tus cartas filtradas por rareza (con los símbolos oficiales), reventa/colección, vendidas. Vender, editar, mover. |
 | **Faltantes** | Eliges una rareza (Illustration Rare, Special Illustration Rare, Hyper Rare, Mega Hyper Rare…) y ves **todas** las cartas que existen con esa rareza, por expansión, cuáles tienes y cuáles te faltan, con precio y ordenadas de la más barata (las más fáciles de conseguir). Incluye wishlist. |
 | **Intercambio** | Tus cartas (valorizadas) vs. las del otro (por foto o búsqueda, valorizadas igual) + dinero extra. Te dice si es justo, a favor o en contra, y al confirmar actualiza el vault. |
+| **Más** (barra inferior) | Lote, Intercambio, Reporte y gastos, Respaldo y Ajustes. |
 | **Lote** | Varias cartas a la vez (cámara en ráfaga, una por una o buscando): valor total, **oferta máxima** para tu margen y veredicto sobre lo que piden. “Comprar el lote” reparte lo pagado según el valor de cada carta; “Solo agregar” carga cartas que ya tenías (costo = mercado). |
 | **Reporte** | Ganancia realizada por **mes**, por **feria/evento** y por **canal**, menos **gastos** (entrada, transporte, fundas, envíos…). Exporta inventario y gastos a CSV (Excel). |
-| **Novedades** | En Inicio (y como número en el ícono de la app): carta de la wishlist bajo tu precio meta, carta del vault que se movió más de X% en 7 días, carta que ya rinde tu margen objetivo. |
+| **Novedades** | En Inicio: carta de la wishlist bajo tu precio meta, carta del vault que se movió más de X% en 7 días, carta que ya rinde tu margen objetivo. Con la app instalada, también como número en el ícono (actívalo en Ajustes: iPhone pide permiso de notificaciones; no se envían notificaciones). |
 | **Lista de venta** | En Colección: elige qué vendes, ajusta precios y comparte una imagen o texto para WhatsApp / Instagram. |
 
 ### Más funciones
@@ -24,7 +25,9 @@ Es 100 % estática: se publica gratis en GitHub Pages y los datos quedan guardad
 - **Estado y gradeadas**: NM / LP / MP / HP / DMG (85%, 70%, 50% y 35% del precio Near Mint, valores de referencia del mercado) y cartas gradeadas (PSA, CGC, BGS…) con el valor que ingreses tú: no hay fuente gratuita confiable para precios de gradeadas.
 - **Cartas japonesas** (precio TCGplayer Japón) y **productos sellados** (cajas, ETB, sobres…), en Buscar → *Japonesas* / *Sellados*. El escáner tiene un botón **EN/JP**: en japonés busca por el número impreso (y con Claude, también por el nombre).
 - **Canales de venta** con su comisión (% + monto fijo) en Ajustes; al vender eliges el canal y se descuenta solo.
-- **Respaldo a iCloud** con un toque (Ajustes o el aviso semanal en Inicio): en el iPhone elige “Guardar en Archivos”.
+- **Respaldo a iCloud** con un toque (Más, Ajustes o el aviso semanal en Inicio): en el iPhone elige “Guardar en Archivos”. El respaldo no incluye tus API keys; al importarlo se mantienen las del teléfono.
+- **Feria recordada**: la feria/evento que escribes se propone sola en las demás compras, ventas y gastos del mismo día.
+- Montos al estilo chileno en ambas monedas: $320.156 · US$326,74 · €402,61.
 
 ### Cómo se elige qué vender
 Puntaje = ganancia % sobre tu compra + monto de la ganancia + tendencia del precio (si el promedio de 7 días está bajo el de 30, conviene vender antes; si sube, quizás esperar) + tiempo en el vault. Las cartas marcadas como **colección** no aparecen salvo que actives “Incluir colección”.

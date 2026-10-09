@@ -28,8 +28,8 @@ export function openScanner({ title = 'Escanear carta', burst = false } = {}) {
         <div class="scan-top">
           <button class="icon-btn scan-close" aria-label="Cerrar">✕</button>
           <div class="scan-title">${esc(title)}</div>
-          <button class="scan-lang" aria-label="Idioma de la carta">${state.settings.scanLang === 'ja' ? 'JP' : 'EN'}</button>
-          <span class="scan-mode">${state.settings.claudeKey ? 'Claude' : 'OCR'}</span>
+          <button class="scan-lang" aria-label="Idioma de la carta">Carta: ${state.settings.scanLang === 'ja' ? 'JP' : 'EN'}</button>
+          <span class="scan-mode">Lee: ${state.settings.claudeKey ? 'Claude' : 'OCR'}</span>
         </div>
         <div class="scan-hint">${burst ? 'Ráfaga: captura una carta, cambia a la siguiente y vuelve a capturar. Toca “Listo” al terminar.' : 'Encaja la carta en el marco, con buena luz y sin reflejos.'}</div>
         <div class="scan-status" hidden></div>
@@ -74,7 +74,7 @@ export function openScanner({ title = 'Escanear carta', burst = false } = {}) {
     $('.scan-lang', ov).onclick = (e) => {
       state.settings.scanLang = state.settings.scanLang === 'ja' ? 'en' : 'ja';
       save({ silent: true });
-      e.target.textContent = state.settings.scanLang === 'ja' ? 'JP' : 'EN';
+      e.target.textContent = `Carta: ${state.settings.scanLang === 'ja' ? 'JP' : 'EN'}`;
       setStatus(state.settings.scanLang === 'ja' ? 'Modo carta japonesa: busco por el número impreso.' : 'Modo carta en inglés.');
     };
 
@@ -102,14 +102,23 @@ export function openScanner({ title = 'Escanear carta', burst = false } = {}) {
         paintStrip();
       });
     };
+    let finishing = false;
     $('.scan-done', ov)?.addEventListener('click', async (e) => {
+      if (finishing) return;
+      finishing = true;
       e.target.textContent = 'Terminando…';
-      await queue;
+      $('.shutter', ov).disabled = true;
+      $('input[type=file]', ov).disabled = true;
+      let q;
+      do {
+        q = queue;
+        await q;
+      } while (q !== queue); // a capture may have been queued while we waited
       close(results.length ? { burst: results } : null);
     });
 
     const run = async (canvas, cropped) => {
-      if (burst) return enqueue(canvas, cropped);
+      if (burst) return finishing ? null : enqueue(canvas, cropped);
       if (busy) return;
       busy = true;
       ov.classList.add('busy');
@@ -228,10 +237,17 @@ async function identifyJapanese(canvas, cropped, setStatus) {
     setStatus('Claude está leyendo la carta japonesa…');
     try {
       info = await identifyWithClaude(canvas);
+      if (info.lang && info.lang !== 'ja') {
+        // The scanner was left in JP mode but this card isn't Japanese.
+        setStatus('Es una carta en inglés: la busco como tal…');
+        let cands = info.number ? await findByNumber(info.number, info.total, info.name, { nameFallback: false }) : [];
+        if (info.name && cands.length && !cands.some((c) => nameMatch(c.name, info.name))) cands = [];
+        if (!cands.length && info.name) cands = await searchByName(info.name);
+        if (cands.length) return { info, cands };
+      }
       const en = info.nameEn || info.name;
-      let cands = info.number ? await searchCatalog('jp', '', info.number, info.total) : [];
-      const byName = cands.filter((c) => nameMatch(c.name, en));
-      if (byName.length) cands = byName;
+      const byNumber = info.number ? await searchCatalog('jp', '', info.number, info.total) : [];
+      let cands = en ? byNumber.filter((c) => nameMatch(c.name, en)) : byNumber;
       if (!cands.length && en) cands = await searchCatalog('jp', en);
       if (cands.length) return { info: { ...info, name: en }, cands };
     } catch (e) {
@@ -251,7 +267,8 @@ async function identifyJapanese(canvas, cropped, setStatus) {
     const text = await ocr(worker, region(canvas, x, y, w, hh, { mode, scale: Math.min(3.2, k * 1.8) }), NUM(psm));
     for (const num of parseNumbers(text, totals)) {
       const cands = await searchCatalog('jp', '', num.number, num.total).catch(() => []);
-      if (cands.length) return { info: { ...(info || {}), number: num.number, total: num.total, via: info ? 'claude' : 'ocr' }, cands };
+      // Only the number was read (no name to confirm it): always let the user check the image.
+      if (cands.length) return { info: { ...(info || {}), number: num.number, total: num.total, via: info ? 'claude' : 'ocr', uncertain: true }, cands };
     }
   }
   return { info: { ...(info || {}), via: info ? 'claude' : 'ocr' }, cands: [] };

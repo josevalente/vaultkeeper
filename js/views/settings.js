@@ -14,6 +14,11 @@ const MODELS = [
   ['claude-haiku-5-5', 'Claude Haiku 5.5 (más barato)'],
 ];
 
+function badgeLabel() {
+  if (!('Notification' in window) || !isInstalled()) return 'Disponible al instalar la app en inicio';
+  return Notification.permission === 'granted' ? 'Activado ✓' : Notification.permission === 'denied' ? 'Bloqueado (actívalo en Ajustes del iPhone)' : 'Activar número en el ícono';
+}
+
 export function renderSettings(root) {
   const s = state.settings;
   const fx = state.fx;
@@ -35,6 +40,10 @@ export function renderSettings(root) {
       <label class="field"><span>Margen que buscas al revender (%)</span><input class="input num" data-k="targetMargin" inputmode="decimal" value="${s.targetMargin}"></label>
       <p class="muted tiny">Se usa para “Paga como máximo” y para avisarte cuándo una carta ya rinde lo que buscas.</p>
       <label class="field"><span>Avisarme si una carta del vault se mueve más de (% en 7 días)</span><input class="input num" data-k="alertPct" inputmode="decimal" value="${s.alertPct}"></label>
+      <div class="field"><span>Número de novedades en el ícono de la app</span>
+        <button type="button" class="btn ghost badge-perm">${badgeLabel()}</button>
+        <p class="muted tiny">iPhone pide permiso de notificaciones para mostrar el número en el ícono. VaultKeeper no te envía notificaciones: solo actualiza el número cuando abres la app.</p>
+      </div>
       <div class="field"><span>Rarezas que se guardan como colección por defecto</span>
         <div class="chips-wrap">${RARITIES.map((r) => `<button class="rchip ${s.keepRarities.includes(r.api.toLowerCase()) ? 'on' : ''}" data-keep="${esc(r.api.toLowerCase())}">${raritySymbol(r.key, 16)}<span>${esc(r.label)}</span></button>`).join('')}</div>
       </div>
@@ -122,6 +131,12 @@ export function renderSettings(root) {
     };
   });
   $('.backup', root).onclick = () => backupNow();
+  $('.badge-perm', root).onclick = async (e) => {
+    if (!('Notification' in window) || !isInstalled()) return toast('Instala la app en la pantalla de inicio para activarlo');
+    const r = await Notification.requestPermission().catch(() => 'denied');
+    e.target.textContent = badgeLabel();
+    toast(r === 'granted' ? 'Listo: verás el número en el ícono' : 'Sin permiso: puedes activarlo en Ajustes del iPhone → Notificaciones');
+  };
   $$('[data-keep]', root).forEach((b) => (b.onclick = () => {
     const k = b.dataset.keep;
     s.keepRarities = s.keepRarities.includes(k) ? s.keepRarities.filter((x) => x !== k) : [...s.keepRarities, k];

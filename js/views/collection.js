@@ -28,9 +28,11 @@ export function renderCollection(root) {
     return true;
   });
   const val = (it) => itemValueUSD(it) ?? it.costUSD;
+  // Copies loaded at cost 0 would divide by zero: they sort as 0%.
+  const pctOf = (it) => (it.costUSD > 0 ? (val(it) - it.costUSD) / it.costUSD : 0);
   const sorters = {
     value: (a, b) => val(b) - val(a),
-    gain: (a, b) => (val(b) - b.costUSD) / b.costUSD - (val(a) - a.costUSD) / a.costUSD,
+    gain: (a, b) => pctOf(b) - pctOf(a),
     date: (a, b) => (b.buy.date || '').localeCompare(a.buy.date || '') || b.addedAt - a.addedAt,
     name: (a, b) => a.name.localeCompare(b.name),
     rarity: (a, b) => rarityInfo(b.rarity).tier - rarityInfo(a.rarity).tier,

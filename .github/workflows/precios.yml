@@ -45,10 +45,21 @@ jobs:
         run: |
           set -e
           dir="$RUNNER_TEMP/datos"
-          if git ls-remote --exit-code --heads origin datos >/dev/null; then
+          # Only an explicit "branch doesn't exist" (exit 2) starts from scratch. Any other error
+          # (network, GitHub 5xx) stops here: otherwise the accumulated history would be replaced.
+          set +e
+          git ls-remote --exit-code --heads origin datos >/dev/null
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then
             git clone -q --depth 1 -b datos "https://github.com/${GITHUB_REPOSITORY}.git" "$dir"
-          else
+            ls "$dir/data/hist"/*.json >/dev/null 2>&1 || { echo "La rama datos existe pero no trae historial: aborto para no borrarlo"; exit 1; }
+          elif [ "$rc" -eq 2 ]; then
+            echo "La rama datos aún no existe: parto de cero"
             mkdir -p "$dir"
+          else
+            echo "No pude consultar la rama datos (código $rc): aborto sin publicar"
+            exit 1
           fi
           rm -rf "$dir/.git"
           mkdir -p "$dir/data"

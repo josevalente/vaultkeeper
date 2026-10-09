@@ -1,7 +1,7 @@
 // Shared UI: bottom sheets, card tiles, card detail, buy/sell forms, search, scan flow.
 
 import { h, esc, $, $$, fmtCLP, fmtUSD, fmtPct, fmtDate, localDate, parseAmount, toast, debounce, timeAgo } from './util.js';
-import { state, save, addItems, recordExit, removeItem, snapshot, ownedCount, marketUSD, setPrice, pushHist, dealVerdict, defaultPurpose, toUSD, toCLP, itemValueUSD, maxPayUSD, CONDITIONS, GRADERS, condFactor, channelById, netOfChannel, knownEvents } from './store.js';
+import { state, save, addItems, recordExit, removeItem, snapshot, ownedCount, marketUSD, setPrice, pushHist, dealVerdict, defaultPurpose, toUSD, toCLP, itemValueUSD, maxPayUSD, CONDITIONS, GRADERS, condFactor, channelById, netOfChannel, knownEvents, rememberEvent, todayEvent } from './store.js';
 import { getCard, img, variantLabel, tcgplayerUrl, searchByName, findByNumber, getHistory, searchCatalog } from './api.js';
 import { renderPriceChart } from './chart.js';
 import { rarityInfo, raritySymbol } from './rarity.js';
@@ -79,8 +79,9 @@ export function cardTile(c, { sub = '', badge = '', dim = false, extra = '' } = 
 }
 
 // Free-text "feria / evento" with suggestions from what you've used before.
-export function eventField(value = '', label = 'Feria / evento (opcional)') {
+export function eventField(value = null, label = 'Feria / evento (opcional)') {
   const id = 'ev' + Math.random().toString(36).slice(2, 7);
+  value = value ?? todayEvent();
   return `<label class="field"><span>${esc(label)}</span><input class="input event" list="${id}" value="${esc(value)}" placeholder="Ej: Feria Persa 12-oct" autocomplete="off"><datalist id="${id}">${knownEvents().map((e) => `<option value="${esc(e)}">`).join('')}</datalist></label>`;
 }
 
@@ -98,7 +99,7 @@ export async function scanFlow({ onPick, title, burst = false, onBurst } = {}) {
   if (r.manual) return openSearch({ onPick });
   if (r.burst) return onBurst?.(r.burst);
   const { info, cands } = r;
-  if (cands.length === 1 && cands[0].number && info.number) return onPick(cands[0]);
+  if (cands.length === 1 && cands[0].number && info.number && !info.uncertain) return onPick(cands[0]);
   openCandidates(r, onPick);
 }
 
@@ -205,13 +206,14 @@ export function openSearch({ onPick, initial = '', title = 'Buscar carta', kind 
 // ───────────────────────── card detail (from the API)
 
 const eurToCLP = (eur) => eur * state.fx.eurusd * state.fx.usdclp;
+const fmtEUR = (eur) => `€${eur.toFixed(2).replace('.', ',')}`;
 
 // Cardmarket trend: the European market, in euros (with its peso equivalent).
 function cardmarketBlock(cm) {
   if (!cm) return '';
   const mom = cm.avg7 && cm.avg30 ? cm.avg7 / cm.avg30 - 1 : null;
   const ref = cm.trend ?? cm.avg;
-  return `<div class="cm"><div class="label">Cardmarket · Europa</div><div>€${ref != null ? ref.toFixed(2) : '—'}</div>${ref != null ? `<div class="muted small">≈ ${fmtCLP(eurToCLP(ref))}</div>` : ''}${mom != null ? `<div class="${pctClass(mom)} small">${arrow(mom)} ${fmtPct(mom)} 7d vs 30d</div>` : ''}</div>`;
+  return `<div class="cm"><div class="label">Cardmarket · Europa</div><div>${ref != null ? fmtEUR(ref) : '—'}</div>${ref != null ? `<div class="muted small">≈ ${fmtCLP(eurToCLP(ref))}</div>` : ''}${mom != null ? `<div class="${pctClass(mom)} small">${arrow(mom)} ${fmtPct(mom)} 7d vs 30d</div>` : ''}</div>`;
 }
 
 function priceTable(prices, variant) {
@@ -226,8 +228,16 @@ function priceTable(prices, variant) {
       <div><div class="label">TCGplayer market</div><div class="big">${p?.market != null ? fmtUSD(p.market) : '—'}</div><div class="muted">${p?.market != null ? fmtCLP(p.market * fx) : ''}</div><div class="hist-link">Ver historial ›</div></div>
       ${cardmarketBlock(cm)}
     </button>
-    ${p ? `<div class="kv2"><div><span>Más barata publicada</span><b>${fmtUSD(p.low)}</b><small>${p.low != null ? fmtCLP(p.low * fx) : ''}</small></div><div><span>Mediana publicada</span><b>${fmtUSD(p.mid)}</b><small>${p.mid != null ? fmtCLP(p.mid * fx) : ''}</small></div></div>
-    <p class="muted tiny">Market = promedio de ventas recientes. Las otras dos son precios publicados hoy (lo que piden, no lo que se pagó).</p>` : ''}`;
+`;
+}
+
+// Listing prices (what sellers ask today), shown under the deal box.
+function listingTable(prices, variant) {
+  const p = prices.tp?.[variant];
+  const fx = state.fx.usdclp;
+  if (!p || (p.low == null && p.mid == null)) return '';
+  return `<div class="kv2">${p.low != null ? `<div><span>Más barata publicada</span><b>${fmtUSD(p.low)}</b><small>${fmtCLP(p.low * fx)}</small></div>` : ''}${p.mid != null ? `<div><span>Mediana publicada</span><b>${fmtUSD(p.mid)}</b><small>${fmtCLP(p.mid * fx)}</small></div>` : ''}</div>
+    <p class="muted tiny">Market = promedio de ventas recientes. Las publicadas son lo que piden hoy los vendedores, no lo que se pagó.</p>`;
 }
 
 // Price history sheet: TCGplayer daily market (workflow) + what this phone recorded + Cardmarket averages.
@@ -243,7 +253,7 @@ export async function openPriceHistory(card, prices, variant) {
   const fx = state.fx.usdclp;
   let range = 'all';
   const cm = prices.cm;
-  const cmRow = (lbl, eur) => (eur != null ? `<div><span>${lbl}</span><b>€${eur.toFixed(2)}</b><small>≈ ${fmtCLP(eurToCLP(eur))}</small></div>` : '');
+  const cmRow = (lbl, eur) => (eur != null ? `<div><span>${lbl}</span><b>${fmtEUR(eur)}</b><small>≈ ${fmtCLP(eurToCLP(eur))}</small></div>` : '');
   const change = (pts, days) => {
     if (pts.length < 2) return null;
     const last = pts[pts.length - 1];
@@ -315,16 +325,17 @@ export async function openCardSheet(cardId, { onPick, pickLabel = 'Agregar al in
     ${card.variants.length > 1 ? `<div class="seg variants">${card.variants.map((v) => `<button data-v="${esc(v)}" class="${v === variant ? 'on' : ''}">${esc(variantLabel(v))}</button>`).join('')}</div>` : ''}
     <div class="prices"></div>
     <div class="deal">
-      ${sealed ? '' : `<div class="label">Estado de la carta que te ofrecen</div>
-      <div class="seg conds">${Object.entries(CONDITIONS).map(([k2, c]) => `<button data-c="${k2}" class="${k2 === 'NM' ? 'on' : ''}" title="${esc(c.label)}">${k2}</button>`).join('')}</div>`}
-      <div class="maxpay"></div>
       <div class="label">¿Cuánto piden en la feria?</div>
       <div class="money-in">
         <input class="input ask" inputmode="decimal" placeholder="0" value="${ask ? esc(ask) : ''}">
         <div class="seg cur"><button data-c="CLP" class="on">CLP</button><button data-c="USD">USD</button></div>
       </div>
       <div class="verdict"></div>
+      ${sealed ? '' : `<div class="label">Estado de la carta</div>
+      <div class="seg conds">${Object.entries(CONDITIONS).map(([k2, c]) => `<button data-c="${k2}" class="${k2 === 'NM' ? 'on' : ''}" title="${esc(c.label)}">${k2}</button>`).join('')}</div>`}
+      <div class="maxpay"></div>
     </div>
+    <div class="prices2"></div>
     <div class="btn-col">
       ${onPick ? `<button class="btn primary pick">${esc(pickLabel)}</button>` : `<button class="btn primary buy">Registrar compra</button>`}
       <div class="btn-row">
@@ -340,6 +351,7 @@ export async function openCardSheet(cardId, { onPick, pickLabel = 'Agregar al in
   const askIn = $('.ask', body);
   const renderPrices = () => {
     pricesEl.innerHTML = priceTable(prices, variant);
+    $('.prices2', body).innerHTML = listingTable(prices, variant);
     $('.hist-open', pricesEl)?.addEventListener('click', () => openPriceHistory(card, prices, variant));
     $('.tcgp', body).href = tcgplayerUrl(prices, variant, card);
   };
@@ -559,6 +571,7 @@ export function openBuyForm(card, prices, { variant, ask = '', askCur = 'CLP', c
       purpose: dest, notes: $('.notes', body).value.trim(), qty: Math.max(1, parseInt($('.qty', body).value) || 1),
       condition: cf.condition(), graded: cf.graded(), event: $('.event', body).value.trim(),
     });
+    rememberEvent($('.event', body).value.trim());
     pushHist(`${card.id}|${v}`, marketUSD(card.id, v));
     if (state.wishlist[card.id]) delete state.wishlist[card.id];
     save();
@@ -590,7 +603,7 @@ export function openItemSheet(item) {
           <div class="rline">${raritySymbol(r.key, 20)} <span>${esc(r.label)}</span></div>
           <div class="muted small">${esc(variantLabel(item.variant))}${item.condition && item.condition !== 'NM' ? ` · ${esc(item.condition)}` : ''}${item.graded ? ` · ${esc(item.graded.co)} ${esc(item.graded.grade)}` : ''}</div>
           ${kindPill({ kind: item.kind, lang: item.lang })}
-          <div class="tag ${item.purpose}">${item.purpose === 'coleccion' ? 'Colección' : 'Reventa'}</div>
+          <div class="tag ${item.purpose === 'coleccion' ? 'coleccion' : 'reventa'}">${item.purpose === 'coleccion' ? 'Colección' : 'Reventa'}</div>
         </div>
       </div>
       <div class="kvs">
@@ -735,6 +748,7 @@ export function openSellForm(item, { suggestCLP } = {}) {
       kind: 'sale', price: net, gross: p, feePct: ch.feePct || 0, fixedCLP: ch.fixedCLP || 0, channel: ch.id,
       event: $('.event', body).value.trim(), currency: cur, fx: fxNow(), date: $('.date', body).value || localDate(),
     });
+    rememberEvent($('.event', body).value.trim());
     snapshot();
     save();
     s.close();

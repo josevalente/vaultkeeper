@@ -124,4 +124,80 @@ test('alertas: wishlist bajo la meta, movimiento >10% en 7 días, listo para ven
   assert.equal(S.computeAlerts().length, al.length - 1, 'descartada queda oculta');
 });
 
+test('comisión fija del canal en todas las estimaciones', () => {
+  reset();
+  state.settings.channels[0] = { id: 'feria', name: 'ML', feePct: 13, fixedCLP: 1000 };
+  // US$10 a $1.000/US$ → neto = 10 × 0,87 − 1 = 7,7 USD; máximo para 30% = 7,7 / 1,3
+  near(S.netEstimateUSD(10), 7.7);
+  near(S.maxPayUSD(10), 7.7 / 1.3);
+  near(S.dealVerdict(5, 10).profitUSD, 2.7);
+  near(S.lotTotals([{ marketUSD: 10 }], null, 'CLP').maxUSD, 7.7 / 1.3, 1e-9, 'lote y ficha dan lo mismo');
+});
+
+test('precio mínimo del ranking respeta el estado de la copia', () => {
+  reset();
+  S.setPrice('h', { tp: { holofoil: { market: 10, low: 9 } } });
+  S.addItems({ card: card('h'), variant: 'holofoil', price: 1000, currency: 'CLP', condition: 'HP' });
+  const [r] = S.sellRanking();
+  assert.equal(r.listCLP, 5000, 'HP = 50% de US$10');
+  assert.ok(r.floorCLP <= r.listCLP, `mínimo ${r.floorCLP} no puede superar el de publicación ${r.listCLP}`);
+});
+
+test('varias copias de la misma carta generan una sola alerta', () => {
+  reset();
+  S.setPrice('a', { tp: { holofoil: { market: 130 } } });
+  S.addItems({ card: card('a'), variant: 'holofoil', price: 100000, currency: 'CLP', qty: 3 });
+  state.priceHist['a|holofoil'] = [['2026-10-01', 100], ['2026-10-08', 130]];
+  const al = S.computeAlerts();
+  assert.equal(al.filter((x) => x.kind === 'up').length, 1);
+  assert.equal(al.filter((x) => x.kind === 'sell').length, 1);
+});
+
+test('reporte: trueques aparte; compras sin trueques ni cargas iniciales', () => {
+  reset();
+  S.setPrice('a', { tp: { holofoil: { market: 100 } } });
+  const [a] = S.addItems({ card: card('a'), variant: 'holofoil', price: 50000, currency: 'CLP', date: '2026-10-02' });
+  S.addItems({ card: card('a'), variant: 'holofoil', price: 99000, currency: 'CLP', date: '2026-10-02', source: 'Carga inicial' });
+  S.addItems({ card: card('a'), variant: 'holofoil', price: 70000, currency: 'CLP', date: '2026-10-02', source: 'Intercambio' });
+  S.recordExit(a, { kind: 'trade', price: 100, currency: 'USD', fx: 1000, date: '2026-10-03' });
+  const oct = S.report().months.find((m) => m.key === '2026-10');
+  assert.equal(oct.buys, 50000);
+  assert.equal(oct.sales, 0);
+  assert.equal(oct.tradeN, 1);
+  assert.equal(oct.profit, 50000, 'el trueque sí es ganancia realizada');
+  const sm = S.summary();
+  assert.equal(sm.exits, 0);
+  assert.equal(sm.trades, 1);
+});
+
+test('el respaldo no lleva las API keys y al importar se mantienen las del teléfono', () => {
+  reset();
+  state.settings.claudeKey = 'sk-ant-secreta';
+  state.settings.ptcgKey = 'ptcg-secreta';
+  const dump = S.exportData();
+  assert.ok(!dump.includes('secreta'));
+  S.replaceAll(JSON.parse(dump));
+  assert.equal(state.settings.claudeKey, 'sk-ant-secreta');
+});
+
+test('lista de venta: el precio sugerido no se congela', () => {
+  reset();
+  S.setPrice('a', { tp: { holofoil: { market: 20 } } });
+  const [it] = S.addItems({ card: card('a'), variant: 'holofoil', price: 10000, currency: 'CLP' });
+  S.setAsk(it, S.suggestedAskCLP(it));
+  assert.equal(it.askCLP, undefined, 'sin cambios no se guarda');
+  S.setPrice('a', { tp: { holofoil: { market: 35 } } });
+  assert.equal(S.suggestedAskCLP(it), 35000, 'sigue al mercado');
+  S.setAsk(it, 30000);
+  assert.equal(it.askCLP, 30000, 'un precio cambiado sí se guarda');
+});
+
+test('feria recordada solo el mismo día', () => {
+  reset();
+  S.rememberEvent('Feria Persa');
+  assert.equal(S.todayEvent(), 'Feria Persa');
+  state.settings.lastEvent.date = '2020-01-01';
+  assert.equal(S.todayEvent(), '');
+});
+
 console.log(`${pass} pruebas de funciones nuevas OK${process.exitCode ? ' — HAY FALLAS' : ''}`);

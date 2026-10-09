@@ -12,6 +12,7 @@ import { renderTrade } from './views/trade.js';
 import { renderSettings } from './views/settings.js';
 import { renderLote } from './views/lote.js';
 import { renderReporte } from './views/reporte.js';
+import { renderMas } from './views/mas.js';
 
 const ROUTES = {
   inicio: renderHome,
@@ -21,7 +22,10 @@ const ROUTES = {
   ajustes: renderSettings,
   lote: renderLote,
   reporte: renderReporte,
+  mas: renderMas,
 };
+// Sections reached from "Más" keep that tab highlighted.
+const TAB_OF = { lote: 'mas', intercambio: 'mas', reporte: 'mas', ajustes: 'mas' };
 
 const view = $('#view');
 let current = null;
@@ -31,7 +35,7 @@ function route() {
   const fn = ROUTES[name] || renderHome;
   const changed = current !== name;
   current = ROUTES[name] ? name : 'inicio';
-  $$('.tabbar a').forEach((a) => a.classList.toggle('on', a.dataset.route === current));
+  $$('.tabbar a').forEach((a) => a.classList.toggle('on', a.dataset.route === (TAB_OF[current] || current)));
   $('.gear').classList.toggle('on', current === 'ajustes');
   view.dataset.view = current;
   view._resize = null;

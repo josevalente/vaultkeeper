@@ -2,7 +2,7 @@
 // (entrada, transporte, fundas…). Export to CSV (Excel) for accounting.
 
 import { h, esc, $, $$, fmtCLP, fmtDate, localDate, parseAmount, toast } from '../util.js';
-import { state, report, summary, addExpense, removeExpense, EXPENSE_CATS, channelById } from '../store.js';
+import { state, report, summary, addExpense, removeExpense, EXPENSE_CATS, rememberEvent } from '../store.js';
 import { openSheet, eventField, pctClass, confirmSheet } from '../ui.js';
 import { csv, shareFile } from '../backup.js';
 
@@ -12,12 +12,14 @@ export function renderReporte(root) {
   const r = report();
   const s = summary();
   const rows = tab === 'mes' ? r.months : tab === 'evento' ? r.events : r.channels;
-  const label = (k) => (tab === 'mes' ? monthName(k) : tab === 'canal' ? channelById(k)?.name || k : k);
+  // Sales recorded before channels existed have none: show them as "Sin canal", not as the first channel.
+  const chName = (k) => state.settings.channels.find((c) => c.id === k)?.name || 'Sin canal';
+  const label = (k) => (tab === 'mes' ? monthName(k) : tab === 'canal' ? chName(k) : k);
 
   root.innerHTML = `
     <div class="view-head rise">
       <h1>Reporte</h1>
-      <p class="muted">Ganancia realizada (ventas − costo de lo vendido) menos gastos.</p>
+      <p class="muted">Ganancia realizada (ventas y trueques − costo de lo que salió) menos gastos. “Compras” no incluye lo recibido en trueques ni las cartas que cargaste sin compra.</p>
     </div>
     <section class="hero rise" style="--d:1">
       <div class="hero-label">Ganancia neta realizada</div>
@@ -25,7 +27,7 @@ export function renderReporte(root) {
       <div class="hero-stats">
         <div><span>Por ventas</span><b class="${pctClass(s.realCLP)}">${fmtCLP(s.realCLP, { sign: true })}</b></div>
         <div><span>Gastos</span><b>${fmtCLP(-s.expensesCLP)}</b></div>
-        <div><span>Ventas</span><b>${s.exits}</b></div>
+        <div><span>Ventas</span><b>${s.exits}</b><small>${s.trades ? `${s.trades} por trueque` : ''}</small></div>
       </div>
     </section>
 
@@ -40,7 +42,7 @@ export function renderReporte(root) {
           <div class="rep-head"><b>${esc(label(b.key))}</b><b class="${pctClass(b.net)}">${fmtCLP(b.net, { sign: true })}</b></div>
           <div class="rep-grid">
             ${tab !== 'canal' ? `<div><span>Compras</span>${fmtCLP(b.buys)} <small>(${b.buyN})</small></div>` : ''}
-            <div><span>Ventas</span>${fmtCLP(b.sales)} <small>(${b.saleN})</small></div>
+            <div><span>Ventas</span>${fmtCLP(b.sales)} <small>(${b.saleN}${b.tradeN ? ` + ${b.tradeN} trueque${b.tradeN === 1 ? '' : 's'}` : ''})</small></div>
             <div><span>Ganancia</span><em class="${pctClass(b.profit)}">${fmtCLP(b.profit, { sign: true })}</em></div>
             ${tab !== 'canal' ? `<div><span>Gastos</span>${fmtCLP(-b.expenses)}</div>` : ''}
           </div>
@@ -95,8 +97,11 @@ export function openExpenseForm() {
   const s = openSheet({ title: 'Agregar gasto', body });
   body.onsubmit = (e) => {
     e.preventDefault();
+    if (body.dataset.saving) return; // a double tap must not save it twice
     const amountCLP = parseAmount($('.amount', body).value, 'CLP');
     if (!(amountCLP > 0)) return toast('Ingresa el monto', 'err');
+    body.dataset.saving = '1';
+    rememberEvent($('.event', body).value.trim());
     addExpense({ date: $('.date', body).value || localDate(), amountCLP, cat: $('.cat', body).value, note: $('.note', body).value.trim(), event: $('.event', body).value.trim() });
     s.close();
     toast('Gasto guardado', 'ok');
@@ -109,7 +114,7 @@ function exportItems() {
     it.name, it.setName, it.number, it.kind === 'sealed' ? 'Sellado' : 'Carta', it.lang === 'ja' ? 'Japonés' : 'Inglés', it.variant, it.condition || '', it.graded ? `${it.graded.co} ${it.graded.grade}` : '', it.purpose,
     it.buy.date, it.buy.event || '', Math.round(it.buy.price * 100) / 100, it.buy.currency, it.buy.fx, Math.round(it.costCLP), Math.round(it.costUSD * 100) / 100,
     it.status === 'held' ? 'En vault' : it.status === 'sold' ? 'Vendida' : 'Intercambiada',
-    it.exit?.date || '', it.exit?.channel ? channelById(it.exit.channel)?.name || it.exit.channel : '', it.exit?.event || '', it.exit ? Math.round(it.exit.clp) : '', it.exit ? Math.round(it.exit.clp - it.costCLP) : '',
+    it.exit?.date || '', it.exit?.kind === 'trade' ? 'Trueque' : it.exit?.channel ? state.settings.channels.find((c) => c.id === it.exit.channel)?.name || it.exit.channel : '', it.exit?.event || '', it.exit ? Math.round(it.exit.clp) : '', it.exit ? Math.round(it.exit.clp - it.costCLP) : '',
   ]);
   shareFile(new File([csv([head, ...rows])], `vaultkeeper-inventario-${localDate()}.csv`, { type: 'text/csv' }));
 }

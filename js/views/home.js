@@ -54,12 +54,24 @@ export function renderHome(root) {
   navigator.setAppBadge?.(alerts.length).catch?.(() => {});
   const notices = [];
   if (!isInstalled() && !state.settings.hideInstallTip)
-    notices.push(`<div class="notice"><b>Instala la app en tu iPhone</b>: Safari → Compartir → “Agregar a inicio”. Así funciona sin conexión y iOS no borra tus datos. Ojo: los datos de Safari y de la app instalada son distintos; si ya tienes cartas aquí, haz un respaldo y luego impórtalo en la app instalada (Ajustes). <button class="link hide-install">Entendido</button></div>`);
+    notices.push(`<div class="notice"><b>Instálala en tu iPhone:</b> Safari → Compartir → “Agregar a inicio”. <details><summary>Por qué y qué pasa con tus datos</summary>Así funciona sin conexión y iOS no borra tus datos. Los datos de Safari y de la app instalada son distintos: si ya tienes cartas aquí, haz un respaldo y luego impórtalo en la app instalada (Ajustes).</details><button class="link hide-install">Entendido</button></div>`);
   if (backupDue())
     notices.push(`<div class="notice"><b>${state.settings.lastBackup ? `Tu último respaldo fue ${timeAgo(state.settings.lastBackup)}` : 'Aún no tienes respaldo'}</b>. Tus datos viven solo en este teléfono. <button class="link do-backup">Respaldar en iCloud</button></div>`);
 
+  const firstRun = !state.items.length && !state.history.length;
   root.innerHTML = `
     ${notices.join('')}
+    ${
+      firstRun
+        ? `<section class="panel welcome rise"><h2>Bienvenido a VaultKeeper</h2>
+        <ol class="steps">
+          <li><b>Escanea o busca una carta</b> con el botón central: verás su precio TCGplayer en pesos.</li>
+          <li><b>En la feria</b>, escribe cuánto piden: te digo si es ganga y cuánto pagar como máximo. Para varias cartas usa <a href="#/lote">Lote</a>.</li>
+          <li><b>Registra la compra</b>: tu vault, el gráfico y las recomendaciones de venta se arman solos.</li>
+        </ol>
+        <button class="btn primary full start-scan">Escanear mi primera carta</button></section>`
+        : ''
+    }
     ${
       alerts.length
         ? `<section class="panel alerts rise"><div class="panel-head"><h2>Novedades</h2><span class="badge-count">${alerts.length}</span></div>${alerts
@@ -70,10 +82,10 @@ export function renderHome(root) {
             .join('')}${alerts.length > 6 ? `<p class="muted tiny">y ${alerts.length - 6} más…</p>` : ''}</section>`
         : ''
     }
-    <section class="hero rise">
+    ${firstRun ? '' : `<section class="hero rise">
       <div class="hero-label">Valor del vault</div>
       <div class="hero-value">${F.f(F.value)}</div>
-      <div class="hero-alt">${F.alt} · ${s.n} carta${s.n === 1 ? '' : 's'}</div>
+      <div class="hero-alt">${F.alt} · ${s.n} ítem${s.n === 1 ? '' : 's'}</div>
       <div class="hero-stats">
         <div><span>Invertido</span><b>${F.f(F.cost)}</b></div>
         <div><span>Ganancia</span><b class="${pctClass(F.gain)}">${arrow(F.gain)} ${F.f(F.gain, { sign: true })}<small>${fmtPct(F.pct)}</small></b></div>
@@ -83,7 +95,7 @@ export function renderHome(root) {
         <span>${state.lastRefresh ? `Precios TCGplayer ${timeAgo(state.lastRefresh)}` : "Precios TCGplayer: se actualizan solos"}${s.missing ? ` · ${s.missing} sin precio` : ''}</span>
         <button class="link refresh">Actualizar ↻</button>
       </div>
-    </section>
+    </section>`}
 
     <section class="quick rise" style="--d:1">
       <button class="qa scan"><span class="qa-ico">◎</span><b>Evaluar en feria</b><small>Foto → precio y veredicto</small></button>
@@ -92,7 +104,7 @@ export function renderHome(root) {
       <a class="qa" href="#/reporte"><span class="qa-ico">∑</span><b>Reporte y gastos</b><small>Ganancia por feria y mes</small></a>
     </section>
 
-    <section class="panel rise" style="--d:2">
+    ${firstRun ? '' : `<section class="panel rise" style="--d:2">
       <div class="panel-head">
         <h2>Costo vs. valor</h2>
         <div class="seg small ranges">${RANGES.map(([k, l]) => `<button data-r="${k}" class="${range === k ? 'on' : ''}">${l}</button>`).join('')}</div>
@@ -110,11 +122,12 @@ export function renderHome(root) {
       <p class="muted small">Ordenadas por ganancia sobre tu compra, monto y tendencia del precio (si va bajando, conviene vender antes).</p>
       <ol class="rank">${top.length ? top.map((r, i) => rankRow(r, i)).join('') : `<li class="empty"><p>${!s.n ? 'Tu vault está vacío. Escanea tu primera carta.' : ranking.length ? 'Ninguna carta de reventa está sobre tu costo todavía.' : 'Aún no hay cartas de reventa con precio.'}</p></li>`}</ol>
       ${ranking.length > top.length || showAll ? `<button class="btn ghost full more">${showAll ? 'Mostrar top 5' : `Mostrar todas (${ranking.length})`}</button>` : ''}
-    </section>`;
+    </section>`}`;
 
+  $('.start-scan', root)?.addEventListener('click', () => scanFlow({ title: 'Escanear carta', onPick: (c) => openCardSheet(c.id) }));
   const pts = chartPoints();
   const box = $('.chart-box', root);
-  if (pts.length) {
+  if (box && pts.length) {
     const draw = () => renderPortfolioChart(box, pts, { currency: disp(), fmt: (n) => F.f(n) });
     requestAnimationFrame(draw);
     root._resize = draw;
@@ -123,14 +136,14 @@ export function renderHome(root) {
       .reverse()
       .map((p) => `<tr><td>${esc(p.d)}</td><td>${F.f(p.cost)}</td><td>${F.f(p.value)}</td><td class="${pctClass(p.value - p.cost)}">${fmtPct(p.cost ? (p.value - p.cost) / p.cost : 0)}</td></tr>`)
       .join('')}</tbody></table>`;
-  } else {
+  } else if (box) {
     box.innerHTML = `<div class="empty"><p>El gráfico se arma solo: cada día que la app actualiza precios guarda un punto de costo y valor.</p></div>`;
   }
 
   $$('.ranges button', root).forEach((b) => (b.onclick = () => ((range = b.dataset.r), renderHome(root))));
-  $('.keep', root).onchange = (e) => ((includeKeep = e.target.checked), renderHome(root));
+  $('.keep', root)?.addEventListener('change', (e) => ((includeKeep = e.target.checked), renderHome(root)));
   $('.more', root)?.addEventListener('click', () => ((showAll = !showAll), renderHome(root)));
-  $('.refresh', root).onclick = () => actions.refreshPrices?.({ force: true });
+  $('.refresh', root)?.addEventListener('click', () => actions.refreshPrices?.({ force: true }));
   $('.do-backup', root)?.addEventListener('click', () => backupNow());
   $('.hide-install', root)?.addEventListener('click', () => {
     state.settings.hideInstallTip = true;
@@ -149,7 +162,7 @@ export function renderHome(root) {
   $('.scan', root).onclick = () => scanFlow({ title: 'Evaluar en feria', onPick: (c) => openCardSheet(c.id) });
   $('.find', root).onclick = () => openSearch({ onPick: (c) => openCardSheet(c.id) });
 
-  $('.rank', root).addEventListener('click', (e) => {
+  $('.rank', root)?.addEventListener('click', (e) => {
     const row = e.target.closest('[data-item]');
     if (!row) return;
     const r = ranking.find((x) => x.it.id === row.dataset.item);
