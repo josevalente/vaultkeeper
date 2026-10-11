@@ -27,7 +27,9 @@
   --display: 'Unbounded', 'Figtree', system-ui, sans-serif;
   --body: 'Figtree', system-ui, -apple-system, sans-serif;
   --safe-t: env(safe-area-inset-top, 0px);
-  --safe-b: env(safe-area-inset-bottom, 0px);
+  /* --vgap: how much shorter than the screen iOS made the viewport (set in app.js). That strip,
+     home indicator included, is already outside the page, so it no longer needs the inset. */
+  --safe-b: max(0px, calc(env(safe-area-inset-bottom, 0px) - var(--vgap, 0px)));
   --tabbar-h: 68px;
 }
 

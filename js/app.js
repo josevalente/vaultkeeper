@@ -134,6 +134,20 @@ toTop.onclick = () => {
   window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' });
 };
 
+// iOS 26 bug in installed apps: at launch (sometimes for good) the viewport comes out shorter than
+// the screen, so everything pinned to the bottom (tab bar, totals) floats up. iOS clips anything
+// drawn below that line, so instead of pushing the bar down we stop adding the home-indicator
+// inset that is already outside the page. Only on an installed iPhone/iPad, portrait.
+function fixViewportGap() {
+  let gap = 0;
+  if (navigator.standalone && innerWidth === screen.width) gap = screen.height - innerHeight;
+  document.documentElement.style.setProperty('--vgap', `${gap > 0 && gap < 120 ? gap : 0}px`);
+}
+fixViewportGap();
+for (const ev of ['resize', 'orientationchange', 'pageshow']) window.addEventListener(ev, fixViewportGap);
+document.addEventListener('visibilitychange', fixViewportGap);
+[300, 1000, 2500].forEach((ms) => setTimeout(fixViewportGap, ms));
+
 window.addEventListener('hashchange', route);
 let rz;
 window.addEventListener('resize', () => {
