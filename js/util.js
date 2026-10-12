@@ -31,13 +31,16 @@ const group = (intStr) => intStr.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 export function roundCLP(n, mode = 'round') {
   if (n == null || !isFinite(n)) return null;
   const step = Math.abs(n) < 5000 ? 100 : Math.abs(n) < 20000 ? 500 : 1000;
-  return Math[mode](n / step) * step;
+  const r = Math[mode](n / step) * step;
+  // A card worth $40 shouldn't read "$0": round those to $10 instead.
+  return r === 0 && n > 0 && mode !== 'floor' ? Math.ceil(n / 10) * 10 : r;
 }
 
 export function fmtCLP(n, { sign = false } = {}) {
   if (n == null || isNaN(n)) return '—';
-  const s = sign && n > 0 ? '+' : n < 0 ? '−' : '';
-  return `${s}$${group(String(Math.round(Math.abs(n))))}`;
+  const r = Math.round(n); // sign after rounding: never "−$0"
+  const s = sign && r > 0 ? '+' : r < 0 ? '−' : '';
+  return `${s}$${group(String(Math.abs(r)))}`;
 }
 
 export function fmtUSD(n, { sign = false } = {}) {
@@ -72,8 +75,10 @@ export function timeAgo(ts) {
 }
 
 // Parses amounts typed the Chilean way or the US way:
-//   CLP: "12.500" / "$12.500" / "12500" → 12500 (dot = thousands, comma = decimals)
-//   USD: "12,50" / "12.50" / "1,250.50" / "1.250,50" → decimal mark detected from the last separator
+//   CLP: "12.500" / "$12.500" / "12500" / "12,500" → 12500 (pesos have no decimals: a separator
+//        followed by exactly 3 digits is always thousands; the iPhone keypad only has a comma)
+//   USD: "12,50" / "12.50" / "1,250.50" / "1.250,50" / "1.250" → decimal mark from the last
+//        separator; a lone separator before exactly 3 digits is thousands, as fmtUSD writes it
 export function parseAmount(str, currency = 'CLP') {
   if (typeof str === 'number') return str;
   let s = String(str || '').trim().replace(/[^\d.,-]/g, '');
@@ -82,14 +87,14 @@ export function parseAmount(str, currency = 'CLP') {
   if (lastDot >= 0 && lastComma >= 0) {
     const dec = lastDot > lastComma ? '.' : ',';
     s = s.split(dec === '.' ? ',' : '.').join('').replace(dec, '.');
-  } else if (lastComma >= 0) {
-    const parts = s.split(',');
-    // "1,250" (USD thousands) vs "12,5" (decimal)
-    s = parts.length > 2 || (currency === 'USD' && parts[1].length === 3) ? parts.join('') : parts.join('.');
-  } else if (lastDot >= 0) {
-    const parts = s.split('.');
-    // CLP: dots are thousands. USD: a single dot is the decimal point unless there are several.
-    if (currency === 'CLP' || parts.length > 2) s = parts.join('');
+  } else if (lastComma >= 0 || lastDot >= 0) {
+    const sep = lastComma >= 0 ? ',' : '.';
+    const parts = s.split(sep);
+    // Thousands when repeated ("1.234.567") or when a group of exactly 3 digits follows
+    // ("12,500", "US$1.250"); otherwise it's the decimal mark ("12,5", "12.50"). In CLP a dot
+    // is always thousands.
+    const thousands = parts.length > 2 || parts[1].length === 3 || (currency === 'CLP' && sep === '.');
+    s = thousands ? parts.join('') : parts.join('.');
   }
   const n = parseFloat(s);
   return isFinite(n) ? n : NaN;

@@ -120,7 +120,7 @@ export function priceOf(cardId, variant) {
   const p = state.prices[cardId];
   if (!p) return null;
   const tp = p.tp || {};
-  if (variant && pickPrice(tp[variant])) return { usd: pickPrice(tp[variant]), src: 'tcgplayer' };
+  if (variant && pickPrice(tp[variant])) return { usd: pickPrice(tp[variant]), src: tp[variant].market != null || tp[variant].mid != null ? 'tcgplayer' : 'tcgplayer-low' };
   const keys = Object.keys(tp).filter((k) => pickPrice(tp[k]));
   if ((!variant || !tp[variant]) && keys.length === 1) return { usd: pickPrice(tp[keys[0]]), src: 'tcgplayer-otra-version' };
   const eur = p.cm?.trend || p.cm?.avg;
@@ -181,9 +181,22 @@ export const isSealed = (it) => String(it.cardId || it.id || '').startsWith('sea
 // Value of one copy: a graded copy uses the value you set (no free source for slab prices);
 // otherwise the market price of its version × its condition.
 export function itemValueUSD(it) {
+  if (it.graded?.clp) return it.graded.clp / state.fx.usdclp; // entered in pesos: stays in pesos
   if (it.graded?.usd) return it.graded.usd;
   const m = marketUSD(it.cardId, it.variant);
   return m == null ? null : m * (isSealed(it) ? 1 : condFactor(it.condition));
+}
+
+// Gain of one copy in the currency the user thinks in (FX may have moved since the purchase).
+// gross = at market value; net = after the default channel's fees (what a sale would leave).
+export function itemGain(it, { net = false, v = itemValueUSD(it) } = {}) {
+  if (v == null) return null;
+  const fx = state.fx.usdclp;
+  const val = net ? netEstimateUSD(v) : v;
+  const usd = val - it.costUSD, clp = val * fx - it.costCLP;
+  const inUSD = state.settings.display === 'USD';
+  const base = inUSD ? it.costUSD : it.costCLP;
+  return { usd, clp, disp: inUSD ? usd : clp / fx, pct: base > 0 ? (inUSD ? usd : clp) / base : null };
 }
 
 // Highest price that still leaves `marginPct` profit after the sale fee.
@@ -359,12 +372,9 @@ export function sellRanking({ includeKeep = false } = {}) {
     .map((it) => {
       const v = itemValueUSD(it);
       if (v == null) return null;
-      const net = netEstimateUSD(v);
-      const gainUSD = net - it.costUSD;
-      const gainCLP = net * fx - it.costCLP;
-      // Judge profit in the currency the user thinks in (FX may have moved since the purchase).
-      const gainPct = state.settings.display === 'USD' ? (it.costUSD > 0 ? gainUSD / it.costUSD : 0) : it.costCLP > 0 ? gainCLP / it.costCLP : 0;
-      const gainDisp = state.settings.display === 'USD' ? gainUSD : gainCLP / fx;
+      const G = itemGain(it, { net: true, v });
+      const { usd: gainUSD, clp: gainCLP, disp: gainDisp } = G;
+      const gainPct = G.pct ?? 0;
       const mom = momentum(it);
       const days = daysBetween(it.buy.date || today, today);
       let score = clamp(gainPct, -1, 3) * 50 + Math.log10(1 + Math.max(gainDisp, 0)) * 22;
@@ -373,19 +383,24 @@ export function sellRanking({ includeKeep = false } = {}) {
       if (gainDisp <= 0) score -= 60;
 
       const reasons = [];
-      if (gainDisp > 0) reasons.push(`${Math.round(gainPct * 100)}% sobre tu compra`);
+      if (gainDisp > 0) reasons.push(G.pct == null ? 'te costó $0: todo es ganancia' : `${Math.round(gainPct * 100)}% sobre tu compra`);
       else reasons.push('Aún bajo tu costo');
       if (mom != null && mom <= -0.03) reasons.push(`precio bajando ${Math.round(-mom * 100)}% (7d vs 30d)`);
       if (mom != null && mom >= 0.05) reasons.push(`subiendo ${Math.round(mom * 100)}%: podría esperar`);
       if (days >= 60) reasons.push(`${days} días en el vault`);
 
       const p = state.prices[it.cardId]?.tp?.[it.variant];
-      const listCLP = roundCLP(v * fx);
       // Lowest asking price that still leaves +10% over cost after the channel's fees; never under
       // the cheapest listing for a copy in the same condition (graded copies have no listing).
       const lowSame = it.graded ? 0 : (p?.low || 0) * (isSealed(it) ? 1 : condFactor(it.condition));
-      const floorCLP = roundCLP(Math.max((it.costCLP * 1.1 + fixedNow()) / (1 - fee || 1), lowSame * fx), 'ceil');
-      return { it, v, gainUSD, gainCLP, gainPct, profitable: gainDisp > 0, mom, days, score, reasons, listCLP, floorCLP };
+      const rawList = v * fx;
+      const rawFloor = Math.max((it.costCLP * 1.1 + fixedNow()) / (1 - fee || 1), lowSame * fx);
+      const floorCLP = roundCLP(rawFloor, 'ceil');
+      // Compare unrounded values: rounding alone must never make the market look under the floor.
+      const underFloor = rawList < rawFloor;
+      const listCLP = underFloor ? roundCLP(rawList) : Math.max(roundCLP(rawList), floorCLP);
+      // askCLP: what "Vender" pre-fills, never under the minimum just shown.
+      return { it, v, gainUSD, gainCLP, gainPct, profitable: gainDisp > 0, mom, days, score, reasons, listCLP, floorCLP, underFloor, askCLP: Math.max(listCLP, floorCLP) };
     })
     .filter(Boolean)
     .sort((a, b) => b.score - a.score);
@@ -468,16 +483,21 @@ export function lotTotals(items, askAmount, askCur) {
   const fx = state.fx.usdclp;
   const ch = channelById(state.settings.defaultChannel);
   const marketUSDv = items.reduce((a, x) => a + (x.marketUSD || 0), 0);
-  const netUSD = marketUSDv * (1 - (ch?.feePct || 0) / 100) - ((ch?.fixedCLP || 0) * items.length) / fx;
+  // Fees per card that has a price (unpriced entries can't be sold at a known price yet); a card
+  // worth less than the fixed fee counts as 0, it doesn't eat into the rest of the lot.
+  const netUSD = items.reduce((a, x) => a + (x.marketUSD ? Math.max(0, x.marketUSD * (1 - (ch?.feePct || 0) / 100) - (ch?.fixedCLP || 0) / fx) : 0), 0);
   const maxUSD = Math.max(0, netUSD / (1 + state.settings.targetMargin / 100));
+  const maxCLP = roundCLP(maxUSD * fx, 'floor');
   const askUSD = askAmount ? toUSD(askAmount, askCur) : null;
   return {
     marketUSD: marketUSDv,
     marketCLP: marketUSDv * fx,
     maxUSD,
-    maxCLP: roundCLP(maxUSD * fx, 'floor'),
+    maxCLP,
     askUSD,
-    verdict: askUSD ? dealVerdict(askUSD, marketUSDv) : null,
+    // "Sobre tu máximo" compares against the rounded max the user sees on screen.
+    overMax: askUSD != null && askUSD * fx > maxCLP,
+    verdict: askUSD ? dealVerdict(askUSD, marketUSDv, { maxUSD: maxCLP / fx, profitUSD: netUSD - askUSD }) : null,
     profitUSD: askUSD != null ? netUSD - askUSD : null,
     priced: items.filter((x) => x.marketUSD).length,
   };
@@ -512,9 +532,8 @@ export function computeAlerts() {
       }
     }
     if (it.purpose !== 'coleccion') {
-      const v = itemValueUSD(it);
-      if (v != null && it.costCLP > 0) {
-        const g = (netEstimateUSD(v) * fx) / it.costCLP - 1;
+      const g = itemGain(it, { net: true })?.pct;
+      if (g != null) {
         if (g >= state.settings.targetMargin / 100) out.push({ key: `sell:${it.id}`, kind: 'sell', cardId: it.cardId, itemId: it.id, name: it.name, image: it.image, text: `Ya rinde ${Math.round(g * 100)}% sobre tu compra: buen momento para vender` });
       }
     }
@@ -546,7 +565,7 @@ export function planTrade(giveUSD, getUSD, paidUSD = 0, recvUSD = 0) {
   const C = getUSD.reduce((a, b) => a + b, 0);
   let proceeds, basis;
   if (!getUSD.length) {
-    proceeds = recvUSD - paidUSD; // cards for cash = a sale
+    proceeds = Math.max(0, recvUSD - paidUSD); // cards for cash = a sale
     basis = 0;
   } else {
     basis = G + paidUSD - recvUSD;
@@ -559,16 +578,20 @@ export function planTrade(giveUSD, getUSD, paidUSD = 0, recvUSD = 0) {
 
 // ───────────────────────── Deals
 
-export function dealVerdict(askUSD, marketUSDv) {
+// The label never contradicts the money: a "Ganga"/"Buen precio" that leaves no profit after fees
+// becomes "No deja ganancia", and one over your max price (target margin) is at most "Precio justo".
+export function dealVerdict(askUSD, marketUSDv, { maxUSD = maxPayUSD(marketUSDv), profitUSD = netEstimateUSD(marketUSDv) - askUSD } = {}) {
   const s = state.settings;
   if (!marketUSDv || !askUSD) return null;
   const off = 1 - askUSD / marketUSDv;
-  const profitUSD = netEstimateUSD(marketUSDv) - askUSD;
   let label, cls;
   if (off >= s.dealPct / 100) (label = 'Ganga'), (cls = 'deal-hot');
   else if (off >= 0.1) (label = 'Buen precio'), (cls = 'deal-good');
   else if (off >= -0.05) (label = 'Precio justo'), (cls = 'deal-fair');
   else (label = 'Caro'), (cls = 'deal-bad');
+  const positive = cls === 'deal-hot' || cls === 'deal-good';
+  if (profitUSD <= 0 && positive) (label = 'No deja ganancia'), (cls = 'deal-bad');
+  else if (maxUSD != null && askUSD > maxUSD && positive) (label = 'Precio justo'), (cls = 'deal-fair');
   return { off, profitUSD, label, cls, belowRange: marketUSDv < s.minUSD };
 }
 

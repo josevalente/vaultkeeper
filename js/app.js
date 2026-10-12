@@ -1,7 +1,7 @@
 // VaultKeeper — app shell: router, tab bar, price refresh, offline support.
 
 import { $, $$, fmtCLP, pool, toast, localDate } from './util.js';
-import { state, save, onChange, held, setPrice, pushHist, marketUSD, snapshot, actions, repairItems, computeAlerts } from './store.js';
+import { state, save, onChange, held, setPrice, pushHist, snapshot, actions, repairItems, computeAlerts } from './store.js';
 import { getCard } from './api.js';
 import { refreshFx } from './fx.js';
 import { scanFlow, openCardSheet } from './ui.js';
@@ -93,7 +93,11 @@ async function refreshPrices({ force = false } = {}) {
         done++;
         setStatus(`Actualizando precios ${done}/${stale.length}`, done / stale.length);
       });
-      held().forEach((it) => pushHist(`${it.cardId}|${it.variant}`, marketUSD(it.cardId, it.variant)));
+      // Always the same source (TCGplayer market or mid) so the history never jumps between sources.
+      held().forEach((it) => {
+        const p = state.prices[it.cardId]?.tp?.[it.variant];
+        pushHist(`${it.cardId}|${it.variant}`, p?.market ?? p?.mid ?? null);
+      });
       state.lastRefresh = Date.now();
     }
     const last = state.history[state.history.length - 1];

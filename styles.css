@@ -536,6 +536,7 @@ a.qa { text-decoration: none; color: inherit; }
 .maxpay-box span { font-size: 12px; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.05em; }
 .maxpay-box b { font-family: var(--display); font-size: 20px; color: var(--pos); text-align: right; }
 .maxpay-box small { grid-column: 1 / -1; font-size: 11.5px; color: var(--muted); }
+.maxpay-box.warn { background: color-mix(in oklab, var(--neg) 10%, var(--surface-2)); border-color: color-mix(in oklab, var(--neg) 35%, transparent); }
 .gold { color: var(--brass); }
 .balance .label { font-size: 11.5px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
 .bal-row small { display: block; font-size: 11.5px; }

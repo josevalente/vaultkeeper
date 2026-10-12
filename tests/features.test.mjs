@@ -8,7 +8,8 @@ globalThis.localStorage = { getItem: (k) => mem[k] ?? null, setItem: (k, v) => (
 globalThis.alert = () => {};
 const S = await import('../js/store.js');
 const { state } = S;
-const { roundCLP } = await import('../js/util.js');
+const U = await import('../js/util.js');
+const { roundCLP } = U;
 
 let pass = 0;
 const test = (name, fn) => {
@@ -218,6 +219,75 @@ test('feria recordada solo el mismo día', () => {
   assert.equal(S.todayEvent(), 'Feria Persa');
   state.settings.lastEvent.date = '2020-01-01';
   assert.equal(S.todayEvent(), '');
+});
+
+test('montos tipeados con coma o punto de miles', () => {
+  const { parseAmount } = U;
+  assert.equal(parseAmount('12,500', 'CLP'), 12500, 'teclado del iPhone: coma de miles');
+  assert.equal(parseAmount('1,000', 'CLP'), 1000);
+  assert.equal(parseAmount('12.500', 'CLP'), 12500);
+  assert.equal(parseAmount('$1.234.567', 'CLP'), 1234567);
+  assert.equal(parseAmount('12,5', 'CLP'), 12.5);
+  assert.equal(parseAmount('US$1.250', 'USD'), 1250, 'como lo escribe fmtUSD');
+  assert.equal(parseAmount('12,50', 'USD'), 12.5);
+  assert.equal(parseAmount('12.50', 'USD'), 12.5);
+  assert.equal(parseAmount('1.250,50', 'USD'), 1250.5);
+  assert.equal(parseAmount('1,250.50', 'USD'), 1250.5);
+});
+
+test('redondeo de cartas muy baratas y signo de $0', () => {
+  assert.equal(roundCLP(38), 40, 'no "$0"');
+  assert.equal(roundCLP(38, 'floor'), 0, 'pagar como máximo sí puede ser $0');
+  assert.equal(U.fmtCLP(-0.4, { sign: true }), '$0');
+});
+
+test('Vender desde el ranking nunca rellena bajo el mínimo', () => {
+  reset();
+  S.setPrice('m', { tp: { holofoil: { market: 9.5 } } });
+  S.addItems({ card: card('m'), variant: 'holofoil', price: 9000, currency: 'CLP' });
+  const [r] = S.sellRanking({ includeKeep: true });
+  assert.ok(r.underFloor, 'mercado bajo el mínimo');
+  assert.ok(r.askCLP >= r.floorCLP, `rellena ${r.askCLP}, mínimo ${r.floorCLP}`);
+});
+
+test('el redondeo en el borde de $5.000 no inventa un mercado bajo el mínimo', () => {
+  reset();
+  S.setPrice('b', { tp: { holofoil: { market: 5.239 } } });
+  S.addItems({ card: card('b'), variant: 'holofoil', price: 4590, currency: 'CLP' });
+  const [r] = S.sellRanking({ includeKeep: true });
+  assert.equal(r.underFloor, false, 'a mercado deja +14%');
+  assert.ok(r.listCLP >= r.floorCLP, `publicar ${r.listCLP} ≥ mínimo ${r.floorCLP}`);
+});
+
+test('veredicto: con comisión fija una carta barata no es "Ganga"', () => {
+  reset();
+  state.settings.channels[0].fixedCLP = 1000;
+  const v = S.dealVerdict(0.5, 1); // piden $500 por una carta de $1.000
+  assert.equal(v.label, 'No deja ganancia');
+  assert.equal(S.maxPayUSD(1), 0);
+});
+
+test('lote: la comisión fija solo cuenta por cartas con precio', () => {
+  reset();
+  state.settings.channels[0].fixedCLP = 1000;
+  const two = S.lotTotals([{ marketUSD: 20 }, { marketUSD: 20 }]);
+  const withUnpriced = S.lotTotals([{ marketUSD: 20 }, { marketUSD: 20 }, { marketUSD: 0 }, { marketUSD: 0 }, { marketUSD: 0 }]);
+  assert.equal(withUnpriced.maxCLP, two.maxCLP);
+  const cheap = S.lotTotals([{ marketUSD: 20 }, { marketUSD: 0.5 }]);
+  const alone = S.lotTotals([{ marketUSD: 20 }]);
+  assert.ok(cheap.maxCLP >= alone.maxCLP, 'una carta barata no resta del resto');
+});
+
+test('gradeada ingresada en pesos no cambia con el dólar', () => {
+  reset();
+  const [g] = S.addItems({ card: card('g'), variant: 'holofoil', price: 50000, currency: 'CLP', graded: { co: 'PSA', grade: '10', clp: 100000, usd: 100 } });
+  state.fx.usdclp = 1250;
+  near(S.itemValueUSD(g) * state.fx.usdclp, 100000, 1e-6);
+});
+
+test('intercambio solo por efectivo no da ingreso negativo', () => {
+  const p = S.planTrade([10], [], 5, 0);
+  assert.ok(p.proceeds[0] >= 0);
 });
 
 console.log(`${pass} pruebas de funciones nuevas OK${process.exitCode ? ' — HAY FALLAS' : ''}`);

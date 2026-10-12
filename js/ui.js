@@ -1,7 +1,7 @@
 // Shared UI: bottom sheets, card tiles, card detail, buy/sell forms, search, scan flow.
 
 import { h, esc, $, $$, fmtCLP, roundCLP, fmtUSD, fmtPct, fmtDate, localDate, parseAmount, toast, debounce, timeAgo } from './util.js';
-import { state, save, addItems, recordExit, removeItem, snapshot, ownedCount, marketUSD, setPrice, pushHist, dealVerdict, defaultPurpose, toUSD, toCLP, itemValueUSD, maxPayUSD, CONDITIONS, GRADERS, condFactor, channelById, netOfChannel, knownEvents, rememberEvent, todayEvent } from './store.js';
+import { state, save, addItems, recordExit, removeItem, snapshot, ownedCount, marketUSD, priceOf, itemGain, feeNow, fixedNow, setPrice, pushHist, dealVerdict, defaultPurpose, toUSD, toCLP, itemValueUSD, maxPayUSD, CONDITIONS, GRADERS, condFactor, channelById, netOfChannel, knownEvents, rememberEvent, todayEvent } from './store.js';
 import { getCard, img, variantLabel, tcgplayerUrl, searchByName, findByNumber, getHistory, searchCatalog } from './api.js';
 import { renderPriceChart } from './chart.js';
 import { rarityInfo, raritySymbol } from './rarity.js';
@@ -361,10 +361,17 @@ export async function openCardSheet(cardId, { onPick, pickLabel = 'Agregar al in
     const m0 = prices.tp?.[variant]?.market ?? marketUSD(card.id, variant);
     const m = m0 == null ? null : m0 * (sealed ? 1 : condFactor(cond));
     const ch = channelById(state.settings.defaultChannel);
-    const mp = maxPayUSD(m, { feePct: ch?.feePct || 0 });
-    maxEl.innerHTML = mp
-      ? `<div class="maxpay-box"><span>Paga como máximo</span><b>${fmtCLP(roundCLP(mp * state.fx.usdclp, 'floor'))}</b><small>para ganar ${state.settings.targetMargin}% vendiendo ${esc(ch?.name || '')}${!sealed && cond !== 'NM' ? ` · estado ${cond} (${Math.round(condFactor(cond) * 100)}% del NM)` : ''}</small></div>`
-      : '';
+    const mp = maxPayUSD(m, { feePct: ch?.feePct || 0, fixedCLP: ch?.fixedCLP || 0 });
+    const mpCLP = mp == null ? null : roundCLP(mp * state.fx.usdclp, 'floor');
+    // No "market" for this version (common in Japanese cards): the numbers use the cheapest listing.
+    const lowBasis = prices.tp?.[variant]?.market == null && priceOf(card.id, variant)?.src === 'tcgplayer-low';
+    const basisNote = lowBasis ? '<small>Sin precio “market”: comparo con la publicación más barata.</small>' : '';
+    maxEl.innerHTML =
+      mp == null
+        ? ''
+        : mpCLP > 0
+          ? `<div class="maxpay-box"><span>Paga como máximo</span><b>${fmtCLP(mpCLP)}</b><small>para ganar ${state.settings.targetMargin}% vendiendo ${esc(ch?.name || '')}${!sealed && cond !== 'NM' ? ` · estado ${cond} (${Math.round(condFactor(cond) * 100)}% del NM)` : ''}</small>${basisNote}</div>`
+          : `<div class="maxpay-box warn"><span>No conviene para revender</span><small>Con la comisión de ${esc(ch?.name || 'tu canal')}${ch?.fixedCLP ? ` (fijo ${fmtCLP(ch.fixedCLP)})` : ''} esta carta no deja ganancia a ningún precio.</small>${basisNote}</div>`;
     if (!amount || !m) return (verdictEl.innerHTML = m ? '' : `<p class="muted small">Sin precio de mercado para comparar.</p>`);
     const v = dealVerdict(toUSD(amount, askCur), m);
     verdictEl.innerHTML = `
@@ -372,7 +379,7 @@ export async function openCardSheet(cardId, { onPick, pickLabel = 'Agregar al in
         <div class="vb-label">${v.label}</div>
         <div class="vb-main">${v.off >= 0 ? `${fmtPct(v.off, { sign: false })} bajo mercado` : `${fmtPct(-v.off, { sign: false })} sobre mercado`}</div>
         <div class="vb-sub">Si la revendes a mercado: <b class="${pctClass(v.profitUSD)}">${money(v.profitUSD, { sign: true })}</b></div>
-        ${mp && toUSD(amount, askCur) > mp ? `<div class="vb-warn">Sobre tu máximo (${fmtCLP(roundCLP(mp * state.fx.usdclp, 'floor'))}): a este precio no llegas a tu ${state.settings.targetMargin}%.</div>` : ''}
+        ${mpCLP > 0 && toCLP(amount, askCur) > mpCLP ? `<div class="vb-warn">Sobre tu máximo (${fmtCLP(mpCLP)}): a este precio no llegas a tu ${state.settings.targetMargin}%.</div>` : ''}
         ${v.belowRange ? `<div class="vb-warn">Ojo: vale menos de ${fmtUSD(state.settings.minUSD)} (bajo tu rango objetivo).</div>` : ''}
       </div>`;
   };
@@ -471,7 +478,7 @@ function conditionFields(cond = 'NM', graded = null) {
           <label class="field"><span>Nota</span><input class="input g-grade" inputmode="decimal" placeholder="10" value="${esc(graded?.grade || '')}"></label>
         </div>
         <label class="field"><span>N° de certificado (opcional)</span><input class="input g-cert" value="${esc(graded?.cert || '')}"></label>
-        <label class="field"><span>Valor de la gradeada (CLP)</span><input class="input g-value" inputmode="numeric" placeholder="Revisa ventas recientes de esa nota" value="${graded?.usd ? Math.round(graded.usd * state.fx.usdclp) : ''}"></label>
+        <label class="field"><span>Valor de la gradeada (CLP)</span><input class="input g-value" inputmode="numeric" placeholder="Revisa ventas recientes de esa nota" value="${graded?.clp ? Math.round(graded.clp) : graded?.usd ? Math.round(graded.usd * state.fx.usdclp) : ''}"></label>
         <p class="muted tiny">No hay una fuente gratuita confiable de precios de gradeadas: ingresa el valor tú (por ejemplo, ventas recientes en eBay de esa nota).</p>
       </div>`;
 }
@@ -489,7 +496,8 @@ function wireConditionFields(body) {
     graded: () => {
       if (!$('.is-graded', body)?.checked) return null;
       const clp = parseAmount($('.g-value', body).value, 'CLP');
-      return { co: $('.g-co', body).value, grade: $('.g-grade', body).value.trim(), cert: $('.g-cert', body).value.trim(), usd: clp > 0 ? clp / state.fx.usdclp : null };
+      // Stored in pesos (what was typed) so its value doesn't drift when the dollar moves.
+      return { co: $('.g-co', body).value, grade: $('.g-grade', body).value.trim(), cert: $('.g-cert', body).value.trim(), clp: clp > 0 ? clp : null, usd: clp > 0 ? clp / state.fx.usdclp : null };
     },
   };
 }
@@ -585,12 +593,12 @@ export function openBuyForm(card, prices, { variant, ask = '', askCur = 'CLP', c
 export function openItemSheet(item) {
   const v = itemValueUSD(item);
   // Same formula as Inicio/Colección: CLP gain is measured against what you paid in pesos.
-  const gainUSD = v != null ? v - item.costUSD : null;
-  const gainCLP = v != null ? v * state.fx.usdclp - item.costCLP : null;
   const usdMode = disp() === 'USD';
-  const gain = usdMode ? gainUSD : gainCLP;
-  const gainPct = gain == null ? null : usdMode ? gainUSD / item.costUSD : gainCLP / item.costCLP;
+  const G = itemGain(item, { v }), N = itemGain(item, { v, net: true });
+  const gain = G ? (usdMode ? G.usd : G.clp) : null, gainPct = G?.pct ?? null;
   const fmtGain = (n) => (usdMode ? fmtUSD(n, { sign: true }) : fmtCLP(n, { sign: true }));
+  const ch = channelById(state.settings.defaultChannel);
+  const hasFee = feeNow() > 0 || fixedNow() > 0;
   const r = rarityInfo(item.rarity);
   const sold = item.status !== 'held';
   const body = h(`
@@ -614,7 +622,8 @@ export function openItemSheet(item) {
           ? `<div class="kv"><span>${item.exit.kind === 'trade' ? 'Intercambiada por' : `Vendida${item.exit.channel ? ` en ${esc(channelById(item.exit.channel)?.name || item.exit.channel)}` : ''}${item.exit.feePct || item.exit.fixedCLP ? ' (neto de comisión)' : ''}`}</span><b>${item.exit.currency === 'CLP' ? fmtCLP(item.exit.price) : fmtUSD(item.exit.price)} · ${fmtDate(item.exit.date)}</b></div>
              <div class="kv"><span>Resultado</span><b class="${pctClass(item.exit.clp - item.costCLP)}">${fmtCLP(item.exit.clp - item.costCLP, { sign: true })} (${fmtPct((item.exit.clp - item.costCLP) / item.costCLP)})</b></div>`
           : `<div class="kv"><span>Valor hoy</span><b>${v != null ? `${money(v)} <em class="muted">${moneyAlt(v)}</em>` : 'sin precio'}</b></div>
-             ${gain != null ? `<div class="kv"><span>Ganancia</span><b class="${pctClass(gain)}">${arrow(gain)} ${fmtGain(gain)} (${fmtPct(gainPct)})</b></div>` : ''}`}
+             ${gain != null ? `<div class="kv"><span>Ganancia${hasFee ? ' a mercado' : ''}</span><b class="${pctClass(gain)}">${arrow(gain)} ${fmtGain(gain)} (${fmtPct(gainPct)})</b></div>` : ''}
+             ${gain != null && hasFee ? `<div class="kv"><span>Si vendes en ${esc(ch?.name || 'tu canal')}</span><b class="${pctClass(N.disp)}">${usdMode ? fmtUSD(N.usd, { sign: true }) : fmtCLP(N.clp, { sign: true })} (${fmtPct(N.pct)}) <em class="muted">neto de comisión</em></b></div>` : ''}`}
       </div>
       <div class="btn-col">
         ${sold ? '' : `<button class="btn primary sell">Registrar venta</button>

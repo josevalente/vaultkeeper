@@ -48,7 +48,7 @@ export function renderTrade(root) {
     <section class="panel rise" style="--d:3">
       <div class="panel-head"><h2>Dinero extra</h2></div>
       <div class="seg cashdir"><button data-d="pay" class="${t.cashDir === 'pay' ? 'on' : ''}">Yo pongo</button><button data-d="receive" class="${t.cashDir === 'receive' ? 'on' : ''}">Me pagan</button></div>
-      <div class="money-in"><input class="input cash" inputmode="decimal" placeholder="0" value="${t.cash || ''}"><div class="seg cur"><button data-c="CLP" class="${t.cashCur === 'CLP' ? 'on' : ''}">CLP</button><button data-c="USD" class="${t.cashCur === 'USD' ? 'on' : ''}">USD</button></div></div>
+      <div class="money-in"><input class="input cash" inputmode="decimal" placeholder="0" value="${t.cash ? (t.cashCur === 'USD' ? String(t.cash).replace('.', ',') : t.cash) : ''}"><div class="seg cur"><button data-c="CLP" class="${t.cashCur === 'CLP' ? 'on' : ''}">CLP</button><button data-c="USD" class="${t.cashCur === 'USD' ? 'on' : ''}">USD</button></div></div>
     </section>
 
     <section class="balance rise" style="--d:4">
@@ -86,7 +86,8 @@ export function renderTrade(root) {
   $('.scan-theirs', root).onclick = () => scanFlow({ title: 'Carta que recibes', onPick: addTheirs });
   $('.search-theirs', root).onclick = () => openSearch({ onPick: addTheirs });
   $$('.cashdir button', root).forEach((b) => (b.onclick = () => ((t.cashDir = b.dataset.d), save())));
-  $$('.cur button', root).forEach((b) => (b.onclick = () => ((t.cashCur = b.dataset.c), (t.cash = parseAmount($('.cash', root).value, t.cashCur) || 0), save())));
+  // Switching currency keeps the number (the field was already read when it lost focus).
+  $$('.cur button', root).forEach((b) => (b.onclick = () => ((t.cashCur = b.dataset.c), save())));
   $('.cash', root).onchange = (e) => ((t.cash = parseAmount(e.target.value, t.cashCur) || 0), save());
   $('.clear', root).onclick = () => {
     state.tradeDraft = { give: [], get: [], cash: 0, cashCur: 'CLP', cashDir: 'pay' };
@@ -132,6 +133,8 @@ function pickMine() {
 async function confirmTrade() {
   const t = d();
   const T = totals();
+  const cashOnly = !t.get.length;
+  if (cashOnly && t.cashDir === 'pay' && T.cashUSD > 0) return toast('Si no recibes cartas, no puedes poner tú el efectivo. Marca “Recibo” o agrega lo que recibes.', 'err');
   const ok = await confirmSheet(
     'Confirmar intercambio',
     `Entregas ${T.give.length} carta(s) y recibes ${t.get.length}. Las tuyas salen del vault valorizadas a mercado; las que recibes entran con ese valor como costo.`,
@@ -148,7 +151,8 @@ async function confirmTrade() {
     t.cashDir === 'pay' ? T.cashUSD : 0,
     t.cashDir === 'receive' ? T.cashUSD : 0
   );
-  T.give.forEach((it, i) => recordExit(it, { kind: 'trade', price: plan.proceeds[i], currency: 'USD', date, tradeId: id }));
+  // Cards for cash only is a sale: it counts in Reporte as a sale (no channel).
+  T.give.forEach((it, i) => recordExit(it, { kind: cashOnly ? 'sale' : 'trade', price: plan.proceeds[i], currency: 'USD', date, tradeId: id }));
   const created = [];
   t.get.forEach((g, i) => {
     created.push(...addItems({ card: g.card, variant: g.variant, condition: g.condition || 'NM', price: plan.basis[i], currency: 'USD', date, source: 'Intercambio', notes: 'Recibida en intercambio' }));

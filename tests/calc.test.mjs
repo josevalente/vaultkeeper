@@ -179,7 +179,11 @@ test('daily snapshot stores CLP value at that day rate', () => {
 test('deal verdict thresholds', () => {
   reset({ fx: 1000, fee: 0 });
   assert.equal(S.dealVerdict(75, 100).label, 'Ganga');
+  // 15% under market doesn't reach a 30% margin: it can't be "Buen precio" next to "Sobre tu máximo".
+  assert.equal(S.dealVerdict(85, 100).label, 'Precio justo');
+  state.settings.targetMargin = 10;
   assert.equal(S.dealVerdict(85, 100).label, 'Buen precio');
+  state.settings.targetMargin = 30;
   assert.equal(S.dealVerdict(103, 100).label, 'Precio justo');
   assert.equal(S.dealVerdict(120, 100).label, 'Caro');
   near(S.dealVerdict(240000 / 1000, 326.74).profitUSD, 86.74);

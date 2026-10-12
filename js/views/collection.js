@@ -1,9 +1,9 @@
 // Colección: every copy you own (or sold), filterable by rarity, purpose and status.
 
 import { esc, $, $$, fmtPct, norm, fmtCLP, fmtUSD } from '../util.js';
-import { state, itemValueUSD } from '../store.js';
+import { state, itemValueUSD, itemGain } from '../store.js';
 import { RARITIES, rarityInfo } from '../rarity.js';
-import { cardTile, rarityChip, money, pctClass, openItemSheet, disp } from '../ui.js';
+import { cardTile, rarityChip, money, pctClass, openItemSheet } from '../ui.js';
 import { openSaleList } from '../salelist.js';
 
 const ui = { q: '', rarity: null, status: 'held', purpose: 'all', sort: 'value', kind: 'all' };
@@ -28,8 +28,8 @@ export function renderCollection(root) {
     return true;
   });
   const val = (it) => itemValueUSD(it) ?? it.costUSD;
-  // Copies loaded at cost 0 would divide by zero: they sort as 0%.
-  const pctOf = (it) => (it.costUSD > 0 ? (val(it) - it.costUSD) / it.costUSD : 0);
+  // Same % the tile shows (display currency). Copies loaded at cost 0 sort as 0%.
+  const pctOf = (it) => itemGain(it)?.pct ?? 0;
   const sorters = {
     value: (a, b) => val(b) - val(a),
     gain: (a, b) => pctOf(b) - pctOf(a),
@@ -110,8 +110,7 @@ function tile(it) {
     const g = it.exit.clp - it.costCLP;
     extra = `<div class="tile-val"><b>${it.exit.kind === 'trade' ? 'Intercambiada' : 'Vendida'}</b><em class="${pctClass(g)}">${fmtCLP(g, { sign: true })}</em></div>`;
   } else {
-    const usd = disp() === 'USD';
-    const g = v != null ? (usd ? (v - it.costUSD) / it.costUSD : (v * state.fx.usdclp - it.costCLP) / it.costCLP) : null;
+    const g = itemGain(it, { v })?.pct ?? null;
     extra = `<div class="tile-val"><b>${v != null ? money(v) : '—'}</b>${g != null ? `<em class="${pctClass(g)}">${fmtPct(g, { digits: 0 })}</em>` : ''}</div>`;
   }
   const badge = (it.purpose === 'coleccion' ? `<span class="badge keep" title="Colección">★</span>` : '') + (it.graded ? `<span class="slab">${esc(it.graded.co)} ${esc(it.graded.grade)}</span>` : it.condition && it.condition !== 'NM' ? `<span class="slab cond">${esc(it.condition)}</span>` : '');

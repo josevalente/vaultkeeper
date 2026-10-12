@@ -178,7 +178,7 @@ export function renderHome(root) {
     const row = e.target.closest('[data-item]');
     if (!row) return;
     const r = ranking.find((x) => x.it.id === row.dataset.item);
-    if (e.target.closest('.sell')) openSellForm(r.it, { suggestCLP: r.listCLP });
+    if (e.target.closest('.sell')) openSellForm(r.it, { suggestCLP: r.askCLP });
     else openItemSheet(r.it);
   });
 }
@@ -193,9 +193,11 @@ function rankRow(r, i) {
         <div class="rank-name">${esc(it.name)} <small>${esc(it.setName)} · ${esc(variantLabel(it.variant))}</small></div>
         <div class="rank-why">${r.reasons.map(esc).join(' · ')}</div>
         <div class="rank-list">${
-          r.floorCLP > r.listCLP
+          r.underFloor
             ? `Publica a ${fmtCLP(r.floorCLP)} o más · el mercado está en ~${fmtCLP(r.listCLP)}`
-            : `Publica a ~${fmtCLP(r.listCLP)} · no bajes de ${fmtCLP(r.floorCLP)}`
+            : r.listCLP === r.floorCLP
+              ? `Publica a ~${fmtCLP(r.listCLP)} (tu mínimo)`
+              : `Publica a ~${fmtCLP(r.listCLP)} · no bajes de ${fmtCLP(r.floorCLP)}`
         }</div>
       </div>
       <div class="rank-side">
