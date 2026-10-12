@@ -180,7 +180,11 @@ function rankRow(r, i) {
       <div class="rank-main">
         <div class="rank-name">${esc(it.name)} <small>${esc(it.setName)} · ${esc(variantLabel(it.variant))}</small></div>
         <div class="rank-why">${r.reasons.map(esc).join(' · ')}</div>
-        <div class="rank-list">Publica a ~${fmtCLP(r.listCLP)} · mínimo ${fmtCLP(r.floorCLP)}</div>
+        <div class="rank-list">${
+          r.floorCLP > r.listCLP
+            ? `Publica a ${fmtCLP(r.floorCLP)} o más · el mercado está en ~${fmtCLP(r.listCLP)}`
+            : `Publica a ~${fmtCLP(r.listCLP)} · no bajes de ${fmtCLP(r.floorCLP)}`
+        }</div>
       </div>
       <div class="rank-side">
         <b class="${pctClass(r.profitable ? 1 : -1)}">${disp() === 'USD' ? fmtUSD(r.gainUSD, { sign: true }) : fmtCLP(r.gainCLP, { sign: true })}</b>

@@ -8,6 +8,7 @@ globalThis.localStorage = { getItem: (k) => mem[k] ?? null, setItem: (k, v) => (
 globalThis.alert = () => {};
 const S = await import('../js/store.js');
 const { state } = S;
+const { roundCLP } = await import('../js/util.js');
 
 let pass = 0;
 const test = (name, fn) => {
@@ -141,6 +142,25 @@ test('precio mínimo del ranking respeta el estado de la copia', () => {
   const [r] = S.sellRanking();
   assert.equal(r.listCLP, 5000, 'HP = 50% de US$10');
   assert.ok(r.floorCLP <= r.listCLP, `mínimo ${r.floorCLP} no puede superar el de publicación ${r.listCLP}`);
+});
+
+test('carta barata: publicar y mínimo con redondeo acorde (Pikachu $500 → vale $736)', () => {
+  reset();
+  S.setPrice('p', { tp: { normal: { market: 0.736 } } });
+  S.addItems({ card: card('p'), variant: 'normal', price: 500, currency: 'CLP' });
+  const [r] = S.sellRanking();
+  assert.equal(r.listCLP, 700, 'publicar ≈ valor de mercado');
+  assert.equal(r.floorCLP, 600, 'mínimo = costo + 10% ($550) redondeado hacia arriba');
+  assert.ok(r.floorCLP <= r.listCLP);
+});
+
+test('redondeo de precios en pesos según el tamaño', () => {
+  assert.equal(roundCLP(736), 700);
+  assert.equal(roundCLP(550, 'ceil'), 600);
+  assert.equal(roundCLP(12340), 12500);
+  assert.equal(roundCLP(12340, 'floor'), 12000);
+  assert.equal(roundCLP(87654), 88000);
+  assert.equal(roundCLP(null), null);
 });
 
 test('varias copias de la misma carta generan una sola alerta', () => {

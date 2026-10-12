@@ -1,7 +1,7 @@
 // All app data lives in one JSON document in localStorage (per device).
 // Use Ajustes → Exportar respaldo to move it to another phone.
 
-import { localDate, uid, daysBetween, clamp, fmtCLP } from './util.js';
+import { localDate, uid, daysBetween, clamp, fmtCLP, roundCLP } from './util.js';
 import { rarityInfo } from './rarity.js';
 
 const KEY = 'vaultkeeper:v1';
@@ -380,11 +380,11 @@ export function sellRanking({ includeKeep = false } = {}) {
       if (days >= 60) reasons.push(`${days} días en el vault`);
 
       const p = state.prices[it.cardId]?.tp?.[it.variant];
-      const listCLP = Math.round((v * fx) / 500) * 500;
+      const listCLP = roundCLP(v * fx);
       // Lowest asking price that still leaves +10% over cost after the channel's fees; never under
       // the cheapest listing for a copy in the same condition (graded copies have no listing).
       const lowSame = it.graded ? 0 : (p?.low || 0) * (isSealed(it) ? 1 : condFactor(it.condition));
-      const floorCLP = Math.ceil(Math.max((it.costCLP * 1.1 + fixedNow()) / (1 - fee || 1), lowSame * fx) / 500) * 500;
+      const floorCLP = roundCLP(Math.max((it.costCLP * 1.1 + fixedNow()) / (1 - fee || 1), lowSame * fx), 'ceil');
       return { it, v, gainUSD, gainCLP, gainPct, profitable: gainDisp > 0, mom, days, score, reasons, listCLP, floorCLP };
     })
     .filter(Boolean)
@@ -450,7 +450,7 @@ export const todayEvent = () => (state.settings.lastEvent?.date === localDate() 
 // Sale list: the market price is suggested; only a price you changed is remembered on the copy.
 export function suggestedAskCLP(it) {
   const v = itemValueUSD(it);
-  return v == null ? null : Math.round((v * state.fx.usdclp) / 500) * 500;
+  return v == null ? null : roundCLP(v * state.fx.usdclp);
 }
 export function setAsk(it, p) {
   if (p > 0 && p !== suggestedAskCLP(it)) it.askCLP = p;
@@ -475,7 +475,7 @@ export function lotTotals(items, askAmount, askCur) {
     marketUSD: marketUSDv,
     marketCLP: marketUSDv * fx,
     maxUSD,
-    maxCLP: Math.floor((maxUSD * fx) / 500) * 500,
+    maxCLP: roundCLP(maxUSD * fx, 'floor'),
     askUSD,
     verdict: askUSD ? dealVerdict(askUSD, marketUSDv) : null,
     profitUSD: askUSD != null ? netUSD - askUSD : null,

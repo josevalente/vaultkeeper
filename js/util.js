@@ -25,6 +25,15 @@ export function daysBetween(a, b) {
 // Grouping is done by hand: some browsers don't group 4-digit numbers in es-CL ("5000").
 const group = (intStr) => intStr.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 
+// Round a suggested peso price to a step that fits its size: $100 under $5.000, $500 under
+// $20.000, $1.000 above. (A fixed $500 step turned a $736 card into "$500" and its $550 minimum
+// into "$1.000".) mode: 'round' | 'floor' (prices to pay) | 'ceil' (minimums).
+export function roundCLP(n, mode = 'round') {
+  if (n == null || !isFinite(n)) return null;
+  const step = Math.abs(n) < 5000 ? 100 : Math.abs(n) < 20000 ? 500 : 1000;
+  return Math[mode](n / step) * step;
+}
+
 export function fmtCLP(n, { sign = false } = {}) {
   if (n == null || isNaN(n)) return '—';
   const s = sign && n > 0 ? '+' : n < 0 ? '−' : '';

@@ -1,6 +1,6 @@
 // Shared UI: bottom sheets, card tiles, card detail, buy/sell forms, search, scan flow.
 
-import { h, esc, $, $$, fmtCLP, fmtUSD, fmtPct, fmtDate, localDate, parseAmount, toast, debounce, timeAgo } from './util.js';
+import { h, esc, $, $$, fmtCLP, roundCLP, fmtUSD, fmtPct, fmtDate, localDate, parseAmount, toast, debounce, timeAgo } from './util.js';
 import { state, save, addItems, recordExit, removeItem, snapshot, ownedCount, marketUSD, setPrice, pushHist, dealVerdict, defaultPurpose, toUSD, toCLP, itemValueUSD, maxPayUSD, CONDITIONS, GRADERS, condFactor, channelById, netOfChannel, knownEvents, rememberEvent, todayEvent } from './store.js';
 import { getCard, img, variantLabel, tcgplayerUrl, searchByName, findByNumber, getHistory, searchCatalog } from './api.js';
 import { renderPriceChart } from './chart.js';
@@ -363,7 +363,7 @@ export async function openCardSheet(cardId, { onPick, pickLabel = 'Agregar al in
     const ch = channelById(state.settings.defaultChannel);
     const mp = maxPayUSD(m, { feePct: ch?.feePct || 0 });
     maxEl.innerHTML = mp
-      ? `<div class="maxpay-box"><span>Paga como máximo</span><b>${fmtCLP(Math.floor((mp * state.fx.usdclp) / 500) * 500)}</b><small>para ganar ${state.settings.targetMargin}% vendiendo ${esc(ch?.name || '')}${!sealed && cond !== 'NM' ? ` · estado ${cond} (${Math.round(condFactor(cond) * 100)}% del NM)` : ''}</small></div>`
+      ? `<div class="maxpay-box"><span>Paga como máximo</span><b>${fmtCLP(roundCLP(mp * state.fx.usdclp, 'floor'))}</b><small>para ganar ${state.settings.targetMargin}% vendiendo ${esc(ch?.name || '')}${!sealed && cond !== 'NM' ? ` · estado ${cond} (${Math.round(condFactor(cond) * 100)}% del NM)` : ''}</small></div>`
       : '';
     if (!amount || !m) return (verdictEl.innerHTML = m ? '' : `<p class="muted small">Sin precio de mercado para comparar.</p>`);
     const v = dealVerdict(toUSD(amount, askCur), m);
@@ -372,7 +372,7 @@ export async function openCardSheet(cardId, { onPick, pickLabel = 'Agregar al in
         <div class="vb-label">${v.label}</div>
         <div class="vb-main">${v.off >= 0 ? `${fmtPct(v.off, { sign: false })} bajo mercado` : `${fmtPct(-v.off, { sign: false })} sobre mercado`}</div>
         <div class="vb-sub">Si la revendes a mercado: <b class="${pctClass(v.profitUSD)}">${money(v.profitUSD, { sign: true })}</b></div>
-        ${mp && toUSD(amount, askCur) > mp ? `<div class="vb-warn">Sobre tu máximo (${fmtCLP(Math.floor((mp * state.fx.usdclp) / 500) * 500)}): a este precio no llegas a tu ${state.settings.targetMargin}%.</div>` : ''}
+        ${mp && toUSD(amount, askCur) > mp ? `<div class="vb-warn">Sobre tu máximo (${fmtCLP(roundCLP(mp * state.fx.usdclp, 'floor'))}): a este precio no llegas a tu ${state.settings.targetMargin}%.</div>` : ''}
         ${v.belowRange ? `<div class="vb-warn">Ojo: vale menos de ${fmtUSD(state.settings.minUSD)} (bajo tu rango objetivo).</div>` : ''}
       </div>`;
   };
@@ -692,7 +692,7 @@ function openEditBuy(item) {
 
 export function openSellForm(item, { suggestCLP } = {}) {
   const v = itemValueUSD(item);
-  const suggest = suggestCLP || (v ? Math.round((v * state.fx.usdclp) / 500) * 500 : '');
+  const suggest = suggestCLP || (v ? roundCLP(v * state.fx.usdclp) : '');
   const body = h(`
     <form class="form">
       <div class="mini-card">${cardTile({ ...item, id: item.cardId })}</div>
