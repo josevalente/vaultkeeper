@@ -129,10 +129,11 @@ function placeToTop() {
   const show = window.scrollY > Math.max(600, innerHeight * 1.5);
   toTop.classList.toggle('show', show);
   toTop.tabIndex = show ? 0 : -1;
+  toTop.setAttribute('aria-hidden', String(!show)); // invisible = not there for VoiceOver either
   const bar = show && $('.balance', view);
   const top = bar && getComputedStyle(bar).position === 'sticky' ? bar.getBoundingClientRect().top : null;
   toTop.style.bottom = top != null && top < innerHeight ? `${innerHeight - top + 10}px` : '';
-  if (top != null && top < 160) toTop.classList.remove('show'); // a tall bar: don't climb onto the header
+  if (top != null && top < 160) toTop.classList.remove('show'), toTop.setAttribute('aria-hidden', 'true'); // a tall bar: don't climb onto the header
 }
 window.addEventListener('scroll', placeToTop, { passive: true });
 toTop.onclick = () => {
@@ -146,12 +147,16 @@ toTop.onclick = () => {
 // inset that is already outside the page. Only on an installed iPhone/iPad, portrait.
 function fixViewportGap() {
   let gap = 0;
-  if (navigator.standalone && innerWidth === screen.width) gap = screen.height - innerHeight;
+  // Not while typing: the keyboard also shrinks the viewport on some iOS versions.
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '');
+  const iPhone = /iPhone|iPod/.test(navigator.userAgent);
+  if (navigator.standalone && iPhone && !typing && matchMedia('(orientation: portrait)').matches && innerWidth === screen.width) gap = screen.height - innerHeight;
   document.documentElement.style.setProperty('--vgap', `${gap > 0 && gap < 120 ? gap : 0}px`);
 }
 fixViewportGap();
 for (const ev of ['resize', 'orientationchange', 'pageshow']) window.addEventListener(ev, fixViewportGap);
 document.addEventListener('visibilitychange', fixViewportGap);
+document.addEventListener('focusout', () => setTimeout(fixViewportGap, 400)); // keyboard closed
 [300, 1000, 2500].forEach((ms) => setTimeout(fixViewportGap, ms));
 
 window.addEventListener('hashchange', route);
@@ -172,6 +177,8 @@ document.addEventListener('visibilitychange', () => {
 
 route();
 refreshPrices();
+// Download the OCR once while there's signal, so scanning also works at a feria without internet.
+if (navigator.onLine) setTimeout(() => import('./scan.js').then((m) => m.warmUpOCR()), 8000);
 navigator.storage?.persist?.().catch(() => {});
 
 if ('serviceWorker' in navigator && location.protocol === 'https:') {

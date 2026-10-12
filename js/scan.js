@@ -3,36 +3,39 @@
 // 2) Without one: on-device OCR (Tesseract.js) reads the "199/165" number + the name.
 // Either way the user confirms the match against the official card image.
 
-import { h, esc, $, norm, similarity } from './util.js';
+import { h, esc, $, norm, similarity, toast } from './util.js';
 import { state, save } from './store.js';
 import { findByNumber, searchByName, getSets, setCards, searchCatalog, getCatalog } from './api.js';
 
 const TESSERACT_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
 const ANTHROPIC_SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.130.0/+esm';
 
-let stream;
+// Thrown by setStatus once a scan was closed, sent to the background or replaced, so an orphan
+// read stops at its next step instead of running on (and sharing the OCR worker with the next scan).
+class Cancelled extends Error {}
+const MAX_PENDING_BURST = 4; // captures waiting to be read: each one holds a full-size canvas
+const ATTEMPT_MS = 60000; // one read (Claude + OCR fallback) never hangs the scanner longer than this
 
-function stopStream() {
-  stream?.getTracks().forEach((t) => t.stop());
-  stream = null;
-}
+// Network errors arrive in English ("Failed to fetch", "Load failed"): say it in Spanish.
+const friendly = (e) => (/fetch|load failed|network/i.test(e?.message || '') ? 'sin conexión' : e?.message || 'error');
 
 // Opens the full-screen camera. Resolves with { info, cands, shot } (or { burst: [...] } in burst
 // mode, several cards one after another), { manual: true } to search instead, or null if closed.
 export function openScanner({ title = 'Escanear carta', burst = false } = {}) {
   return new Promise((resolve) => {
+    const claudeOn = () => !!state.settings.claudeKey && navigator.onLine;
     const ov = h(`
-      <div class="scanner" role="dialog" aria-label="${esc(title)}">
+      <div class="scanner" role="dialog" aria-modal="true" aria-label="${esc(title)}">
         <video playsinline autoplay muted></video>
         <div class="scan-shade"><div class="scan-frame"><span></span><span></span><span></span><span></span></div></div>
         <div class="scan-top">
           <button class="icon-btn scan-close" aria-label="Cerrar">✕</button>
           <div class="scan-title">${esc(title)}</div>
           <button class="scan-lang" aria-label="Idioma de la carta">Carta: ${state.settings.scanLang === 'ja' ? 'JP' : 'EN'}</button>
-          <span class="scan-mode">Lee: ${state.settings.claudeKey ? 'Claude' : 'OCR'}</span>
+          <span class="scan-mode">Lee: ${claudeOn() ? 'Claude' : 'OCR'}</span>
         </div>
         <div class="scan-hint">${burst ? 'Ráfaga: captura una carta, cambia a la siguiente y vuelve a capturar. Toca “Listo” al terminar.' : 'Encaja la carta en el marco, con buena luz y sin reflejos.'}</div>
-        <div class="scan-status" hidden></div>
+        <div class="scan-status" hidden><span role="status" aria-live="polite"></span><small aria-hidden="true"></small></div>
         ${burst ? '<div class="burst-strip"></div>' : ''}
         <div class="scan-bottom">
           <label class="pill-btn ghost">Foto
@@ -45,38 +48,91 @@ export function openScanner({ title = 'Escanear carta', burst = false } = {}) {
     document.body.appendChild(ov);
     const video = $('video', ov);
     const status = $('.scan-status', ov);
+    const shutter = $('.shutter', ov), fileIn = $('input[type=file]', ov), langBtn = $('.scan-lang', ov);
     let busy = false, closed = false;
+    // Every scan run gets a token; closing, going to the background or a new run invalidates it.
+    let token = 0, abort = null;
+    const cancelRun = () => {
+      token++;
+      abort?.abort();
+      abort = null;
+    };
+
+    // ── camera (one stream per scanner; stopped in the background, restarted on return)
+    let stream = null;
+    const stopCamera = () => {
+      stream?.getTracks().forEach((t) => t.stop());
+      stream = null;
+    };
+    const startCamera = () => {
+      if (!navigator.mediaDevices?.getUserMedia) return setStatus('Este navegador no da acceso a la cámara. Usa “Foto” para tomar o elegir una imagen.');
+      navigator.mediaDevices
+        .getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 } }, audio: false })
+        .then((s) => {
+          // Closed (or sent to the background) while the permission prompt was open: turn it off.
+          if (closed || document.hidden) return s.getTracks().forEach((t) => t.stop());
+          stream = s;
+          video.srcObject = s;
+        })
+        .catch(() => setStatus('No pude abrir la cámara. Usa “Foto” para tomar o elegir una imagen.'));
+    };
+    const cameraLive = () => {
+      const tr = stream?.getVideoTracks?.()[0];
+      return !!tr && tr.readyState === 'live' && !tr.muted && video.videoWidth > 0;
+    };
+    const onVisibility = () => {
+      if (document.hidden) {
+        // iOS freezes the camera in the background: stop it and drop the read in progress.
+        if (busy) cancelRun();
+        stopCamera();
+      } else if (!closed) {
+        startCamera();
+        if (!burst) setStatus('Volviste: encuadra la carta y toca el botón para escanear.');
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
 
     const close = (result) => {
+      if (closed) return;
       closed = true;
+      cancelRun();
       stopTicker();
-      stopStream();
+      stopCamera();
       ov.remove();
       window.removeEventListener('hashchange', onHash);
+      document.removeEventListener('visibilitychange', onVisibility);
+      document.removeEventListener('keydown', onKey);
       resolve(result);
     };
-    const onHash = () => close(null);
+    // Leaving the screen keeps the burst captures already read instead of losing them.
+    const onHash = () => close(burst ? finishedBurst() : null);
     window.addEventListener('hashchange', onHash);
+    const onKey = (e) => e.key === 'Escape' && tryClose();
+    document.addEventListener('keydown', onKey);
 
     // Status: the current step, plus (while reading) a second line with the attempt, a hint that
-    // changes as time passes and the seconds elapsed, so a slow read never looks frozen.
-    let main = '', attempt = '', t0 = 0, ticker = 0;
+    // changes as time passes and the seconds elapsed, so a slow read never looks frozen. Only the
+    // step is announced by VoiceOver (the second line changes every second).
+    let main = '', attempt = '', t0 = 0, ticker = 0, liveHints = false;
     const HINTS = [
       [6, 'Mantén la carta quieta dentro del marco'],
       [12, 'Sigo leyendo: las cartas brillantes o full-art tardan más'],
       [20, 'Si tiene funda, inclínala un poco para quitar el reflejo'],
     ];
+    const mainEl = $('span', status), subEl = $('small', status);
     const paint = () => {
       const s = t0 ? Math.floor((Date.now() - t0) / 1000) : 0;
-      const hint = t0 ? HINTS.filter(([at]) => s >= at).pop()?.[1] : '';
+      const hint = t0 && liveHints ? HINTS.filter(([at]) => s >= at).pop()?.[1] : '';
       const sub = [attempt, hint, t0 && s >= 2 ? `${s} s` : ''].filter(Boolean).join(' · ');
       status.hidden = !main;
-      status.innerHTML = main ? `${esc(main)}${sub ? `<small>${esc(sub)}</small>` : ''}` : '';
+      if (mainEl.textContent !== main) mainEl.textContent = main;
+      subEl.textContent = sub;
+      subEl.hidden = !sub;
     };
-    const setStatus = (msg) => {
+    function setStatus(msg) {
       main = msg || '';
       paint();
-    };
+    }
     const startTicker = () => {
       t0 = Date.now();
       ticker = setInterval(paint, 1000);
@@ -86,18 +142,29 @@ export function openScanner({ title = 'Escanear carta', burst = false } = {}) {
       t0 = 0;
       attempt = '';
     }
+    // The status callback handed to a read: it also stops that read once it's no longer current.
+    const stepper = (my) => (msg) => {
+      if (closed || my !== token) throw new Cancelled();
+      setStatus(msg);
+    };
+    const setBusy = (on) => {
+      busy = on;
+      ov.classList.toggle('busy', on);
+      shutter.setAttribute('aria-busy', String(on));
+      langBtn.disabled = on; // switching EN/JP mid-read would mix both modes
+    };
 
-    navigator.mediaDevices
-      ?.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 } }, audio: false })
-      .then((s) => {
-        stream = s;
-        video.srcObject = s;
-      })
-      .catch(() => setStatus('No pude abrir la cámara. Usa “Foto” para tomar o elegir una imagen.'));
+    startCamera();
+    $('.scan-close', ov).focus();
 
-    $('.scan-close', ov).onclick = () => close(null);
+    const tryClose = () => {
+      const n = results.length;
+      if (burst && n && !confirm(`¿Descartar ${n} captura${n === 1 ? '' : 's'}? Toca “Listo” para guardarlas.`)) return;
+      close(null);
+    };
+    $('.scan-close', ov).onclick = tryClose;
     $('.scan-manual', ov)?.addEventListener('click', () => close({ manual: true }));
-    $('.scan-lang', ov).onclick = (e) => {
+    langBtn.onclick = (e) => {
       state.settings.scanLang = state.settings.scanLang === 'ja' ? 'en' : 'ja';
       save({ silent: true });
       e.target.textContent = `Carta: ${state.settings.scanLang === 'ja' ? 'JP' : 'EN'}`;
@@ -108,6 +175,10 @@ export function openScanner({ title = 'Escanear carta', burst = false } = {}) {
     const results = [];
     let queue = Promise.resolve();
     const strip = $('.burst-strip', ov);
+    const finishedBurst = () => {
+      const done = results.filter((r) => r.state !== 'wait');
+      return done.length ? { burst: done } : null;
+    };
     const paintStrip = () => {
       if (!strip) return;
       strip.innerHTML = results.map((r) => `<span class="${r.state}"><img src="${r.shot}" alt=""></span>`).join('');
@@ -115,17 +186,22 @@ export function openScanner({ title = 'Escanear carta', burst = false } = {}) {
       setStatus(results.length ? `${results.length} capturada${results.length === 1 ? '' : 's'} · ${done} leída${done === 1 ? '' : 's'}` : '');
     };
     const enqueue = (canvas, cropped) => {
+      if (results.filter((r) => r.state === 'wait').length >= MAX_PENDING_BURST) return toast('Espera un poco: sigo leyendo las anteriores');
       const r = { shot: thumb(canvas), state: 'wait' };
       results.push(r);
       paintStrip();
       queue = queue.then(async () => {
+        if (closed) return;
+        const my = token;
         try {
-          Object.assign(r, await identify(canvas, cropped, () => {}));
+          Object.assign(r, await identify(canvas, cropped, (m) => { if (closed || my !== token) throw new Cancelled(); }));
           r.state = r.cands?.length ? 'ok' : 'bad';
         } catch {
           Object.assign(r, { info: {}, cands: [], state: 'bad' });
+        } finally {
+          freeCanvas(canvas);
         }
-        paintStrip();
+        if (!closed) paintStrip();
       });
     };
     let finishing = false;
@@ -133,8 +209,8 @@ export function openScanner({ title = 'Escanear carta', burst = false } = {}) {
       if (finishing) return;
       finishing = true;
       e.target.textContent = 'Terminando…';
-      $('.shutter', ov).disabled = true;
-      $('input[type=file]', ov).disabled = true;
+      shutter.disabled = true;
+      fileIn.disabled = true;
       let q;
       do {
         q = queue;
@@ -149,59 +225,92 @@ export function openScanner({ title = 'Escanear carta', burst = false } = {}) {
     const rank = (r) => (r.cands.length ? 2 : 0) + (r.info.number ? 1 : 0) + (r.info.name ? 0.5 : 0);
     const run = async (canvas, cropped, live = false) => {
       if (burst) return finishing ? null : enqueue(canvas, cropped);
-      if (busy) return;
-      busy = true;
-      ov.classList.add('busy');
+      if (busy) return setStatus('Espera, sigo leyendo la anterior…');
+      setBusy(true);
+      liveHints = live;
       startTicker();
-      // Claude costs per call: 2 tries. The on-device OCR tries at least 3 times and keeps going
-      // (up to 6) until it has spent ~12 s, so a quick miss doesn't end the scan.
-      const claude = state.settings.claudeKey && navigator.onLine;
+      // Claude costs per call: 2 tries, and the 2nd only if the 1st found nothing. The on-device
+      // OCR tries at least 3 times and keeps going (up to 6) until it has spent ~12 s.
+      const claude = claudeOn();
       const max = !live ? 1 : claude ? 2 : 6, minMs = !live || claude ? 0 : 12000;
       let best = null;
+      const my = ++token;
       try {
-        for (let i = 1; i <= max && !closed; i++) {
+        for (let i = 1; i <= max && !closed && my === token; i++) {
           if (i > 1) {
             const spent = Date.now() - t0;
-            if ((i > 3 && spent >= minMs) || spent > 35000 || !video.videoWidth) break;
+            if ((i > 3 && spent >= minMs) || spent > 35000 || !cameraLive()) break;
             attempt = `Intento ${i}`;
-            setStatus(best?.cands.length ? 'Casi: tomo otra foto para confirmar el número…' : 'No la leí bien: tomo otra foto…');
+            stepper(my)(best?.cands.length ? 'Casi: tomo otra foto para confirmar el número…' : 'No la leí bien: tomo otra foto…');
             await new Promise((r) => setTimeout(r, 900)); // time to steady the card
-            if (closed) return;
+            if (closed || my !== token) return;
+            freeCanvas(canvas);
             canvas = captureFrame(video, $('.scan-frame', ov));
           }
-          const res = await identify(canvas, cropped, setStatus);
+          abort = new AbortController();
+          const res = await withTimeout(identify(canvas, cropped, stepper(my), { signal: abort.signal }), ATTEMPT_MS, () => {
+            cancelRun(); // the stuck read must not keep the OCR worker busy
+            resetWorker();
+          });
           res.shot = thumb(canvas);
           if (!best || rank(res) > rank(best)) best = res;
-          if (sure(res)) break;
+          if (sure(res) || (res.info.via === 'claude' && res.cands.length)) break;
         }
-        if (!closed) close(best);
+        if (!closed && my === token) close(best);
       } catch (e) {
+        if (closed) return;
+        if (e instanceof Cancelled) {
+          if (best && my === token) return close(best);
+          return; // the user left / came back: the status already says what to do
+        }
         console.error(e);
-        if (best && !closed) return close(best);
+        if (best) return close(best);
         stopTicker();
-        setStatus(`No pude identificarla (${e.message}). Prueba otra foto o usa Buscar.`);
+        setStatus(`No pude identificarla (${friendly(e)}). Prueba otra foto o usa Buscar.`);
       } finally {
-        busy = false;
-        ov.classList.remove('busy');
+        freeCanvas(canvas);
+        setBusy(false);
+        if (!closed) stopTicker();
       }
     };
 
-    $('.shutter', ov).onclick = () => {
-      if (!video.videoWidth) return setStatus('La cámara aún no está lista…');
+    shutter.onclick = () => {
+      if (!cameraLive()) return setStatus(stream ? 'La cámara aún no está lista…' : 'La cámara no está activa. Usa “Foto” o vuelve a abrir el escáner.');
       run(captureFrame(video, $('.scan-frame', ov)), true, true);
     };
 
-    $('input[type=file]', ov).onchange = async (e) => {
+    fileIn.onchange = async (e) => {
       const f = e.target.files?.[0];
+      e.target.value = ''; // choosing the same photo again must fire "change" again
       if (!f) return;
+      if (busy) return setStatus('Espera, sigo leyendo la anterior…');
       setStatus('Abriendo foto…');
       try {
         run(await loadImage(f), false);
       } catch (err) {
-        setStatus(`No pude abrir la foto (${err.message}).`);
+        setStatus(`No pude abrir la foto (${friendly(err)}).`);
       }
     };
   });
+}
+
+// Resolves like `p`, or rejects after `ms` (calling onTimeout first).
+function withTimeout(p, ms, onTimeout) {
+  let t;
+  return Promise.race([
+    p.finally(() => clearTimeout(t)),
+    new Promise((_, rej) => {
+      t = setTimeout(() => {
+        onTimeout?.();
+        rej(new Error('tardó demasiado en leer'));
+      }, ms);
+    }),
+  ]);
+}
+
+// WebKit frees canvas memory late: release the big ones as soon as they're no longer needed.
+function freeCanvas(c) {
+  if (c && c.width) c.width = c.height = 0;
 }
 
 // Small preview of what was captured, shown next to the matches so a bad crop is obvious.
@@ -251,15 +360,31 @@ async function loadImage(file) {
   c.width = Math.round(w * s);
   c.height = Math.round(hgt * s);
   c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+  src.close?.();
   return c;
 }
 
-export async function identify(canvas, cropped, setStatus) {
-  if (state.settings.scanLang === 'ja') return identifyJapanese(canvas, cropped, setStatus);
+// Why Claude failed, in words the user can act on (a bad key must not look like "no respondió").
+function claudeProblem(e, setStatus) {
+  if (e instanceof Cancelled || e?.name === 'AbortError' || e?.constructor?.name === 'APIUserAbortError') throw new Cancelled();
+  console.warn('Claude falló, uso OCR', e);
+  const s = e?.status;
+  const msg =
+    s === 401 || s === 403 ? 'Tu API key de Claude no es válida: revísala en Ajustes'
+    : s === 429 ? 'Claude: llegaste al límite o se acabó el saldo de tu cuenta'
+    : s === 529 || s >= 500 ? 'Claude está saturado en este momento'
+    : /no parece una carta/i.test(e?.message || '') ? 'Claude dice que no parece una carta Pokémon'
+    : 'Claude no respondió';
+  if (s === 401 || s === 403 || s === 429) toast(msg, 'err');
+  setStatus(`${msg}. Leo con OCR…`);
+}
+
+export async function identify(canvas, cropped, setStatus, { signal } = {}) {
+  if (state.settings.scanLang === 'ja') return identifyJapanese(canvas, cropped, setStatus, { signal });
   if (state.settings.claudeKey && navigator.onLine) {
     setStatus('Claude está leyendo la carta…');
     try {
-      const info = await identifyWithClaude(canvas);
+      const info = await identifyWithClaude(canvas, signal);
       // Claude noticed it's a Japanese card even though the scanner is in English mode.
       if (info.lang === 'ja') {
         const en = info.nameEn || info.name;
@@ -273,8 +398,7 @@ export async function identify(canvas, cropped, setStatus) {
       if (!cands.length && info.name) cands = await searchByName(info.name);
       if (cands.length) return { info, cands };
     } catch (e) {
-      console.warn('Claude falló, uso OCR', e);
-      setStatus('Claude no respondió, leyendo con OCR…');
+      claudeProblem(e, setStatus);
     }
   }
   return identifyWithOCR(canvas, cropped, setStatus);
@@ -282,12 +406,12 @@ export async function identify(canvas, cropped, setStatus) {
 
 // Japanese cards: prices come from TCGplayer Japan (data/catalogo/jp.json). Claude reads the card and
 // gives the English name; without Claude, the on-device OCR reads only the printed number.
-async function identifyJapanese(canvas, cropped, setStatus) {
+async function identifyJapanese(canvas, cropped, setStatus, { signal } = {}) {
   let info = null;
   if (state.settings.claudeKey && navigator.onLine) {
     setStatus('Claude está leyendo la carta japonesa…');
     try {
-      info = await identifyWithClaude(canvas);
+      info = await identifyWithClaude(canvas, signal);
       if (info.lang && info.lang !== 'ja') {
         // The scanner was left in JP mode but this card isn't Japanese.
         setStatus('Es una carta en inglés: la busco como tal…');
@@ -302,7 +426,7 @@ async function identifyJapanese(canvas, cropped, setStatus) {
       if (!cands.length && en) cands = await searchCatalog('jp', en);
       if (cands.length) return { info: { ...info, name: en }, cands };
     } catch (e) {
-      console.warn('Claude falló, uso OCR', e);
+      claudeProblem(e, setStatus);
     }
   }
   setStatus('Leyendo el número impreso…');
@@ -349,10 +473,12 @@ const CARD_SCHEMA = {
 
 let sdkPromise;
 
-async function identifyWithClaude(canvas) {
+async function identifyWithClaude(canvas, signal) {
   sdkPromise ||= import(ANTHROPIC_SDK_URL);
   const { default: Anthropic } = await sdkPromise;
-  const client = new Anthropic({ apiKey: state.settings.claudeKey, dangerouslyAllowBrowser: true, maxRetries: 1, timeout: 45000 });
+  // Closing the scanner aborts the request (signal); 25 s is plenty for one photo.
+  const client = new Anthropic({ apiKey: state.settings.claudeKey, dangerouslyAllowBrowser: true, maxRetries: 1, timeout: 25000 });
+  const opts = signal ? { signal } : undefined;
   const data = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
   const model = state.settings.claudeModel || 'claude-opus-5-5';
   const params = {
@@ -379,10 +505,10 @@ async function identifyWithClaude(canvas) {
   let msg;
   try {
     msg = supportsFallback
-      ? await client.beta.messages.create({ ...params, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' })
-      : await client.messages.create(params);
+      ? await client.beta.messages.create({ ...params, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' }, opts)
+      : await client.messages.create(params, opts);
   } catch (e) {
-    if (e?.status === 400 && supportsFallback) msg = await client.messages.create(params);
+    if (e?.status === 400 && supportsFallback) msg = await client.messages.create(params, opts);
     else throw e;
   }
   if (msg.stop_reason === 'refusal') throw new Error('Claude rechazó la solicitud');
@@ -407,18 +533,59 @@ function loadScript(src) {
   });
 }
 
+// Pinned URLs for the worker, its wasm core and the English data, so the service worker can keep
+// them for the feria without internet (see sw.js) and warmUpOCR() can fetch them ahead of time.
+const OCR_PATHS = {
+  workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js',
+  corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1',
+  langPath: 'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int',
+};
+
 async function getWorker(setStatus) {
   if (!workerPromise) {
     workerPromise = (async () => {
       if (!window.Tesseract) await loadScript(TESSERACT_URL);
       setStatus?.('Preparando OCR (solo la primera vez)…');
-      return window.Tesseract.createWorker('eng');
+      return window.Tesseract.createWorker('eng', 1, OCR_PATHS);
     })().catch((e) => {
       workerPromise = null;
       throw e;
     });
   }
   return workerPromise;
+}
+
+// A worker that hung (or that iOS killed for memory) is replaced on the next scan.
+function resetWorker() {
+  const w = workerPromise;
+  workerPromise = null;
+  ocrLock = Promise.resolve();
+  w?.then((x) => x.terminate()).catch(() => {});
+}
+
+// Downloads the OCR once while there's signal, so it also works later without internet.
+export function warmUpOCR() {
+  if (navigator.connection?.saveData) return;
+  const key = 'vk:ocr-ready';
+  try {
+    if (localStorage.getItem(key) === OCR_PATHS.corePath) return;
+  } catch {}
+  getWorker()
+    .then(() => {
+      try {
+        localStorage.setItem(key, OCR_PATHS.corePath);
+      } catch {}
+    })
+    .catch(() => {});
+}
+
+// setParameters + recognize must run as a pair: two reads interleaving on the shared worker would
+// read the name with the digits-only whitelist. Each call has its own time limit.
+let ocrLock = Promise.resolve();
+function withWorker(fn) {
+  const run = ocrLock.then(fn, fn);
+  ocrLock = run.catch(() => {});
+  return withTimeout(run, 20000, resetWorker);
 }
 
 // Crops a fraction of the card, upscales it and binarises it so Tesseract sees black text on white.
@@ -516,8 +683,10 @@ const PREFIX = /^(Mega|Dark|Light|Alolan|Galarian|Hisuian|Paldean|Radiant|Shinin
 
 // Tesseract word list (works whether the build returns data.words or nested blocks).
 async function readWords(worker, canvas, params) {
-  await worker.setParameters(params);
-  const { data } = await worker.recognize(canvas, {}, { text: true, blocks: true });
+  const { data } = await withWorker(async () => {
+    await worker.setParameters(params);
+    return worker.recognize(canvas, {}, { text: true, blocks: true });
+  }).finally(() => freeCanvas(canvas));
   const words = data.words?.length
     ? data.words
     : (data.blocks || []).flatMap((b) => (b.paragraphs || []).flatMap((p) => (p.lines || []).flatMap((l) => l.words || [])));
@@ -543,8 +712,10 @@ function pickName(words) {
 }
 
 async function ocr(worker, canvas, params) {
-  await worker.setParameters(params);
-  const { data } = await worker.recognize(canvas);
+  const { data } = await withWorker(async () => {
+    await worker.setParameters(params);
+    return worker.recognize(canvas);
+  }).finally(() => freeCanvas(canvas));
   return data.text || '';
 }
 
