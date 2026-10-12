@@ -43,6 +43,16 @@ function chartPoints() {
   return rows.map((r) => ({ d: r.d, cost: usd ? r.cu : r.cc, value: usd ? r.v : r.vc ?? r.v * r.fx }));
 }
 
+// The three hero figures share a narrow row: shrink a long amount (e.g. "▲ +$20.650") until it
+// fits instead of cutting it with "…". 11px is the floor; past that the ellipsis stays.
+function fitStats(root) {
+  for (const b of $$('.hero-stats b', root)) {
+    b.style.fontSize = '';
+    let f = parseFloat(getComputedStyle(b).fontSize);
+    while (b.scrollWidth > b.clientWidth + 0.5 && f > 11) b.style.fontSize = `${(f -= 0.5)}px`;
+  }
+}
+
 export function renderHome(root) {
   const s = summary();
   const F = figures(s);
@@ -124,13 +134,15 @@ export function renderHome(root) {
       ${ranking.length > top.length || showAll ? `<button class="btn ghost full more">${showAll ? 'Mostrar top 5' : `Mostrar todas (${ranking.length})`}</button>` : ''}
     </section>`}`;
 
+  fitStats(root);
+  document.fonts?.ready.then(() => root.isConnected && fitStats(root)); // widths change once the font loads
   $('.start-scan', root)?.addEventListener('click', () => scanFlow({ title: 'Escanear carta', onPick: (c) => openCardSheet(c.id) }));
   const pts = chartPoints();
   const box = $('.chart-box', root);
   if (box && pts.length) {
     const draw = () => renderPortfolioChart(box, pts, { currency: disp(), fmt: (n) => F.f(n) });
     requestAnimationFrame(draw);
-    root._resize = draw;
+    root._resize = () => (fitStats(root), draw());
     $('.tv', root).innerHTML = `<table><thead><tr><th>Fecha</th><th>Costo</th><th>Valor</th><th>%</th></tr></thead><tbody>${pts
       .slice()
       .reverse()
