@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 
 const mem = {};
-globalThis.localStorage = { getItem: (k) => mem[k] ?? null, setItem: (k, v) => (mem[k] = String(v)), removeItem: (k) => delete mem[k] };
+globalThis.localStorage = { getItem: (k) => mem[k] ?? null, setItem: (k, v) => (mem[k] = String(v)), removeItem: (k) => delete mem[k], key: (i) => Object.keys(mem)[i] ?? null, get length() { return Object.keys(mem).length; } };
 globalThis.alert = () => {};
 
 const { parseAmount, fmtCLP, fmtUSD, fmtPct } = await import('../js/util.js');

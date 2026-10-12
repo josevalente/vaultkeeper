@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 
 const mem = {};
-globalThis.localStorage = { getItem: (k) => mem[k] ?? null, setItem: (k, v) => (mem[k] = String(v)), removeItem: (k) => delete mem[k] };
+globalThis.localStorage = { getItem: (k) => mem[k] ?? null, setItem: (k, v) => (mem[k] = String(v)), removeItem: (k) => delete mem[k], key: (i) => Object.keys(mem)[i] ?? null, get length() { return Object.keys(mem).length; } };
 globalThis.alert = () => {};
 const S = await import('../js/store.js');
 const { state } = S;
@@ -288,6 +288,36 @@ test('gradeada ingresada en pesos no cambia con el dólar', () => {
 test('intercambio solo por efectivo no da ingreso negativo', () => {
   const p = S.planTrade([10], [], 5, 0);
   assert.ok(p.proceeds[0] >= 0);
+});
+
+test('sin espacio: libera caché e historial de cartas que ya no tienes antes de rendirse', () => {
+  reset();
+  const [it] = S.addItems({ card: card('k'), variant: 'holofoil', price: 1000, currency: 'CLP' });
+  state.priceHist['k|holofoil'] = [['2026-10-01', 1]];
+  state.priceHist['vendida|holofoil'] = [['2026-10-01', 1]];
+  localStorage.setItem('vkc:rar:sir', 'x'.repeat(100));
+  const real = localStorage.setItem;
+  let failOnce = true;
+  localStorage.setItem = (k, v) => {
+    if (k === 'vaultkeeper:v1' && failOnce) {
+      failOnce = false;
+      throw new Error('QuotaExceededError');
+    }
+    return real(k, v);
+  };
+  let alerted = false;
+  globalThis.alert = () => (alerted = true);
+  try {
+    S.save({ silent: true });
+  } finally {
+    localStorage.setItem = real;
+    globalThis.alert = () => {};
+  }
+  assert.equal(alerted, false, 'logró guardar después de liberar espacio');
+  assert.equal(localStorage.getItem('vkc:rar:sir'), null, 'borró la caché');
+  assert.ok(state.priceHist['k|holofoil'], 'conserva el historial de lo que tienes');
+  assert.equal(state.priceHist['vendida|holofoil'], undefined);
+  assert.ok(it);
 });
 
 console.log(`${pass} pruebas de funciones nuevas OK${process.exitCode ? ' — HAY FALLAS' : ''}`);

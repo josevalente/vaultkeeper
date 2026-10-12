@@ -708,3 +708,5 @@ body.has-sheet .toast.show { transform: translate(-50%, 0); }
   .trow:not(.exp-row) > .trow-val b, .trow:not(.exp-row) > .trow-val small { display: inline; margin-right: 6px; }
   .trow:not(.exp-row) > .icon-btn { grid-column: 3; grid-row: 1; }
 }
+/* New version ready (service worker): one tap reloads. */
+.update-pill { position: fixed; z-index: 90; left: 50%; transform: translateX(-50%); top: calc(var(--safe-t) + 60px); padding: 10px 16px; border-radius: 99px; border: 0; background: var(--brass); color: #1a1405; font-weight: 800; font-size: 13.5px; box-shadow: var(--shadow); white-space: nowrap; max-width: calc(100% - 32px); }

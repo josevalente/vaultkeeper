@@ -33,7 +33,7 @@ Es 100 % estática: se publica gratis en GitHub Pages y los datos quedan guardad
 Puntaje = ganancia % sobre tu compra + monto de la ganancia + tendencia del precio (si el promedio de 7 días está bajo el de 30, conviene vender antes; si sube, quizás esperar) + tiempo en el vault. Las cartas marcadas como **colección** no aparecen salvo que actives “Incluir colección”.
 
 ## Reconocimiento de cartas
-- **Sin configurar nada:** OCR en el teléfono (Tesseract.js). Lee el nombre y el número impreso abajo (`199/165`) y confirma uno contra el otro. Funciona mejor con buena luz, sin reflejos y con la carta llenando el marco. Siempre puedes confirmar con la imagen oficial o usar **Buscar**.
+- **Sin configurar nada:** OCR en el teléfono (Tesseract.js). Lee el nombre y el número impreso abajo (`199/165`) y confirma uno contra el otro. Funciona mejor con buena luz, sin reflejos y con la carta llenando el marco. Siempre puedes confirmar con la imagen oficial o usar **Buscar**. Si una foto sale movida, el escáner toma otras del video (al menos 3 intentos, ~12 s) y va contando qué está leyendo. El OCR se descarga una vez con señal (~7 MB) para que también funcione en la feria sin internet.
 - **Recomendado:** en Ajustes pega una API key de Anthropic (console.anthropic.com). Claude identifica la carta desde la foto: mucho más robusto con fundas, reflejos y ángulos. Cuesta fracciones de centavo de dólar por foto. La clave se guarda solo en el teléfono.
 
 ## Publicar en GitHub Pages
@@ -53,7 +53,7 @@ Puntaje = ganancia % sobre tu compra + monto de la ganancia + tendencia del prec
 > La cámara solo funciona con HTTPS (GitHub Pages lo da). En `localhost` la app funciona, pero el modo sin conexión (service worker) solo se activa en HTTPS.
 
 ## Instalar en el iPhone
-Abre la URL en **Safari** → botón **Compartir** → **Agregar a pantalla de inicio**. Abre a pantalla completa, funciona sin conexión con los últimos precios y iOS no borra los datos de apps instaladas.
+Abre la URL en **Safari** → botón **Compartir** → **Agregar a pantalla de inicio**. Abre a pantalla completa, funciona sin conexión con los últimos precios y iOS no borra los datos de apps instaladas. Cuando hay una versión nueva, la app la descarga completa en segundo plano y muestra **"Hay una versión nueva · Toca para actualizar"**.
 
 ## Qué significa cada precio
 - **TCGplayer market:** promedio de ventas recientes en TCGplayer (EE.UU.). Es el que usa la app para valorizar y para el veredicto de feria.

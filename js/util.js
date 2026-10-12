@@ -128,7 +128,9 @@ export async function pool(items, limit, fn) {
   return results;
 }
 
-export async function fetchJSON(url, { timeout = 12000, retries = 1, headers } = {}) {
+// fresh: true = a refresh; a copy the service worker served because the network failed (header
+// x-vk-from-cache) counts as a failure, so old prices are never stamped as just updated.
+export async function fetchJSON(url, { timeout = 12000, retries = 1, headers, fresh = false } = {}) {
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     const ctrl = new AbortController();
@@ -138,6 +140,7 @@ export async function fetchJSON(url, { timeout = 12000, retries = 1, headers } =
       clearTimeout(timer);
       if (res.status === 404) return null;
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (fresh && res.headers.get('x-vk-from-cache')) throw new Error('sin conexión (copia guardada)');
       return await res.json();
     } catch (e) {
       clearTimeout(timer);

@@ -77,12 +77,29 @@ export const actions = {};
 const subs = new Set();
 export const onChange = (fn) => (subs.add(fn), () => subs.delete(fn));
 
-export function save({ silent = false } = {}) {
+// Frees space without touching the vault: cached API answers (vkc:*) and the local price history
+// of cards that are no longer in the vault or the wishlist.
+function freeSpace() {
   try {
-    localStorage.setItem(KEY, JSON.stringify(state));
+    const keys = Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i));
+    for (const k of keys) if (k?.startsWith('vkc:')) localStorage.removeItem(k);
+  } catch {}
+  const keep = new Set([...held().map((it) => it.cardId), ...Object.keys(state.wishlist)]);
+  for (const k of Object.keys(state.priceHist)) if (!keep.has(k.split('|')[0])) delete state.priceHist[k];
+}
+
+export function save({ silent = false } = {}) {
+  const write = () => localStorage.setItem(KEY, JSON.stringify(state));
+  try {
+    write();
   } catch (e) {
-    console.error(e);
-    alert('No queda espacio para guardar. Exporta un respaldo y limpia datos antiguos.');
+    try {
+      freeSpace();
+      write();
+    } catch (e2) {
+      console.error(e2);
+      alert('No queda espacio para guardar. Exporta un respaldo (Más → Respaldar) y borra cartas vendidas antiguas.');
+    }
   }
   if (!silent) subs.forEach((f) => f());
 }

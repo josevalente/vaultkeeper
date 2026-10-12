@@ -2,7 +2,7 @@
 
 import { $, $$, fmtCLP, pool, toast, localDate } from './util.js';
 import { state, save, onChange, held, setPrice, pushHist, snapshot, actions, repairItems, computeAlerts } from './store.js';
-import { getCard } from './api.js';
+import { getCard, clearApiCache } from './api.js';
 import { refreshFx } from './fx.js';
 import { scanFlow, openCardSheet } from './ui.js';
 import { renderHome } from './views/home.js';
@@ -83,13 +83,18 @@ async function refreshPrices({ force = false } = {}) {
   refreshing = true;
   try {
     await refreshFx();
+    let failed = 0;
     if (stale.length) {
       let done = 0;
       setStatus(`Actualizando precios 0/${stale.length}`, 0);
       await pool(stale, 4, async (id) => {
-        const { card, prices } = await getCard(id, { fresh: true });
-        setPrice(id, prices);
-        repairItems(card, prices);
+        try {
+          const { card, prices } = await getCard(id, { fresh: true });
+          setPrice(id, prices);
+          repairItems(card, prices);
+        } catch {
+          failed++; // keeps its previous price and date
+        }
         done++;
         setStatus(`Actualizando precios ${done}/${stale.length}`, done / stale.length);
       });
@@ -98,14 +103,16 @@ async function refreshPrices({ force = false } = {}) {
         const p = state.prices[it.cardId]?.tp?.[it.variant];
         pushHist(`${it.cardId}|${it.variant}`, p?.market ?? p?.mid ?? null);
       });
-      state.lastRefresh = Date.now();
+      if (failed < stale.length) state.lastRefresh = Date.now();
     }
     const last = state.history[state.history.length - 1];
     if (stale.length || !last || last.d !== localDate()) {
       snapshot();
       save();
     }
-    if (force) toast('Precios actualizados', 'ok');
+    // Automatic refreshes stay quiet on a bad signal (Inicio still shows how old the prices are).
+    if (failed && force) toast(failed === stale.length ? 'No pude actualizar los precios: revisa tu conexión' : `${failed} de ${stale.length} precios no se pudieron actualizar`, 'err');
+    else if (force) toast('Precios actualizados', 'ok');
     // App icon badge = pending alerts (iOS 16.4+ when installed on the home screen).
     navigator.setAppBadge?.(computeAlerts().length).catch?.(() => {});
   } catch (e) {
@@ -181,6 +188,21 @@ refreshPrices();
 if (navigator.onLine) setTimeout(() => import('./scan.js').then((m) => m.warmUpOCR()), 8000);
 navigator.storage?.persist?.().catch(() => {});
 
+clearApiCache(30 * 86400000); // cached answers older than a month
+
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
-  navigator.serviceWorker.register('sw.js').catch((e) => console.warn('SW', e));
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker
+    .register('sw.js')
+    .then((reg) => document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && reg.update().catch(() => {})))
+    .catch((e) => console.warn('SW', e));
+  // A new version is installed as a whole; the page keeps running the old one until reloaded.
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || $('.update-pill')) return;
+    const b = document.createElement('button');
+    b.className = 'update-pill';
+    b.textContent = 'Hay una versión nueva · Toca para actualizar';
+    b.onclick = () => location.reload();
+    document.body.appendChild(b);
+  });
 }

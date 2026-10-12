@@ -50,8 +50,26 @@ function cacheSet(key, v) {
   try {
     localStorage.setItem('vkc:' + key, JSON.stringify({ t: Date.now(), v }));
   } catch {
-    /* cache is best-effort */
+    /* cache is best-effort: never let it take the space the vault needs */
+    clearApiCache();
   }
+}
+
+// Cached API answers (sets, rarities, catalogs) share the ~5 MB of localStorage with the vault.
+// Drop the ones older than `maxAgeMs` (all of them by default).
+export function clearApiCache(maxAgeMs = 0) {
+  try {
+    const keys = Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i));
+    for (const k of keys) {
+      if (!k?.startsWith('vkc:')) continue;
+      if (maxAgeMs) {
+        try {
+          if (Date.now() - JSON.parse(localStorage.getItem(k)).t < maxAgeMs) continue;
+        } catch {}
+      }
+      localStorage.removeItem(k);
+    }
+  } catch {}
 }
 
 // ───────────────────────── sets
@@ -342,7 +360,7 @@ export async function getCard(id, { fresh = false } = {}) {
     cardMem.set(id, out);
     return out;
   }
-  const raw = await fetchJSON(`${TD}/cards/${encodeURIComponent(id)}`, { retries: 2 });
+  const raw = await fetchJSON(`${TD}/cards/${encodeURIComponent(id)}`, { retries: 2, fresh });
   if (!raw) throw new Error('Carta no encontrada');
   const card = normCard(raw);
   const prices = normPrices(raw);
