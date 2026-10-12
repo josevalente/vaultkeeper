@@ -45,9 +45,11 @@ export function openScanner({ title = 'Escanear carta', burst = false } = {}) {
     document.body.appendChild(ov);
     const video = $('video', ov);
     const status = $('.scan-status', ov);
-    let busy = false;
+    let busy = false, closed = false;
 
     const close = (result) => {
+      closed = true;
+      stopTicker();
       stopStream();
       ov.remove();
       window.removeEventListener('hashchange', onHash);
@@ -56,10 +58,34 @@ export function openScanner({ title = 'Escanear carta', burst = false } = {}) {
     const onHash = () => close(null);
     window.addEventListener('hashchange', onHash);
 
-    const setStatus = (msg) => {
-      status.hidden = !msg;
-      status.textContent = msg || '';
+    // Status: the current step, plus (while reading) a second line with the attempt, a hint that
+    // changes as time passes and the seconds elapsed, so a slow read never looks frozen.
+    let main = '', attempt = '', t0 = 0, ticker = 0;
+    const HINTS = [
+      [6, 'Mantén la carta quieta dentro del marco'],
+      [12, 'Sigo leyendo: las cartas brillantes o full-art tardan más'],
+      [20, 'Si tiene funda, inclínala un poco para quitar el reflejo'],
+    ];
+    const paint = () => {
+      const s = t0 ? Math.floor((Date.now() - t0) / 1000) : 0;
+      const hint = t0 ? HINTS.filter(([at]) => s >= at).pop()?.[1] : '';
+      const sub = [attempt, hint, t0 && s >= 2 ? `${s} s` : ''].filter(Boolean).join(' · ');
+      status.hidden = !main;
+      status.innerHTML = main ? `${esc(main)}${sub ? `<small>${esc(sub)}</small>` : ''}` : '';
     };
+    const setStatus = (msg) => {
+      main = msg || '';
+      paint();
+    };
+    const startTicker = () => {
+      t0 = Date.now();
+      ticker = setInterval(paint, 1000);
+    };
+    function stopTicker() {
+      clearInterval(ticker);
+      t0 = 0;
+      attempt = '';
+    }
 
     navigator.mediaDevices
       ?.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 } }, audio: false })
@@ -117,17 +143,42 @@ export function openScanner({ title = 'Escanear carta', burst = false } = {}) {
       close(results.length ? { burst: results } : null);
     });
 
-    const run = async (canvas, cropped) => {
+    // A camera capture that doesn't give a sure match (card + number) is retried with a fresh frame
+    // from the live video, so a blurry or glared shot doesn't end the scan. The best result wins.
+    const sure = (r) => r.cands.length > 0 && !!r.info.number;
+    const rank = (r) => (r.cands.length ? 2 : 0) + (r.info.number ? 1 : 0) + (r.info.name ? 0.5 : 0);
+    const run = async (canvas, cropped, live = false) => {
       if (burst) return finishing ? null : enqueue(canvas, cropped);
       if (busy) return;
       busy = true;
       ov.classList.add('busy');
+      startTicker();
+      // Claude costs per call: 2 tries. The on-device OCR tries at least 3 times and keeps going
+      // (up to 6) until it has spent ~12 s, so a quick miss doesn't end the scan.
+      const claude = state.settings.claudeKey && navigator.onLine;
+      const max = !live ? 1 : claude ? 2 : 6, minMs = !live || claude ? 0 : 12000;
+      let best = null;
       try {
-        const res = await identify(canvas, cropped, setStatus);
-        res.shot = thumb(canvas);
-        close(res);
+        for (let i = 1; i <= max && !closed; i++) {
+          if (i > 1) {
+            const spent = Date.now() - t0;
+            if ((i > 3 && spent >= minMs) || spent > 35000 || !video.videoWidth) break;
+            attempt = `Intento ${i}`;
+            setStatus(best?.cands.length ? 'Casi: tomo otra foto para confirmar el número…' : 'No la leí bien: tomo otra foto…');
+            await new Promise((r) => setTimeout(r, 900)); // time to steady the card
+            if (closed) return;
+            canvas = captureFrame(video, $('.scan-frame', ov));
+          }
+          const res = await identify(canvas, cropped, setStatus);
+          res.shot = thumb(canvas);
+          if (!best || rank(res) > rank(best)) best = res;
+          if (sure(res)) break;
+        }
+        if (!closed) close(best);
       } catch (e) {
         console.error(e);
+        if (best && !closed) return close(best);
+        stopTicker();
         setStatus(`No pude identificarla (${e.message}). Prueba otra foto o usa Buscar.`);
       } finally {
         busy = false;
@@ -137,7 +188,7 @@ export function openScanner({ title = 'Escanear carta', burst = false } = {}) {
 
     $('.shutter', ov).onclick = () => {
       if (!video.videoWidth) return setStatus('La cámara aún no está lista…');
-      run(captureFrame(video, $('.scan-frame', ov)), true);
+      run(captureFrame(video, $('.scan-frame', ov)), true, true);
     };
 
     $('input[type=file]', ov).onchange = async (e) => {
@@ -254,7 +305,7 @@ async function identifyJapanese(canvas, cropped, setStatus) {
       console.warn('Claude falló, uso OCR', e);
     }
   }
-  setStatus('Leyendo el número (OCR)…');
+  setStatus('Leyendo el número impreso…');
   const worker = await getWorker(setStatus);
   const cat = await getCatalog('jp');
   const totals = new Set(cat.items.map((e) => parseInt(String(e.no || '').split('/')[1], 10)).filter(Boolean));
@@ -263,7 +314,9 @@ async function identifyJapanese(canvas, cropped, setStatus) {
   const zones = cropped
     ? [[[0.0, 0.9, 0.55, 0.1], 'dark', '11'], [[0.0, 0.9, 0.55, 0.1], 'bright', '11'], [[0, 0.8, 0.65, 0.2], 'adark', '11'], [[0, 0.8, 0.65, 0.2], 'abright', '11'], [[0.35, 0.85, 0.65, 0.15], 'adark', '11']]
     : [[[0, 0.5, 1, 0.5], 'gray', '11'], [[0, 0.5, 1, 0.5], 'adark', '11']];
-  for (const [[x, y, w, hh], mode, psm] of zones) {
+  for (const zone of zones) {
+    const [[x, y, w, hh], mode, psm] = zone;
+    setStatus(`Leyendo el número impreso (${zones.indexOf(zone) + 1} de ${zones.length})…`);
     const text = await ocr(worker, region(canvas, x, y, w, hh, { mode, scale: Math.min(3.2, k * 1.8) }), NUM(psm));
     for (const num of parseNumbers(text, totals)) {
       const cands = await searchCatalog('jp', '', num.number, num.total).catch(() => []);
@@ -538,12 +591,15 @@ async function identifyWithOCR(canvas, cropped, setStatus) {
     () => readWords(worker, region(canvas, 0, 0, 1, TOPH, { mode: 'gray', scale: k }), SPARSE).then((r) => pickName(r.words)),
     () => readWords(worker, region(canvas, 0, 0, 1, TOPH, { mode: 'adark', scale: k }), SPARSE).then((r) => pickName(r.words)),
   ];
-  for (const step of nameSteps) if (addName(await step().catch(() => ''))) break;
+  for (const [i, step] of nameSteps.entries()) {
+    setStatus(names.length ? `Leí “${names[0]}”, lo confirmo (${i + 1} de ${nameSteps.length})…` : `Leyendo el nombre (${i + 1} de ${nameSteps.length})…`);
+    if (addName(await step().catch(() => ''))) break;
+  }
   const name = names[0] || '';
   const matches = (c) => names.some((n) => nameMatch(c.name, n));
 
   // ── collector number
-  setStatus(name ? `Leí “${name}”. Buscando el número…` : 'Leyendo número…');
+  setStatus(name ? `Leí “${name}”. Buscando el número…` : 'No leí el nombre todavía. Buscando el número…');
   const sets = await getSets().catch(() => []);
   const totals = new Set(sets.map((x) => x.official).filter(Boolean));
   const maxIdx = Math.max(1, ...sets.map((x) => x.idx));
@@ -574,10 +630,12 @@ async function identifyWithOCR(canvas, cropped, setStatus) {
     if (!lookups.has(keyOf(num))) lookups.set(keyOf(num), findByNumber(num.number, num.total, name, { nameFallback: false }).catch(() => []));
     return lookups.get(keyOf(num));
   };
-  const deadline = Date.now() + 12000;
+  const deadline = Date.now() + 18000;
   let pi = 0;
+  const what = name ? `Leí “${name}”. Buscando el número` : 'Buscando el número';
   for (const [[x, y, w, hh], mode, psm, sc, tight] of passes) {
     if (Date.now() > deadline) break;
+    setStatus(`${what} (lectura ${pi + 1} de ${passes.length})…`);
     const text = await ocr(worker, region(canvas, x, y, w, hh, { mode, scale: sc ? Math.max(sc, k) : Math.min(3.2, k * 1.6) }), NUM(psm));
     for (const num of parseNumbers(text, totals)) {
       const key = keyOf(num);
