@@ -39,7 +39,7 @@ const el = (tag, attrs = {}) => {
 
 export function renderPortfolioChart(root, points, { currency, fmt }) {
   root.innerHTML = '';
-  const W = Math.max(280, root.clientWidth || 340);
+  const W = Math.max(240, root.clientWidth || 340); // draw at the real width: no shrunken labels
   const padL = 46, padR = 54, padT = 12;
   const H1 = 190, gap = 26, H2 = 74, padB = 22;
   const H = padT + H1 + gap + H2 + padB;
@@ -205,7 +205,7 @@ export function renderPortfolioChart(root, points, { currency, fmt }) {
 // points: [{ d: 'YYYY-MM-DD', v: number }] sorted by date. Time-scaled x axis.
 export function renderPriceChart(root, points, { fmt, fmtAlt }) {
   root.innerHTML = '';
-  const W = Math.max(280, root.clientWidth || 340);
+  const W = Math.max(240, root.clientWidth || 340); // draw at the real width: no shrunken labels
   const padL = 50, padR = 14, padT = 12, padB = 24, H1 = 190;
   const H = padT + H1 + padB;
   const iw = W - padL - padR;

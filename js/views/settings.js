@@ -30,7 +30,7 @@ export function renderSettings(root) {
       <div class="seg disp"><button data-c="CLP" class="${s.display === 'CLP' ? 'on' : ''}">Mostrar en CLP</button><button data-c="USD" class="${s.display === 'USD' ? 'on' : ''}">Mostrar en USD</button></div>
       <div class="kv"><span>Dólar hoy</span><b>${fmtCLP(fx.usdclp)}</b></div>
       <p class="muted small">${esc(fx.src)} · ${timeAgo(fx.at)}. Cada compra guarda el tipo de cambio del momento en que la registras.</p>
-      <div class="money-in"><input class="input fxman" inputmode="decimal" placeholder="Fijar manual (ej: 975)"><button class="btn ghost setfx">Fijar</button><button class="btn ghost upfx">Actualizar</button></div>
+      <div class="money-in"><input class="input fxman" inputmode="decimal" placeholder="Ej: 975" aria-label="Fijar dólar manual"><button class="btn ghost setfx">Fijar</button><button class="btn ghost upfx">Actualizar</button></div>
     </section>
 
     <section class="panel rise" style="--d:2">

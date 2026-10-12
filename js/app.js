@@ -130,7 +130,9 @@ function placeToTop() {
   toTop.classList.toggle('show', show);
   toTop.tabIndex = show ? 0 : -1;
   const bar = show && $('.balance', view);
-  toTop.style.bottom = bar ? `${innerHeight - bar.getBoundingClientRect().top + 10}px` : '';
+  const top = bar && getComputedStyle(bar).position === 'sticky' ? bar.getBoundingClientRect().top : null;
+  toTop.style.bottom = top != null && top < innerHeight ? `${innerHeight - top + 10}px` : '';
+  if (top != null && top < 160) toTop.classList.remove('show'); // a tall bar: don't climb onto the header
 }
 window.addEventListener('scroll', placeToTop, { passive: true });
 toTop.onclick = () => {

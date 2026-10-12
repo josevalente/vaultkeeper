@@ -72,7 +72,7 @@ export function cardTile(c, { sub = '', badge = '', dim = false, extra = '' } = 
       <div class="tile-img"><img loading="lazy" src="${esc(img(c.image))}" alt="${esc(c.name)}" onerror="this.src='icons/card-back.svg'">${badge}</div>
       <div class="tile-meta">
         <div class="tile-name">${c.rarity ? raritySymbol(r.key, 14) : ''}<span>${esc(c.name)}</span></div>
-        <div class="tile-sub">${sub || `${esc(c.setName || '')}${c.number ? ` · ${esc(c.number)}${c.total ? '/' + esc(c.total) : ''}` : ''}`}</div>
+        <div class="tile-sub">${sub || `${c.number ? `${esc(c.number)}${c.total ? '/' + esc(c.total) : ''} · ` : ''}${esc(c.setName || '')}`}</div>
         ${extra}
       </div>
     </button>`;
@@ -83,6 +83,23 @@ export function eventField(value = null, label = 'Feria / evento (opcional)') {
   const id = 'ev' + Math.random().toString(36).slice(2, 7);
   value = value ?? todayEvent();
   return `<label class="field"><span>${esc(label)}</span><input class="input event" list="${id}" value="${esc(value)}" placeholder="Ej: Feria Persa 12-oct" autocomplete="off"><datalist id="${id}">${knownEvents().map((e) => `<option value="${esc(e)}">`).join('')}</datalist></label>`;
+}
+
+// Shrink an amount until it fits its box instead of letting "…" cut it. scrollWidth rounds, so
+// the text's real width (a Range) is measured: a 0.3 px overflow already shows the ellipsis.
+export function fitText(root, selector, min = 11) {
+  for (const el of $$(selector, root)) {
+    el.style.fontSize = '';
+    const r = document.createRange();
+    r.selectNodeContents(el.firstChild?.nodeType === 3 ? el.firstChild : el);
+    const width = () => r.getBoundingClientRect().width;
+    let f = parseFloat(getComputedStyle(el).fontSize);
+    while (width() > el.clientWidth - 1 && f > min) el.style.fontSize = `${(f -= 0.5)}px`;
+  }
+}
+export function fitAmounts(root) {
+  fitText(root, '.hero-stats b');
+  fitText(root, '.hero-value', 22);
 }
 
 export const kindPill = (c) => (c.kind === 'sealed' ? '<span class="kpill">Sellado</span>' : c.lang === 'ja' ? '<span class="kpill jp">Japonesa</span>' : '');

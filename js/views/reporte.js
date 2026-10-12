@@ -3,7 +3,7 @@
 
 import { h, esc, $, $$, fmtCLP, fmtDate, localDate, parseAmount, toast } from '../util.js';
 import { state, report, summary, addExpense, removeExpense, EXPENSE_CATS, rememberEvent } from '../store.js';
-import { openSheet, eventField, pctClass, confirmSheet } from '../ui.js';
+import { openSheet, eventField, pctClass, confirmSheet, fitAmounts } from '../ui.js';
 import { csv, shareFile } from '../backup.js';
 
 let tab = 'mes';
@@ -72,6 +72,9 @@ export function renderReporte(root) {
       <div class="btn-row"><button class="btn ghost csv-items">Inventario y ventas</button><button class="btn ghost csv-exp">Gastos</button></div>
     </section>`;
 
+  fitAmounts(root);
+  document.fonts?.ready.then(() => root.isConnected && fitAmounts(root));
+  root._resize = () => fitAmounts(root);
   $$('.tabs button', root).forEach((b) => (b.onclick = () => ((tab = b.dataset.t), renderReporte(root))));
   $('.add-exp', root).onclick = () => openExpenseForm();
   $$('.exp-row .rm', root).forEach((b) => (b.onclick = async () => {
