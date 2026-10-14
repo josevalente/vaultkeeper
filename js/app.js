@@ -15,7 +15,7 @@ import { renderReporte } from './views/reporte.js';
 import { renderMas } from './views/mas.js';
 import { renderEventos } from './views/eventos.js';
 import { openVaults } from './views/mas.js';
-import { paintVaultPill } from './vaults.js';
+import { paintVaultPill, vaultById, goToVault } from './vaults.js';
 
 const ROUTES = {
   inicio: renderHome,
@@ -34,16 +34,34 @@ const TAB_OF = { lote: 'mas', intercambio: 'mas', reporte: 'mas', ajustes: 'mas'
 const view = $('#view');
 let current = null;
 
+// Sections opened from Más (or the gear) have no tab of their own: they get a "‹ back" button to
+// where you came from (the installed app on iPhone has no browser back button).
+const TITLES = { inicio: 'Inicio', coleccion: 'Colección', faltantes: 'Faltantes', mas: 'Más', lote: 'Lote', intercambio: 'Intercambio', reporte: 'Reporte', eventos: 'Eventos', ajustes: 'Ajustes' };
+let backTo = 'mas';
+
 function route() {
   const name = (location.hash.replace(/^#\/?/, '') || 'inicio').split('?')[0];
   const fn = ROUTES[name] || renderHome;
   const changed = current !== name;
+  const prev = current;
   current = ROUTES[name] ? name : 'inicio';
+  if (changed && TAB_OF[current]) backTo = prev && prev !== current && TITLES[prev] ? prev : 'mas';
   $$('.tabbar a').forEach((a) => a.classList.toggle('on', a.dataset.route === (TAB_OF[current] || current)));
   $('.gear').classList.toggle('on', current === 'ajustes');
   view.dataset.view = current;
   view._resize = null;
   fn(view);
+  if (TAB_OF[current]) {
+    // Shared Ajustes opened from another vault (…#/ajustes?volver=mtg): back to that vault.
+    const other = vaultById(new URLSearchParams(location.hash.split('?')[1] || '').get('volver'));
+    const label = other && other.id !== 'pokemon' ? other.short : TITLES[backTo];
+    const back = document.createElement('button');
+    back.className = 'back-btn';
+    back.innerHTML = `<span aria-hidden="true">‹</span> ${label}`;
+    back.setAttribute('aria-label', `Volver a ${label}`);
+    back.onclick = () => (other && other.id !== 'pokemon' ? goToVault(other.id) : (location.hash = `#/${backTo}`));
+    view.prepend(back);
+  }
   if (changed) {
     window.scrollTo({ top: 0 });
     $('#sheets').innerHTML = '';

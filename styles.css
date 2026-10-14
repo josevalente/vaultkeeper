@@ -766,3 +766,8 @@ body.has-sheet .toast.show { transform: translate(-50%, 0); }
 .choose-card.on { border-color: var(--vault); background: color-mix(in oklab, var(--vault) 14%, var(--surface)); }
 .choose-card.on .cc-check { background: var(--vault); border-color: var(--vault); color: #15120a; }
 .choose .start { margin-top: auto; min-height: 52px; font-size: 15.5px; }
+
+/* "‹ Más" on sections reached from Más or the gear (no browser back button in the installed app) */
+.back-btn { display: inline-flex; align-items: center; gap: 4px; min-height: 40px; margin: -6px 0 6px -6px; padding: 6px 12px 6px 8px; border-radius: 99px; border: 0; background: transparent; color: var(--brass); font-weight: 800; font-size: 15px; }
+.back-btn span { font-size: 24px; line-height: 0.8; margin-top: -2px; }
+.back-btn:active { background: var(--surface-2); }

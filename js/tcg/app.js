@@ -151,10 +151,9 @@ function renderMas(root) {
     <nav class="menu rise" style="--d:2">
       <button class="backup"><span class="m-ico">☁</span><div><b>Respaldar este vault</b><small>Archivo con tus cartas de ${esc(g.short)} (no incluye las de otros juegos)</small></div><em>›</em></button>
       <label class="import"><span class="m-ico">⤒</span><div><b>Importar respaldo</b><small>Reemplaza el vault de ${esc(g.short)} por el del archivo</small></div><em>›</em><input type="file" accept="application/json,.json" hidden></label>
-      <a href="index.html#/ajustes" class="to-settings"><span class="m-ico">⚙</span><div><b>Ajustes</b><small>Moneda, margen, canales y API key de Claude son comunes a todos los vaults: se cambian en Pokémon → Ajustes</small></div><em>›</em></a>
+      <a href="index.html#/ajustes?volver=${g.id}" class="to-settings"><span class="m-ico">⚙</span><div><b>Ajustes</b><small>Moneda, margen, canales y API key de Claude son comunes a todos los vaults: se cambian en Pokémon → Ajustes</small></div><em>›</em></a>
     </nav>`;
   wireVaultList(root, g.id, { onToggle: () => renderMas(root) });
-  $('.to-settings', root).onclick = () => setLastVault('pokemon');
   $('.backup', root).onclick = async () => {
     const file = new File([exportVault()], `vaultkeeper-${g.id}-${new Date().toLocaleDateString('sv-SE')}.json`, { type: 'application/json' });
     try {
