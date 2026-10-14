@@ -1,11 +1,11 @@
 // Faltantes: pick a rarity (e.g. Illustration Rare / Special Illustration Rare) and see every
 // card that exists with it, which ones you already own and what the missing ones cost.
 
-import { esc, $, $$, fmtUSD, fmtCLP, pool, norm } from '../util.js';
+import { esc, $, $$, fmtUSD, fmtCLP, pool, norm, openPicker } from '../util.js';
 import { state } from '../store.js';
 import { RARITIES, rarityByKey, raritySymbol } from '../rarity.js';
 import { listByRarity, cachedQuickPrice, quickPrice, getSets, setCards } from '../api.js';
-import { cardTile, openCardSheet, openSearch, money } from '../ui.js';
+import { cardTile, openCardSheet, openSearch, openSheet, money } from '../ui.js';
 
 const FEATURED = ['illus', 'sir', 'hyper', 'mega', 'ultra', 'shinyultra', 'shiny', 'double', 'ace', 'futur', 'classic', 'pika', 'promo'];
 // by: 'rareza' (default, as before) or 'set' (one expansion, every card in it).
@@ -98,11 +98,18 @@ async function renderBySet(root) {
   // The ones you have cards from first, then all of them (newest first).
   const mine = new Set(state.items.filter((it) => it.status === 'held').map((it) => String(it.cardId).slice(0, String(it.cardId).lastIndexOf('-'))));
   if (!ui.setId || !sets.some((s) => s.id === ui.setId)) ui.setId = (sets.find((s) => mine.has(s.id)) || sets[0]).id;
-  const opt = (s) => `<option value="${esc(s.id)}" ${s.id === ui.setId ? 'selected' : ''}>${esc(s.name)}${s.total ? ` (${s.total})` : ''}</option>`;
-  const own = sets.filter((s) => mine.has(s.id));
-  box.innerHTML = `<label class="field"><span>Expansión</span><select class="input setpick">${own.length ? `<optgroup label="Con cartas en tu vault">${own.map(opt).join('')}</optgroup><optgroup label="Todas">` : ''}${sets.map(opt).join('')}${own.length ? '</optgroup>' : ''}</select></label>`;
-  $('.setpick', box).onchange = (e) => ((ui.setId = e.target.value), (ui.q = ''), renderBySet(root));
   const set = sets.find((s) => s.id === ui.setId);
+  // A searchable list (200+ expansions): the ones you have cards from first.
+  box.innerHTML = `<div class="field"><span>Expansión</span><button class="input picker-btn setpick" aria-haspopup="dialog"><b>${esc(set.name)}</b><small>${set.total ? `${set.total} carta${set.total === 1 ? '' : 's'}` : ''}</small><em aria-hidden="true">▾</em></button></div>`;
+  const item = (s, group) => ({ id: s.id, label: s.name, sub: `${s.id.toUpperCase()}${s.total ? ` · ${s.total} carta${s.total === 1 ? '' : 's'}` : ''}`, group });
+  $('.setpick', box).onclick = () =>
+    openPicker({
+      title: 'Elegir expansión',
+      openSheet,
+      current: ui.setId,
+      items: [...sets.filter((s) => mine.has(s.id)).map((s) => item(s, 'Con cartas en tu vault')), ...sets.map((s) => item(s, 'Todas (más recientes primero)'))],
+      onPick: (id) => ((ui.setId = id), (ui.q = ''), renderBySet(root)),
+    });
   const r = { key: 'set', label: set.name, api: null, logo: set.logo };
   const key = 'set:' + set.id;
   if (lists.has(key)) return renderList(body, r, lists.get(key));

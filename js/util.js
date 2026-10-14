@@ -284,3 +284,37 @@ export function openImageViewer(src, alt = '') {
   });
   return { close };
 }
+
+// Searchable list for long pickers (Yu-Gi-Oh has 1.000+ sets): a sheet with a search box and the
+// options grouped ("Con cartas en tu vault" first). openSheet is passed in so it works in any vault.
+// items: [{ id, label, sub, group }]; searching matches label, sub and code words in any order.
+export function openPicker({ title, items, current, onPick, openSheet, placeholder = 'Buscar por nombre o código' }) {
+  const body = h(`<div class="picker"><input class="input pk-q" type="search" placeholder="${esc(placeholder)}" autocomplete="off" enterkeyhint="search" aria-label="${esc(placeholder)}"><div class="pk-list"></div></div>`);
+  const s = openSheet({ title, body, cls: 'tall' });
+  const q = $('.pk-q', body), list = $('.pk-list', body);
+  const MAX = 300;
+  const paint = () => {
+    const words = norm(q.value).split(/\s+/).filter(Boolean);
+    const seen = new Set();
+    // Searching: each option once (a set you have cards from is listed in two groups).
+    const hits = words.length ? items.filter((it) => words.every((w) => norm(`${it.label} ${it.sub || ''}`).includes(w)) && !seen.has(it.id) && seen.add(it.id)) : items;
+    if (!hits.length) return (list.innerHTML = `<div class="empty"><p>Nada con “${esc(q.value)}”.</p></div>`);
+    let html = '', group = null;
+    for (const it of hits.slice(0, MAX)) {
+      if (!words.length && it.group && it.group !== group) html += `<div class="pk-group">${esc((group = it.group))}</div>`;
+      html += `<button class="pk-row ${it.id === current ? 'on' : ''}" data-id="${esc(it.id)}"><span><b>${esc(it.label)}</b>${it.sub ? `<small>${esc(it.sub)}</small>` : ''}</span>${it.id === current ? '<em>✓</em>' : ''}</button>`;
+    }
+    if (hits.length > MAX) html += `<p class="muted tiny">y ${hits.length - MAX} más: escribe para acotar.</p>`;
+    list.innerHTML = html;
+  };
+  q.oninput = paint;
+  list.onclick = (e) => {
+    const b = e.target.closest('.pk-row');
+    if (!b) return;
+    s.close();
+    onPick(b.dataset.id);
+  };
+  paint();
+  setTimeout(() => q.focus(), 300);
+  return s;
+}

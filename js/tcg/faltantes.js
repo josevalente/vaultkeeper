@@ -4,9 +4,9 @@
 //  · Magic also filters by special frame (Borderless, Showcase, Extended art).
 // Same look as the Pokémon Faltantes; which ones you have comes from this vault only.
 
-import { $, $$, esc, fmtUSD, norm } from '../util.js';
+import { $, $$, esc, fmtUSD, norm, openPicker } from '../util.js';
 import { state, game } from './store.js';
-import { printTile, openPrintSheet, money } from './ui.js';
+import { printTile, openPrintSheet, openSheet, money } from './ui.js';
 
 const ui = { by: 'set', setId: '', rarity: '', show: 'missing', q: '', rar: '', treat: '', sort: 'num' };
 const bestUSD = (p) => {
@@ -47,11 +47,20 @@ async function renderSetPicker(root, body) {
   // Sets you have cards from first.
   const mine = new Set(state.items.filter((it) => it.status === 'held').map((it) => (game.id === 'mtg' ? String(it.setCode || '').toLowerCase() : it.setName)));
   if (!ui.setId || !sets.some((x) => x.id === ui.setId)) ui.setId = (sets.find((x) => mine.has(x.id)) || sets[0]).id;
-  const opt = (x) => `<option value="${esc(x.id)}" ${x.id === ui.setId ? 'selected' : ''}>${esc(x.name)}${x.code ? ` · ${esc(x.code)}` : ''} (${x.count})</option>`;
-  const own = sets.filter((x) => mine.has(x.id));
-  box.innerHTML = `<label class="field"><span>${game.id === 'mtg' ? 'Expansión' : 'Set'}</span><select class="input setpick">${own.length ? `<optgroup label="Con cartas en tu vault">${own.map(opt).join('')}</optgroup><optgroup label="Todas (más recientes primero)">` : ''}${sets.map(opt).join('')}${own.length ? '</optgroup>' : ''}</select></label>`;
-  $('.setpick', box).onchange = (e) => ((ui.setId = e.target.value), (ui.q = ''), (ui.rar = ''), (ui.treat = ''), renderFaltantes(root));
   const set = sets.find((x) => x.id === ui.setId);
+  // A searchable list (Yu-Gi-Oh has 1.000+ sets): by name or code, the ones you have cards from first.
+  const word = game.id === 'mtg' ? 'expansión' : 'set';
+  box.innerHTML = `<div class="field"><span>${game.id === 'mtg' ? 'Expansión' : 'Set'}</span><button class="input picker-btn setpick" aria-haspopup="dialog"><b>${esc(set.name)}</b><small>${[set.code, `${set.count} carta${set.count === 1 ? '' : 's'}`, set.date?.slice(0, 4)].filter(Boolean).map(esc).join(' · ')}</small><em aria-hidden="true">▾</em></button></div>`;
+  const item = (x, group) => ({ id: x.id, label: x.name, sub: [x.code, `${x.count} carta${x.count === 1 ? '' : 's'}`, x.date?.slice(0, 4)].filter(Boolean).join(' · '), group });
+  $('.setpick', box).onclick = () =>
+    openPicker({
+      title: `Elegir ${word}`,
+      openSheet,
+      current: ui.setId,
+      placeholder: game.id === 'mtg' ? 'Buscar: nombre o código (ej: Duskmourn, DSK)' : 'Buscar: nombre o código (ej: Legend of Blue Eyes, LOB)',
+      items: [...sets.filter((x) => mine.has(x.id)).map((x) => item(x, 'Con cartas en tu vault')), ...sets.map((x) => item(x, 'Todas (más recientes primero)'))],
+      onPick: (id) => ((ui.setId = id), (ui.q = ''), (ui.rar = ''), (ui.treat = ''), renderFaltantes(root)),
+    });
   load(body, game.setCards(set.id), { title: set.name, sub: `${set.code || ''}${set.date ? ` · ${set.date.slice(0, 4)}` : ''}`, mode: 'set' });
 }
 
