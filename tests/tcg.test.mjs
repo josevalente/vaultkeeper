@@ -106,6 +106,26 @@ test('vaults: activar, contar y último abierto', () => {
   assert.equal(V.lastVault(), 'ygo');
 });
 
+test('primer inicio: nada elegido por defecto; los usuarios anteriores conservan lo suyo', () => {
+  const saved = { ...mem };
+  for (const k of Object.keys(mem)) delete mem[k];
+  assert.equal(V.choseVaults(), false, 'sin datos ni elección: se pregunta');
+  assert.deepEqual(V.enabledVaults(), [], 'ningún juego por defecto');
+  V.setEnabled(['ygo', 'mtg', 'ygo', 'inventado']);
+  assert.deepEqual(V.enabledVaults().map((v) => v.id), ['mtg', 'ygo'], 'solo los elegidos, sin Pokémon');
+  assert.equal(V.lastVault(), 'mtg');
+  // someone who used the app before the question: Pokémon + the games they had turned on
+  for (const k of Object.keys(mem)) delete mem[k];
+  mem['vaultkeeper:vaults'] = JSON.stringify(['ygo']);
+  assert.deepEqual(V.enabledVaults().map((v) => v.id), ['pokemon', 'ygo']);
+  for (const k of Object.keys(mem)) delete mem[k];
+  mem['vaultkeeper:v1'] = POKEMON;
+  assert.equal(V.choseVaults(), true, 'con cartas de Pokémon no se vuelve a preguntar');
+  assert.deepEqual(V.enabledVaults().map((v) => v.id), ['pokemon']);
+  for (const k of Object.keys(mem)) delete mem[k];
+  Object.assign(mem, saved);
+});
+
 test('lectura de códigos impresos', () => {
   assert.equal(GAMES.mtg.parseCode('123/286 R\nMKM • EN'), 'MKM 123');
   assert.equal(GAMES.ygo.parseCode('LOB-EN005'), 'LOB-EN005');

@@ -20,22 +20,41 @@
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Unbounded:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script>
-    // Opening the app (a new session) returns to the vault used last: Magic / Yu-Gi-Oh live in otros.html.
+    // Before the app starts: the first time, ask which card games to manage (elegir.html); later,
+    // open the vault used last. Pokémon is this page; the other games live in otros.html.
     try {
-      if (!sessionStorage.getItem('vk:session')) {
+      var ls = localStorage, j = function (k) { try { return JSON.parse(ls.getItem(k) || 'null'); } catch (e) { return null; } };
+      var idOf = function (k) { return k === 'vaultkeeper:v1' ? 'pokemon' : k.split(':')[1]; };
+      var withData = [];
+      for (var i = 0; i < ls.length; i++) {
+        var k = ls.key(i);
+        if (/^vaultkeeper:(v1|[a-z0-9]+:v1)$/.test(k)) { var s = j(k); if (s && s.items && s.items.length) withData.push(idOf(k)); }
+      }
+      var legacy = j('vaultkeeper:vaults');
+      var chosen = j('vaultkeeper:juegos') || (legacy ? ['pokemon'].concat(legacy) : null);
+      if (!chosen && !withData.length) location.replace('elegir.html');
+      else {
+        var on = (chosen || []).concat(withData), last = ls.getItem('vaultkeeper:lastVault');
+        var fresh = !sessionStorage.getItem('vk:session'), target = null;
         sessionStorage.setItem('vk:session', '1');
-        var v = localStorage.getItem('vaultkeeper:lastVault');
-        if (v === 'mtg' || v === 'ygo') location.replace('otros.html?juego=' + v);
+        var other = last && last !== 'pokemon' && on.indexOf(last) >= 0 ? last : null;
+        // Pokémon not chosen: never stay here (except for the shared Ajustes).
+        if (on.indexOf('pokemon') < 0 && location.hash.indexOf('#/ajustes') !== 0) target = other || on[0];
+        else if (fresh) target = other;
+        if (target && target !== 'pokemon') location.replace('otros.html?juego=' + target);
       }
     } catch (e) {}
   </script>
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="#/inicio" aria-label="VaultKeeper inicio">
-      <img src="icons/favicon.png" alt="" width="28" height="28">
-      <span>Vault<em>Keeper</em></span>
-    </a>
+    <div class="brand-row">
+      <a class="brand" href="#/inicio" aria-label="VaultKeeper inicio">
+        <img src="icons/favicon.png" alt="" width="28" height="28">
+        <span>Vault<em>Keeper</em></span>
+      </a>
+      <button class="vault-pill" type="button"></button>
+    </div>
     <div class="top-right">
       <span class="fxchip" title="Tipo de cambio usado">US$1 = $—</span>
       <span class="offline-dot" title="Sin conexión">sin red</span>

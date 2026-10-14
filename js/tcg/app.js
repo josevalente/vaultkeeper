@@ -7,7 +7,7 @@ import { gameById } from './games.js';
 import { openVault, state, onChange, settings, usdclp, summary, sellRanking, refreshPrices, refreshFx, itemValueUSD, itemGain, exportVault, importVault } from './store.js';
 import { openSearch, openPrintSheet, openItemSheet, openSellForm, openSheet, itemTile, money, pctClass, disp } from './ui.js';
 import { readCard } from './scan.js';
-import { vaultListHTML, wireVaultList, setLastVault } from '../vaults.js';
+import { vaultListHTML, wireVaultList, setLastVault, paintVaultPill } from '../vaults.js';
 
 const g = gameById(new URLSearchParams(location.search).get('juego'));
 if (!g) {
@@ -17,7 +17,8 @@ if (!g) {
 openVault(g);
 setLastVault(g.id);
 document.title = `VaultKeeper · ${g.short}`;
-$('.brand-game').textContent = g.short;
+paintVaultPill($('.vault-pill'), g.id);
+$('.vault-pill').onclick = () => openVaultSheet();
 
 const view = $('#view');
 let current = null, range = 'all';
@@ -39,7 +40,7 @@ function renderHome(root) {
           <ol class="steps">
             <li><b>Busca o escanea una carta</b> con el botón central: ves su precio TCGplayer en pesos${g.id === 'mtg' ? ' (normal y foil)' : ' por impresión'}.</li>
             <li><b>En la feria</b>, escribe cuánto piden: te digo si es ganga y cuánto pagar como máximo.</li>
-            <li><b>Registra la compra</b>: el valor, el gráfico y las recomendaciones se arman solos. Este vault es independiente del de Pokémon.</li>
+            <li><b>Registra la compra</b>: el valor, el gráfico y las recomendaciones se arman solos. Este vault es independiente de los otros juegos.</li>
           </ol>
           <button class="btn primary full go-search">Buscar mi primera carta</button></section>`
         : `<section class="hero rise">
@@ -178,6 +179,13 @@ function renderMas(root) {
       toast(`No pude importarlo: ${err.message}`, 'err');
     }
   };
+}
+
+function openVaultSheet() {
+  const body = document.createElement('div');
+  const paint = () => ((body.innerHTML = vaultListHTML(g.id)), wireVaultList(body, g.id, { onToggle: paint }));
+  paint();
+  openSheet({ title: 'Vaults', body });
 }
 
 // ───────────────────────── router, scanner, prices

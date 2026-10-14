@@ -14,6 +14,8 @@ import { renderLote } from './views/lote.js';
 import { renderReporte } from './views/reporte.js';
 import { renderMas } from './views/mas.js';
 import { renderEventos } from './views/eventos.js';
+import { openVaults } from './views/mas.js';
+import { paintVaultPill } from './vaults.js';
 
 const ROUTES = {
   inicio: renderHome,
@@ -130,6 +132,9 @@ actions.refreshPrices = refreshPrices;
 // ───────────────────────── boot
 
 $('.scan-fab').onclick = () => scanFlow({ title: 'Escanear carta', onPick: (c) => openCardSheet(c.id) });
+// Which vault you're in, always visible in the header (tap = switch).
+paintVaultPill($('.vault-pill'), 'pokemon');
+$('.vault-pill').onclick = () => openVaults();
 
 // "Volver arriba": appears after scrolling about two screens; sits above the sticky totals
 // bar of Lote/Intercambio when there is one.

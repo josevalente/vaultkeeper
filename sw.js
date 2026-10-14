@@ -1,9 +1,9 @@
 // VaultKeeper service worker: works offline at the feria with the last saved data.
-const VERSION = 'vk-v18';
+const VERSION = 'vk-v19';
 const SHELL = [
-  './', 'index.html', 'otros.html', 'styles.css', 'manifest.webmanifest',
+  './', 'index.html', 'otros.html', 'elegir.html', 'styles.css', 'manifest.webmanifest',
   'js/app.js', 'js/util.js', 'js/store.js', 'js/api.js', 'js/fx.js', 'js/scan.js', 'js/chart.js', 'js/rarity.js', 'js/ui.js',
-  'js/views/home.js', 'js/views/collection.js', 'js/views/checklist.js', 'js/views/trade.js', 'js/views/settings.js', 'js/views/lote.js', 'js/views/reporte.js', 'js/views/mas.js', 'js/views/eventos.js', 'js/backup.js', 'js/salelist.js', 'js/vaults.js',
+  'js/views/home.js', 'js/views/collection.js', 'js/views/checklist.js', 'js/views/trade.js', 'js/views/settings.js', 'js/views/lote.js', 'js/views/reporte.js', 'js/views/mas.js', 'js/views/eventos.js', 'js/backup.js', 'js/salelist.js', 'js/vaults.js', 'js/elegir.js',
   'js/tcg/app.js', 'js/tcg/games.js', 'js/tcg/store.js', 'js/tcg/ui.js', 'js/tcg/scan.js',
   'icons/favicon.png', 'icons/icon-192.png', 'icons/apple-touch-icon.png', 'icons/card-back.svg',
 ];

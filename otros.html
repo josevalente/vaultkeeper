@@ -19,16 +19,31 @@
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Unbounded:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script>
-    try { sessionStorage.setItem('vk:session', '1'); } catch (e) {}
+    // Nothing chosen yet and no cards anywhere: ask first (elegir.html).
+    try {
+      var ls = localStorage, j = function (k) { try { return JSON.parse(ls.getItem(k) || 'null'); } catch (e) { return null; } };
+      var idOf = function (k) { return k === 'vaultkeeper:v1' ? 'pokemon' : k.split(':')[1]; };
+      var withData = [];
+      for (var i = 0; i < ls.length; i++) {
+        var k = ls.key(i);
+        if (/^vaultkeeper:(v1|[a-z0-9]+:v1)$/.test(k)) { var s = j(k); if (s && s.items && s.items.length) withData.push(idOf(k)); }
+      }
+      var legacy = j('vaultkeeper:vaults');
+      var chosen = j('vaultkeeper:juegos') || (legacy ? ['pokemon'].concat(legacy) : null);
+      if (!chosen && !withData.length) location.replace('elegir.html');
+      sessionStorage.setItem('vk:session', '1');
+    } catch (e) {}
   </script>
 </head>
 <body class="tcg">
   <header class="topbar">
-    <a class="brand" href="#/inicio" aria-label="VaultKeeper inicio">
-      <img src="icons/favicon.png" alt="" width="28" height="28">
-      <span>Vault<em>Keeper</em></span>
-      <b class="brand-game"></b>
-    </a>
+    <div class="brand-row">
+      <a class="brand" href="#/inicio" aria-label="VaultKeeper inicio">
+        <img src="icons/favicon.png" alt="" width="28" height="28">
+        <span>Vault<em>Keeper</em></span>
+      </a>
+      <button class="vault-pill" type="button"></button>
+    </div>
     <div class="top-right">
       <span class="fxchip" title="Tipo de cambio usado">US$1 = $—</span>
       <span class="offline-dot" title="Sin conexión">sin red</span>
