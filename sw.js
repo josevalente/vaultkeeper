@@ -1,5 +1,5 @@
 // VaultKeeper service worker: works offline at the feria with the last saved data.
-const VERSION = 'vk-v19';
+const VERSION = 'vk-v20';
 const SHELL = [
   './', 'index.html', 'otros.html', 'elegir.html', 'styles.css', 'manifest.webmanifest',
   'js/app.js', 'js/util.js', 'js/store.js', 'js/api.js', 'js/fx.js', 'js/scan.js', 'js/chart.js', 'js/rarity.js', 'js/ui.js',
@@ -37,10 +37,20 @@ const fromCache = (res) => {
   return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
 };
 
+// Each page answers with itself (otros.html?juego=mtg → otros.html, elegir.html → elegir.html);
+// index.html only for a page that isn't cached (offline, unknown path).
 const shellFirst = async (req) => {
   const cache = await caches.open(VERSION);
-  const hit = await cache.match(req.mode === 'navigate' ? new URL('index.html', self.registration.scope).href : req, { ignoreSearch: true });
-  return hit || fetch(req);
+  const hit = await cache.match(req, { ignoreSearch: true });
+  if (hit) return hit;
+  if (req.mode === 'navigate') {
+    try {
+      return await fetch(req);
+    } catch {
+      return (await cache.match(new URL('index.html', self.registration.scope).href)) || Response.error();
+    }
+  }
+  return fetch(req);
 };
 
 const cacheFirst = async (req, name) => {
