@@ -1,6 +1,6 @@
 // Shared UI: bottom sheets, card tiles, card detail, buy/sell forms, search, scan flow.
 
-import { h, esc, $, $$, fmtCLP, roundCLP, fmtUSD, fmtPct, fmtDate, localDate, parseAmount, toast, debounce, timeAgo } from './util.js';
+import { h, esc, $, $$, swipeToClose, openImageViewer, fmtCLP, roundCLP, fmtUSD, fmtPct, fmtDate, localDate, parseAmount, toast, debounce, timeAgo } from './util.js';
 import { state, save, addItems, recordExit, removeItem, snapshot, ownedCount, marketUSD, priceOf, itemGain, feeNow, fixedNow, setPrice, pushHist, dealVerdict, defaultPurpose, toUSD, toCLP, itemValueUSD, maxPayUSD, CONDITIONS, GRADERS, condFactor, channelById, netOfChannel, knownEvents, rememberEvent, todayEvent, canonicalEvent, eventKey, setExitEvent } from './store.js';
 import { getCard, img, variantLabel, tcgplayerUrl, searchByName, findByNumber, getHistory, searchCatalog } from './api.js';
 import { renderPriceChart } from './chart.js';
@@ -46,6 +46,7 @@ export function openSheet({ title, body, onClose, cls = '' }) {
   };
   $('.close', wrap).onclick = close;
   $('.sheet-backdrop', wrap).onclick = close;
+  swipeToClose(wrap, close);
   return { wrap, body: bodyEl, close };
 }
 
@@ -110,17 +111,18 @@ export function rarityChip(r, { active = false, count = null } = {}) {
 
 // ───────────────────────── scan → pick a card
 
-export async function scanFlow({ onPick, title, burst = false, onBurst } = {}) {
+// stay: the picked card is only being looked at, so the search/candidates stay open under it.
+export async function scanFlow({ onPick, title, burst = false, onBurst, stay = false } = {}) {
   const r = await openScanner({ title, burst });
   if (!r) return;
-  if (r.manual) return openSearch({ onPick });
+  if (r.manual) return openSearch({ onPick, stay });
   if (r.burst) return onBurst?.(r.burst);
   const { info, cands } = r;
   if (cands.length === 1 && cands[0].number && info.number && !info.uncertain) return onPick(cands[0]);
-  openCandidates(r, onPick);
+  openCandidates(r, onPick, stay);
 }
 
-function openCandidates({ info, cands, shot }, onPick) {
+function openCandidates({ info, cands, shot }, onPick, stay = false) {
   const read = [info.name, info.number && `${info.number}/${info.total || '?'}`].filter(Boolean).join(' · ');
   const noKey = !state.settings.claudeKey;
   const body = h(`
@@ -140,7 +142,7 @@ function openCandidates({ info, cands, shot }, onPick) {
   body.addEventListener('click', (e) => {
     const t = e.target.closest('.tile');
     if (t) {
-      s.close();
+      if (!stay) s.close();
       onPick(cands.find((c) => c.id === t.dataset.id));
     }
   });
@@ -161,7 +163,7 @@ const SEARCH_KINDS = [
 ];
 let lastSearchKind = 'en';
 
-export function openSearch({ onPick, initial = '', title = 'Buscar carta', kind } = {}) {
+export function openSearch({ onPick, initial = '', title = 'Buscar carta', kind, stay = false } = {}) {
   let k = kind || lastSearchKind;
   const body = h(`
     <div>
@@ -199,7 +201,7 @@ export function openSearch({ onPick, initial = '', title = 'Buscar carta', kind 
       results.onclick = (e) => {
         const t = e.target.closest('.tile');
         if (!t) return;
-        s.close();
+        if (!stay) s.close();
         onPick(list.find((c) => c.id === t.dataset.id));
       };
     } catch (e) {
@@ -329,8 +331,9 @@ export async function openCardSheet(cardId, { onPick, pickLabel = 'Agregar al in
 
   body.innerHTML = `
     <div class="cd-top">
-      <img class="cd-img" src="${esc(img(card.image, 'high'))}" alt="${esc(card.name)}" onerror="this.src='icons/card-back.svg'">
+      <button class="cd-zoom" aria-label="Ver la imagen en grande"><img class="cd-img" src="${esc(img(card.image, 'high'))}" alt="${esc(card.name)}" onerror="this.src='icons/card-back.svg'"><span class="zoom-hint" aria-hidden="true">⤢</span></button>
       <div class="cd-info">
+        <button class="heart-btn ${inWish ? 'on' : ''}" aria-pressed="${inWish}" aria-label="${inWish ? 'Quitar de la wishlist' : 'Agregar a la wishlist'}">${inWish ? '♥' : '♡'}</button>
         <h3>${esc(card.name)}</h3>
         <div class="muted">${esc(card.setName)}${card.number ? ` · ${esc(card.number)}/${esc(card.total ?? '?')}` : ''}</div>
         ${kindPill(card)}
@@ -421,13 +424,24 @@ export async function openCardSheet(cardId, { onPick, pickLabel = 'Agregar al in
     renderVerdict();
   }));
 
-  $('.wish', body).onclick = (e) => {
+  // Wishlist: the heart next to the card and the button below do the same.
+  const toggleWish = () => {
     if (state.wishlist[card.id]) delete state.wishlist[card.id];
     else state.wishlist[card.id] = { id: card.id, name: card.name, setName: card.setName, number: card.number, total: card.total, rarity: card.rarity, image: card.image, kind: card.kind, lang: card.lang, addedAt: Date.now() };
     save({ silent: true });
-    e.target.textContent = state.wishlist[card.id] ? '♥ En wishlist' : '♡ Wishlist';
-    $('.wish-target', body).hidden = !state.wishlist[card.id];
+    const on = !!state.wishlist[card.id];
+    $('.wish', body).textContent = on ? '♥ En wishlist' : '♡ Wishlist';
+    const heart = $('.heart-btn', body);
+    heart.textContent = on ? '♥' : '♡';
+    heart.classList.toggle('on', on);
+    heart.setAttribute('aria-pressed', String(on));
+    heart.setAttribute('aria-label', on ? 'Quitar de la wishlist' : 'Agregar a la wishlist');
+    $('.wish-target', body).hidden = !on;
+    toast(on ? 'Agregada a tu wishlist ♥' : 'Quitada de tu wishlist');
   };
+  $('.wish', body).onclick = toggleWish;
+  $('.heart-btn', body).onclick = toggleWish;
+  $('.cd-zoom', body).onclick = () => openImageViewer(img(card.image, 'full'), card.name);
   $('.target', body).onchange = (e) => {
     const w = state.wishlist[card.id];
     if (!w) return;
@@ -621,7 +635,7 @@ export function openItemSheet(item) {
   const body = h(`
     <div class="card-detail">
       <div class="cd-top">
-        <img class="cd-img" src="${esc(img(item.image, 'high'))}" alt="${esc(item.name)}" onerror="this.src='icons/card-back.svg'">
+        <button class="cd-zoom" aria-label="Ver la imagen en grande"><img class="cd-img" src="${esc(img(item.image, 'high'))}" alt="${esc(item.name)}" onerror="this.src='icons/card-back.svg'"><span class="zoom-hint" aria-hidden="true">⤢</span></button>
         <div class="cd-info">
           <h3>${esc(item.name)}</h3>
           <div class="muted">${esc(item.setName)}${item.number ? ` · ${esc(item.number)}/${esc(item.total ?? '?')}` : ''}</div>
@@ -650,6 +664,7 @@ export function openItemSheet(item) {
       </div>
     </div>`);
   const s = openSheet({ title: sold ? 'Carta vendida' : 'En tu vault', body, cls: 'tall' });
+  $('.cd-zoom', body).onclick = () => openImageViewer(img(item.image, 'full'), item.name);
   $('.editsale', body)?.addEventListener('click', () => (s.close(), openSellForm(item, { edit: true })));
   $('.editev', body)?.addEventListener('click', () => (s.close(), openExitEventForm(item)));
   $('.sell', body)?.addEventListener('click', () => (s.close(), openSellForm(item)));

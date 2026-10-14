@@ -14,8 +14,8 @@ export const PLACEHOLDER = 'icons/card-back.svg';
 // cards, sealed products) are stored as "tcgp:<productId>".
 export function img(image, q = 'low') {
   if (!image) return PLACEHOLDER;
-  if (image.startsWith('tcgp:')) return `https://tcgplayer-cdn.tcgplayer.com/product/${image.slice(5)}_${q === 'high' ? '400w' : '200w'}.jpg`;
-  return `${image}/${q}.webp`;
+  if (image.startsWith('tcgp:')) return `https://tcgplayer-cdn.tcgplayer.com/product/${image.slice(5)}_${q === 'full' ? 'in_1000x1000' : q === 'high' ? '400w' : '200w'}.jpg`;
+  return `${image}/${q === 'full' ? 'high' : q}.webp`;
 }
 
 export function variantLabel(k) {

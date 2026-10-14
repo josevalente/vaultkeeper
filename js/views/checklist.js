@@ -4,11 +4,12 @@
 import { esc, $, $$, fmtUSD, fmtCLP, pool, norm } from '../util.js';
 import { state } from '../store.js';
 import { RARITIES, rarityByKey, raritySymbol } from '../rarity.js';
-import { listByRarity, cachedQuickPrice, quickPrice } from '../api.js';
+import { listByRarity, cachedQuickPrice, quickPrice, getSets, setCards } from '../api.js';
 import { cardTile, openCardSheet, openSearch, money } from '../ui.js';
 
 const FEATURED = ['illus', 'sir', 'hyper', 'mega', 'ultra', 'shinyultra', 'shiny', 'double', 'ace', 'futur', 'classic', 'pika', 'promo'];
-const ui = { rarity: 'illus', set: 'all', show: 'missing', sort: 'set', q: '' };
+// by: 'rareza' (default, as before) or 'set' (one expansion, every card in it).
+const ui = { rarity: 'illus', set: 'all', show: 'missing', sort: 'set', q: '', by: 'rareza', setId: '' };
 
 // Search inside the rarity list: by name ("totodile") and/or number ("048", "48", "048/089").
 const numKey = (s) => String(s || '').split('/')[0].replace(/^0+(?=\d)/, '').toUpperCase();
@@ -22,11 +23,13 @@ const lists = new Map();
 let loadingPrices = false;
 
 export function renderChecklist(root) {
+  if (ui.by === 'set') return renderBySet(root);
   const r = rarityByKey(ui.rarity);
   root.innerHTML = `
     <div class="view-head rise">
       <h1>Faltantes</h1>
       <p class="muted">Elige una rareza: te muestro todas las cartas que existen con ella, cuáles tienes y cuáles te faltan.</p>
+      ${bySelect()}
     </div>
     <div class="rgrid rise" style="--d:1">
       ${FEATURED.map((k) => {
@@ -37,6 +40,7 @@ export function renderChecklist(root) {
     </div>
     <div class="cl-body rise" style="--d:2"></div>`;
 
+  wireBy(root);
   $$('.rcard', root).forEach((b) => (b.onclick = () => {
     if (b.dataset.wish) ui.show = 'wish';
     else {
@@ -58,6 +62,57 @@ export function renderChecklist(root) {
       if (ui.rarity === r.key) renderList(body, r, list);
     })
     .catch(() => (body.innerHTML = `<div class="empty"><p>No pude cargar la lista. Revisa tu conexión.</p></div>`));
+}
+
+// "Ver por": rarity (as always) or one expansion.
+const bySelect = () => `<label class="by-row"><span>Ver por</span><select class="input small bysel"><option value="rareza" ${ui.by === 'rareza' ? 'selected' : ''}>Rareza</option><option value="set" ${ui.by === 'set' ? 'selected' : ''}>Expansión / set</option></select></label>`;
+function wireBy(root) {
+  $('.bysel', root).onchange = (e) => {
+    ui.by = e.target.value;
+    ui.q = '';
+    if (ui.show === 'wish') ui.show = 'missing';
+    renderChecklist(root);
+  };
+}
+
+// One expansion: every card in it (all rarities), which you have and what the rest costs.
+async function renderBySet(root) {
+  root.innerHTML = `
+    <div class="view-head rise">
+      <h1>Faltantes</h1>
+      <p class="muted">Elige una expansión: te muestro todas sus cartas, cuáles tienes y cuáles te faltan.</p>
+      ${bySelect()}
+    </div>
+    <div class="cl-sets rise" style="--d:1"><div class="loading">Cargando expansiones…</div></div>
+    <div class="cl-body rise" style="--d:2"></div>`;
+  wireBy(root);
+  const box = $('.cl-sets', root), body = $('.cl-body', root);
+  let sets;
+  try {
+    sets = (await getSets()).slice().sort((a, b) => b.idx - a.idx);
+  } catch {
+    box.innerHTML = '<div class="empty"><p>No pude cargar las expansiones. Revisa tu conexión.</p></div>';
+    return;
+  }
+  if (!root.isConnected) return;
+  // The ones you have cards from first, then all of them (newest first).
+  const mine = new Set(state.items.filter((it) => it.status === 'held').map((it) => String(it.cardId).slice(0, String(it.cardId).lastIndexOf('-'))));
+  if (!ui.setId || !sets.some((s) => s.id === ui.setId)) ui.setId = (sets.find((s) => mine.has(s.id)) || sets[0]).id;
+  const opt = (s) => `<option value="${esc(s.id)}" ${s.id === ui.setId ? 'selected' : ''}>${esc(s.name)}${s.total ? ` (${s.total})` : ''}</option>`;
+  const own = sets.filter((s) => mine.has(s.id));
+  box.innerHTML = `<label class="field"><span>Expansión</span><select class="input setpick">${own.length ? `<optgroup label="Con cartas en tu vault">${own.map(opt).join('')}</optgroup><optgroup label="Todas">` : ''}${sets.map(opt).join('')}${own.length ? '</optgroup>' : ''}</select></label>`;
+  $('.setpick', box).onchange = (e) => ((ui.setId = e.target.value), (ui.q = ''), renderBySet(root));
+  const set = sets.find((s) => s.id === ui.setId);
+  const r = { key: 'set', label: set.name, api: null, logo: set.logo };
+  const key = 'set:' + set.id;
+  if (lists.has(key)) return renderList(body, r, lists.get(key));
+  body.innerHTML = `<div class="loading">Cargando las cartas de ${esc(set.name)}…</div>`;
+  setCards(set.id)
+    .then((list) => {
+      lists.set(key, list);
+      if (ui.by === 'set' && ui.setId === set.id && body.isConnected) renderList(body, r, list);
+    })
+    .catch(() => (body.innerHTML = `<div class="empty"><p>No pude cargar esa expansión. Revisa tu conexión.</p></div>`));
 }
 
 function ownedIds() {
@@ -98,14 +153,14 @@ function renderList(body, r, full) {
 
   body.innerHTML = `
     <div class="progress-card">
-      <div class="pc-top">${raritySymbol(r.key, 30)}<div><b>${esc(r.label)}</b><span class="muted small">${ui.set === 'all' ? `${setList.length} expansiones` : esc(sets.get(ui.set).name)}</span></div></div>
+      <div class="pc-top">${r.key === 'set' ? (r.logo ? `<img class="pc-logo" src="${esc(r.logo)}.png" alt="" onerror="this.remove()">` : '') : raritySymbol(r.key, 30)}<div><b>${esc(r.label)}</b><span class="muted small">${r.key === 'set' ? `${full.length} cartas en la expansión` : ui.set === 'all' ? `${setList.length} expansiones` : esc(sets.get(ui.set).name)}</span></div></div>
       <div class="pc-num"><b>${have}</b> / ${scope.length}<span>${Math.round(pct * 100)}%</span></div>
       <div class="bar"><i style="width:${(pct * 100).toFixed(1)}%"></i></div>
       <div class="muted small">Te faltan ${missingScope.length}${priced.length ? ` · completar costaría ~${money(priced.reduce((a, b) => a + b, 0))}${priced.length < missingScope.length ? ` (${priced.length} con precio)` : ''}` : ''}</div>
     </div>
     <input class="input cl-search" type="search" placeholder="Buscar por nombre o número (ej: Totodile, 048)" value="${esc(ui.q)}" autocomplete="off" aria-label="Buscar en ${esc(r.label)}">
     <div class="filter-row">
-      <select class="input setsel small">
+      <select class="input setsel small" ${r.key === 'set' ? 'hidden' : ''}>
         <option value="all">Todas las expansiones (${full.length})</option>
         ${setList.map((s) => `<option value="${esc(s.id)}" ${ui.set === s.id ? 'selected' : ''}>${esc(s.name)} — ${s.have}/${s.n}</option>`).join('')}
       </select>
@@ -115,7 +170,7 @@ function renderList(body, r, full) {
         <button data-s="all" class="${ui.show === 'all' ? 'on' : ''}">Todas</button>
       </div>
       <select class="input sortsel small">
-        ${[['set', 'Expansión (reciente)'], ['priceAsc', 'Más baratas primero'], ['priceDesc', 'Más caras primero'], ['name', 'Nombre']].map(([k, l]) => `<option value="${k}" ${ui.sort === k ? 'selected' : ''}>${l}</option>`).join('')}
+        ${[['set', r.key === 'set' ? 'Número' : 'Expansión (reciente)'], ['priceAsc', 'Más baratas primero'], ['priceDesc', 'Más caras primero'], ['name', 'Nombre']].map(([k, l]) => `<option value="${k}" ${ui.sort === k ? 'selected' : ''}>${l}</option>`).join('')}
       </select>
     </div>
     ${unpriced ? `<button class="btn ghost full loadp">${loadingPrices ? 'Cargando precios…' : `Cargar precios de ${unpriced} carta${unpriced === 1 ? '' : 's'}`}</button>` : ''}
@@ -140,7 +195,7 @@ function renderList(body, r, full) {
     s2.setSelectionRange(pos, pos);
   };
   $('.widen', body)?.addEventListener('click', () => ((ui.set = 'all'), (ui.show = 'all'), renderList(body, r, full)));
-  $('.anyr', body)?.addEventListener('click', () => openSearch({ onPick: (c) => openCardSheet(c.id), initial: ui.q }));
+  $('.anyr', body)?.addEventListener('click', () => openSearch({ onPick: (c) => openCardSheet(c.id), initial: ui.q, stay: true }));
 
   $('.setsel', body).onchange = (e) => ((ui.set = e.target.value), renderList(body, r, full));
   $('.sortsel', body).onchange = (e) => ((ui.sort = e.target.value), renderList(body, r, full));
@@ -173,7 +228,7 @@ function tile(c, owned) {
   const p = cachedQuickPrice(c.id);
   const wish = !!state.wishlist[c.id];
   const badge = has ? `<span class="badge have">✓</span>` : wish ? `<span class="badge wish">♥</span>` : '';
-  return cardTile({ ...c, rarity: rarityByKey(ui.rarity).api }, { dim: !has, badge, extra: `<div class="tile-val"><b>${p != null ? money(p) : '·'}</b></div>` });
+  return cardTile({ ...c, rarity: ui.by === 'set' ? c.rarity : rarityByKey(ui.rarity).api }, { dim: !has, badge, extra: `<div class="tile-val"><b>${p != null ? money(p) : '·'}</b></div>` });
 }
 
 function renderWish(body) {

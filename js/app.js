@@ -14,6 +14,7 @@ import { renderLote } from './views/lote.js';
 import { renderReporte } from './views/reporte.js';
 import { renderMas } from './views/mas.js';
 import { renderEventos } from './views/eventos.js';
+import { renderInventario } from './views/inventario.js';
 import { openVaults } from './views/mas.js';
 import { paintVaultPill, vaultById, goToVault } from './vaults.js';
 
@@ -27,16 +28,17 @@ const ROUTES = {
   reporte: renderReporte,
   mas: renderMas,
   eventos: renderEventos,
+  inventario: renderInventario,
 };
 // Sections reached from "Más" keep that tab highlighted.
-const TAB_OF = { lote: 'mas', intercambio: 'mas', reporte: 'mas', ajustes: 'mas', eventos: 'mas' };
+const TAB_OF = { lote: 'mas', intercambio: 'mas', reporte: 'mas', ajustes: 'mas', eventos: 'mas', inventario: 'mas' };
 
 const view = $('#view');
 let current = null;
 
 // Sections opened from Más (or the gear) have no tab of their own: they get a "‹ back" button to
 // where you came from (the installed app on iPhone has no browser back button).
-const TITLES = { inicio: 'Inicio', coleccion: 'Colección', faltantes: 'Faltantes', mas: 'Más', lote: 'Lote', intercambio: 'Intercambio', reporte: 'Reporte', eventos: 'Eventos', ajustes: 'Ajustes' };
+const TITLES = { inicio: 'Inicio', coleccion: 'Colección', faltantes: 'Faltantes', mas: 'Más', lote: 'Lote', intercambio: 'Intercambio', reporte: 'Reporte', eventos: 'Eventos', ajustes: 'Ajustes', inventario: 'Subir inventario' };
 let backTo = 'mas';
 
 function route() {
@@ -149,7 +151,7 @@ actions.refreshPrices = refreshPrices;
 
 // ───────────────────────── boot
 
-$('.scan-fab').onclick = () => scanFlow({ title: 'Escanear carta', onPick: (c) => openCardSheet(c.id) });
+$('.scan-fab').onclick = () => scanFlow({ title: 'Escanear carta', onPick: (c) => openCardSheet(c.id), stay: true });
 // Which vault you're in, always visible in the header (tap = switch).
 paintVaultPill($('.vault-pill'), 'pokemon');
 $('.vault-pill').onclick = () => openVaults();

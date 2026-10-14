@@ -60,7 +60,20 @@ export function renderHome(root) {
 
   const firstRun = !state.items.length && !state.history.length;
   root.innerHTML = `
-    ${notices.join('')}
+    ${firstRun ? '' : `<section class="hero rise">
+      <div class="hero-label">Valor del vault</div>
+      <div class="hero-value">${F.f(F.value)}</div>
+      <div class="hero-alt">${F.alt} · ${s.n} ítem${s.n === 1 ? '' : 's'}</div>
+      <div class="hero-stats">
+        <div><span>Invertido</span><b>${F.f(F.cost)}</b></div>
+        <div><span>Ganancia</span><b class="${pctClass(F.gain)}">${arrow(F.gain)} ${F.f(F.gain, { sign: true })}<small>${fmtPct(F.pct)}</small></b></div>
+        <div><span>Realizada neta</span><b class="${pctClass(F.real)}">${F.f(F.real, { sign: true })}<small>${s.exits} venta${s.exits === 1 ? '' : 's'}${s.expensesCLP ? ` · gastos ${F.f(F.exp)}` : ''}</small></b></div>
+      </div>
+      <div class="hero-foot">
+        <span>${state.lastRefresh ? `Precios TCGplayer ${timeAgo(state.lastRefresh)}` : "Precios TCGplayer: se actualizan solos"}${s.missing ? ` · ${s.missing} sin precio` : ''}</span>
+        <button class="link refresh">Actualizar ↻</button>
+      </div>
+    </section>`}
     ${
       firstRun
         ? `<section class="panel welcome rise"><h2>Bienvenido a VaultKeeper</h2>
@@ -83,20 +96,8 @@ export function renderHome(root) {
             .join('')}${alerts.length > 6 ? `<p class="muted tiny">y ${alerts.length - 6} más…</p>` : ''}</section>`
         : ''
     }
-    ${firstRun ? '' : `<section class="hero rise">
-      <div class="hero-label">Valor del vault</div>
-      <div class="hero-value">${F.f(F.value)}</div>
-      <div class="hero-alt">${F.alt} · ${s.n} ítem${s.n === 1 ? '' : 's'}</div>
-      <div class="hero-stats">
-        <div><span>Invertido</span><b>${F.f(F.cost)}</b></div>
-        <div><span>Ganancia</span><b class="${pctClass(F.gain)}">${arrow(F.gain)} ${F.f(F.gain, { sign: true })}<small>${fmtPct(F.pct)}</small></b></div>
-        <div><span>Realizada neta</span><b class="${pctClass(F.real)}">${F.f(F.real, { sign: true })}<small>${s.exits} venta${s.exits === 1 ? '' : 's'}${s.expensesCLP ? ` · gastos ${F.f(F.exp)}` : ''}</small></b></div>
-      </div>
-      <div class="hero-foot">
-        <span>${state.lastRefresh ? `Precios TCGplayer ${timeAgo(state.lastRefresh)}` : "Precios TCGplayer: se actualizan solos"}${s.missing ? ` · ${s.missing} sin precio` : ''}</span>
-        <button class="link refresh">Actualizar ↻</button>
-      </div>
-    </section>`}
+
+    ${notices.join('')}
 
     <section class="quick rise" style="--d:1">
       <button class="qa scan"><span class="qa-ico">◎</span><b>Evaluar en feria</b><small>Foto → precio y veredicto</small></button>
@@ -127,7 +128,7 @@ export function renderHome(root) {
 
   fitAmounts(root);
   document.fonts?.ready.then(() => root.isConnected && fitAmounts(root)); // widths change once the font loads
-  $('.start-scan', root)?.addEventListener('click', () => scanFlow({ title: 'Escanear carta', onPick: (c) => openCardSheet(c.id) }));
+  $('.start-scan', root)?.addEventListener('click', () => scanFlow({ title: 'Escanear carta', onPick: (c) => openCardSheet(c.id), stay: true }));
   const pts = chartPoints();
   const box = $('.chart-box', root);
   if (box && pts.length) {
@@ -162,8 +163,8 @@ export function renderHome(root) {
     if (it) openItemSheet(it);
     else openCardSheet(row.dataset.card);
   });
-  $('.scan', root).onclick = () => scanFlow({ title: 'Evaluar en feria', onPick: (c) => openCardSheet(c.id) });
-  $('.find', root).onclick = () => openSearch({ onPick: (c) => openCardSheet(c.id) });
+  $('.scan', root).onclick = () => scanFlow({ title: 'Evaluar en feria', onPick: (c) => openCardSheet(c.id), stay: true });
+  $('.find', root).onclick = () => openSearch({ onPick: (c) => openCardSheet(c.id), stay: true });
 
   $('.rank', root)?.addEventListener('click', (e) => {
     const row = e.target.closest('[data-item]');

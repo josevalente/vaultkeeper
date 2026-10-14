@@ -791,3 +791,45 @@ body.has-sheet .toast.show { transform: translate(-50%, 0); }
   body.offline .fxchip::after { content: ' ⚠'; }
   .vault-pill { padding: 5px 9px 5px 8px; font-size: 13px; }
 }
+
+/* ───────────── card picture: tap to see it full screen */
+.cd-zoom { position: relative; padding: 0; border: 0; background: none; border-radius: 10px; cursor: zoom-in; flex: none; align-self: flex-start; }
+.cd-zoom .zoom-hint { position: absolute; right: 6px; bottom: 6px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: rgba(0, 0, 0, 0.6); color: #fff; font-size: 15px; }
+.img-viewer { position: fixed; inset: 0; z-index: 200; background: rgba(5, 6, 10, 0.96); display: flex; flex-direction: column; opacity: 0; transition: opacity 0.2s; }
+.img-viewer.open { opacity: 1; }
+.iv-close { position: absolute; z-index: 2; top: calc(var(--safe-t) + 10px); right: 12px; background: rgba(255, 255, 255, 0.14); color: #fff; border-color: transparent; }
+.iv-scroll { flex: 1; overflow: auto; display: grid; place-items: center; padding: calc(var(--safe-t) + 56px) 12px calc(var(--safe-b) + 40px); -webkit-overflow-scrolling: touch; }
+.iv-scroll img { max-width: 100%; max-height: calc(100dvh - var(--safe-t) - var(--safe-b) - 110px); border-radius: 14px; object-fit: contain; touch-action: manipulation; }
+.img-viewer.zoom .iv-scroll { display: block; }
+.img-viewer.zoom .iv-scroll img { max-width: none; max-height: none; width: 230%; border-radius: 0; }
+.iv-hint { position: absolute; left: 0; right: 0; bottom: calc(var(--safe-b) + 12px); margin: 0; text-align: center; color: rgba(255, 255, 255, 0.7); font-size: 12.5px; pointer-events: none; }
+.img-viewer.zoom .iv-hint { display: none; }
+
+/* ───────────── wishlist heart next to the card */
+.cd-info { position: relative; padding-right: 46px; }
+.heart-btn { position: absolute; top: -4px; right: 0; width: 42px; height: 42px; border-radius: 50%; border: 1.5px solid var(--line-2); background: var(--surface-2); color: var(--muted); font-size: 22px; line-height: 1; display: grid; place-items: center; }
+.heart-btn.on { color: #f0567a; border-color: color-mix(in oklab, #f0567a 60%, transparent); background: color-mix(in oklab, #f0567a 14%, var(--surface-2)); }
+.heart-btn:active { transform: scale(0.92); }
+
+/* Faltantes: "Ver por" rarity or expansion */
+.by-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--text-2); }
+.by-row select { flex: 0 1 220px; }
+.cl-sets { margin-bottom: 12px; }
+.pc-logo { height: 34px; max-width: 110px; object-fit: contain; }
+
+/* QR of the sale list + public sale page (venta.html) */
+.qr-code { background: #fff; border-radius: 18px; padding: 10px; width: min(300px, 100%); margin: 4px auto 0; }
+.qr-code svg { display: block; width: 100%; height: auto; }
+.qr-cap { text-align: center; margin: 10px 0; }
+.venta-page { max-width: 720px; margin: 0 auto; padding: calc(var(--safe-t) + 22px) 16px calc(var(--safe-b) + 28px); display: flex; flex-direction: column; gap: 14px; }
+.venta-title { font-family: var(--display); font-size: 26px; margin: 0; }
+.venta-foot { font-weight: 700; text-align: center; padding: 12px; border-radius: 14px; background: var(--surface-2); }
+.venta-foot:empty { display: none; }
+.venta-credit { text-align: center; }
+
+/* Subir inventario */
+.inv-progress { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; font-size: 13px; }
+.inv-progress .bar { height: 6px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
+.inv-progress .bar i { display: block; height: 100%; background: var(--brass); transition: width 0.3s; }
+.warn-t { color: var(--warn); }
+.inv-cam, .inv-lib { cursor: pointer; }

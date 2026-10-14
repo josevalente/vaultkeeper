@@ -42,6 +42,9 @@ export function daysApart(a, b) {
   return Math.abs((new Date(a) - new Date(b)) / 86400000);
 }
 
+// Words too common in set names to identify one ("Black Star Promo", "Trainer Kit"…).
+const GENERIC = new Set(['promo', 'collection', 'black', 'trainer', 'series', 'edition', 'expansion', 'starter', 'battle', 'deck', 'theme', 'league', 'world', 'championship', 'championships', 'celebration', 'anniversary']);
+
 // Best TCGCSV group for a TCGdex set: release dates within 10 days, then name similarity.
 export function matchGroup(set, groups) {
   let best = null;
@@ -54,7 +57,11 @@ export function matchGroup(set, groups) {
     if (set.releaseDate && g.publishedOn && daysApart(set.releaseDate, g.publishedOn.slice(0, 10)) > window) continue;
     // Promo sets are named differently on each side ("MEP Black Star Promos" / "ME: Mega Evolution
     // Promo"); same release date + both promo is a strong enough signal.
-    const sim = jaccard(a, b) + (/\bpromo\b/.test(a) && /\bpromo\b/.test(b) ? 0.5 : 0);
+    let sim = jaccard(a, b) + (/\bpromo\b/.test(a) && /\bpromo\b/.test(b) ? 0.5 : 0);
+    // Released the same day (±3) and sharing a distinctive word: "McDonald's Collection 2021" is
+    // "McDonald's 25th Anniversary Promos" on TCGplayer.
+    const sameDay = set.releaseDate && g.publishedOn && daysApart(set.releaseDate, g.publishedOn.slice(0, 10)) <= 3;
+    if (sameDay && [...tokens(a)].some((t) => t.length >= 5 && !GENERIC.has(t) && tokens(b).has(t))) sim += 0.5;
     if (!best || sim > best.sim) best = { g, sim };
   }
   return best && best.sim >= 0.5 ? best.g : null;

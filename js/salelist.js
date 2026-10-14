@@ -6,6 +6,7 @@ import { state, save, held, itemValueUSD, suggestedAskCLP, setAsk } from './stor
 import { img } from './api.js';
 import { openSheet } from './ui.js';
 import { shareFile } from './backup.js';
+import { encodeSale, imageKey, saleURL } from './venta-link.js';
 
 export function openSaleList() {
   const list = held()
@@ -34,6 +35,7 @@ export function openSaleList() {
           : `<div class="empty"><p>No tienes cartas marcadas para reventa.</p></div>`
       }</div>
       <div class="btn-row"><button class="btn primary sl-img">Compartir imagen</button><button class="btn ghost sl-txt">Copiar texto</button></div>
+      <button class="btn ghost full sl-qr">▦ QR para compartir</button>
     </div>`);
   openSheet({ title: 'Lista de venta', body, cls: 'tall' });
 
@@ -64,6 +66,12 @@ export function openSaleList() {
     } catch {
       await shareFile(new File([txt], 'lista-de-venta.txt', { type: 'text/plain' }));
     }
+  };
+  $('.sl-qr', body).onclick = () => {
+    const rows = chosen();
+    remember();
+    if (!rows.length) return toast('Marca al menos una carta con precio', 'err');
+    openSaleQR(rows);
   };
   $('.sl-img', body).onclick = async (e) => {
     const rows = chosen();
@@ -147,3 +155,83 @@ async function renderImage(rows, suffix = '') {
   return new Promise((res) => c.toBlob(res, 'image/png'));
 }
 
+// ───────────────────────── QR: the buyer scans it and sees the list (venta.html)
+
+const QR_LIB = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
+let qrLib;
+const loadQR = () =>
+  (qrLib ||= new Promise((res, rej) => {
+    if (window.qrcode) return res(window.qrcode);
+    const sc = document.createElement('script');
+    sc.src = QR_LIB;
+    sc.onload = () => res(window.qrcode);
+    sc.onerror = () => ((qrLib = null), rej(new Error('necesito internet la primera vez para crear el QR')));
+    document.head.appendChild(sc);
+  }));
+
+export async function openSaleQR(rows) {
+  const data = {
+    t: state.settings.saleTitle || 'Cartas en venta',
+    f: state.settings.saleFoot || '',
+    d: new Date().toLocaleDateString('sv-SE'),
+    c: rows.map(({ it, p }) => [it.name, `${it.setName || ''}${it.number ? ` · ${it.number}` : ''}`, imageKey(it.image), Math.round(p), it.graded ? `${it.graded.co} ${it.graded.grade}` : it.condition || 'NM']),
+  };
+  const body = h(`<div class="qr-box"><div class="loading">Creando el QR…</div></div>`);
+  openSheet({ title: 'QR de la lista', body });
+  let url, qr;
+  try {
+    url = saleURL(await encodeSale(data));
+    const lib = await loadQR();
+    // A QR holds ~2.300 characters; past that it's too dense for a phone camera anyway.
+    if (url.length > 2300) throw new Error(`son demasiadas cartas para un QR (${rows.length}); marca menos o comparte la imagen`);
+    qr = lib(0, url.length > 1400 ? 'L' : 'M');
+    qr.addData(url);
+    qr.make();
+  } catch (err) {
+    body.innerHTML = `<div class="empty"><p>No pude crear el QR: ${esc(err.message)}.</p></div>`;
+    return;
+  }
+  body.innerHTML = `
+    <div class="qr-code" role="img" aria-label="Código QR de la lista de venta">${qr.createSvgTag({ cellSize: 6, margin: 3, scalable: true })}</div>
+    <p class="small qr-cap"><b>${esc(data.t)}</b><br>${rows.length} carta${rows.length === 1 ? '' : 's'} · quien lo escanee con la cámara ve las fotos y tus precios. No necesita la app.</p>
+    <div class="btn-row"><button class="btn primary qr-share">Compartir link</button><button class="btn ghost qr-copy">Copiar link</button></div>
+    <button class="btn ghost full qr-save">Guardar imagen del QR</button>
+    <p class="muted tiny">El link lleva la lista adentro: si cambias precios o cartas, crea un QR nuevo.</p>`;
+  $('.qr-share', body).onclick = async () => {
+    try {
+      if (navigator.share) return await navigator.share({ title: data.t, text: data.t, url });
+    } catch (e) {
+      if (e?.name === 'AbortError') return;
+    }
+    await navigator.clipboard?.writeText(url).catch(() => {});
+    toast('Link copiado', 'ok');
+  };
+  $('.qr-copy', body).onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast('Link copiado: pégalo en WhatsApp o Instagram', 'ok');
+    } catch {
+      toast('No pude copiarlo; usa Compartir link', 'err');
+    }
+  };
+  $('.qr-save', body).onclick = async () => {
+    const im = new Image();
+    im.src = qr.createDataURL(10, 4);
+    await im.decode().catch(() => {});
+    const c = document.createElement('canvas');
+    const pad = 40;
+    c.width = im.width + pad * 2;
+    c.height = im.height + pad * 2 + 70;
+    const x = c.getContext('2d');
+    x.fillStyle = '#fff';
+    x.fillRect(0, 0, c.width, c.height);
+    x.imageSmoothingEnabled = false;
+    x.drawImage(im, pad, pad);
+    x.fillStyle = '#111';
+    x.font = 'bold 28px sans-serif';
+    x.textAlign = 'center';
+    x.fillText(data.t.slice(0, 40), c.width / 2, c.height - 34);
+    const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
+    if (blob) await shareFile(new File([blob], 'qr-lista-de-venta.png', { type: 'image/png' }), { title: data.t });
+  };
+}

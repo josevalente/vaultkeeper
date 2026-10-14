@@ -181,3 +181,106 @@ export const norm = (s) =>
     .replace(/[^a-z0-9 ]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+
+// Sheets close with a downward swipe: from the header, or from the content when it's scrolled to
+// the top (so scrolling a long sheet never closes it by accident).
+export function swipeToClose(wrap, close) {
+  const sheet = wrap.querySelector('.sheet');
+  const body = wrap.querySelector('.sheet-body');
+  if (!sheet) return;
+  let y0 = null, x0 = 0, dy = 0, t0 = 0, dragging = false, fromHead = false;
+  sheet.addEventListener(
+    'touchstart',
+    (e) => {
+      if (e.touches.length !== 1) return (y0 = null);
+      fromHead = !!e.target.closest('.sheet-head');
+      // Inside horizontal scrollers or text fields the finger is doing something else.
+      if (!fromHead && (body.scrollTop > 0 || e.target.closest('input, textarea, select, .chips-scroll, .rgrid, .tv'))) return (y0 = null);
+      y0 = e.touches[0].clientY;
+      x0 = e.touches[0].clientX;
+      dy = 0;
+      t0 = Date.now();
+      dragging = false;
+    },
+    { passive: true }
+  );
+  sheet.addEventListener(
+    'touchmove',
+    (e) => {
+      if (y0 == null) return;
+      const d = e.touches[0].clientY - y0, dx = Math.abs(e.touches[0].clientX - x0);
+      if (!dragging) {
+        if (d < -4 || dx > 12) return (y0 = null); // scrolling up or sideways: not a close gesture
+        if (d < 10 || dx > d) return;
+        if (!fromHead && body.scrollTop > 0) return (y0 = null);
+        dragging = true;
+        sheet.style.transition = 'none';
+      }
+      dy = Math.max(0, d);
+      sheet.style.transform = `translateY(${dy}px)`;
+      if (e.cancelable) e.preventDefault();
+    },
+    { passive: false }
+  );
+  const end = () => {
+    if (y0 == null) return;
+    y0 = null;
+    if (!dragging) return;
+    dragging = false;
+    sheet.style.transition = '';
+    if (dy > 110 || (dy > 50 && Date.now() - t0 < 280)) {
+      sheet.style.transform = 'translateY(100%)';
+      close();
+    } else sheet.style.transform = '';
+  };
+  sheet.addEventListener('touchend', end);
+  sheet.addEventListener('touchcancel', end);
+}
+
+// Full-screen picture of a card: double tap (or double click) to zoom in/out, swipe down or ✕ to close.
+export function openImageViewer(src, alt = '') {
+  const v = h(`
+    <div class="img-viewer" role="dialog" aria-modal="true" aria-label="${esc(alt || 'Imagen')}">
+      <button class="icon-btn iv-close" aria-label="Cerrar">✕</button>
+      <div class="iv-scroll"><img src="${esc(src)}" alt="${esc(alt)}"></div>
+      <p class="iv-hint">Doble toque para acercar · desliza hacia abajo para cerrar</p>
+    </div>`);
+  document.body.appendChild(v);
+  requestAnimationFrame(() => v.classList.add('open'));
+  const scroller = $('.iv-scroll', v), pic = $('img', v);
+  const close = () => {
+    v.classList.remove('open');
+    document.removeEventListener('keydown', onKey);
+    setTimeout(() => v.remove(), 220);
+  };
+  const onKey = (e) => e.key === 'Escape' && close();
+  document.addEventListener('keydown', onKey);
+  $('.iv-close', v).onclick = close;
+  const toggleZoom = (x, y) => {
+    const r = pic.getBoundingClientRect();
+    const fx = (x - r.left) / r.width, fy = (y - r.top) / r.height;
+    v.classList.toggle('zoom');
+    if (v.classList.contains('zoom')) {
+      const r2 = pic.getBoundingClientRect();
+      scroller.scrollLeft = fx * r2.width - scroller.clientWidth / 2;
+      scroller.scrollTop = fy * r2.height - scroller.clientHeight / 2;
+    }
+  };
+  pic.addEventListener('dblclick', (e) => toggleZoom(e.clientX, e.clientY));
+  let lastTap = 0, y0 = null, x0 = 0;
+  scroller.addEventListener('touchstart', (e) => {
+    y0 = e.touches.length === 1 && !v.classList.contains('zoom') ? e.touches[0].clientY : null;
+    x0 = e.touches[0]?.clientX ?? 0;
+  }, { passive: true });
+  scroller.addEventListener('touchend', (e) => {
+    const t = e.changedTouches[0];
+    if (y0 != null && t.clientY - y0 > 90 && Math.abs(t.clientX - x0) < 80) return close();
+    const now = Date.now();
+    if (now - lastTap < 300) {
+      e.preventDefault();
+      toggleZoom(t.clientX, t.clientY);
+      lastTap = 0;
+    } else lastTap = now;
+  });
+  return { close };
+}

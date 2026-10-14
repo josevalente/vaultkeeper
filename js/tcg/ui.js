@@ -1,7 +1,7 @@
 // Sheets and forms of the Magic / Yu-Gi-Oh vaults. Same look as the Pokémon vault (shared
 // styles.css), own logic (js/tcg/store.js) so nothing of the Pokémon vault is touched.
 
-import { h, esc, $, $$, fmtCLP, fmtUSD, fmtPct, fmtDate, localDate, parseAmount, toast, roundCLP, debounce } from '../util.js';
+import { h, esc, $, $$, swipeToClose, openImageViewer, fmtCLP, fmtUSD, fmtPct, fmtDate, localDate, parseAmount, toast, roundCLP, debounce } from '../util.js';
 import { state, game, settings, usdclp, fx, fxOn, refreshFx, toUSD, toCLP, priceOf, itemValueUSD, itemGain, dealVerdict, maxPayUSD, addItems, recordSale, removeItem, save, channelById, CONDITIONS, condFactor, setPrint } from './store.js';
 
 const CARD_BACK = 'icons/card-back.svg';
@@ -36,6 +36,7 @@ export function openSheet({ title, body, onClose, cls = '' }) {
   };
   $('.close', wrap).onclick = close;
   $('.sheet-backdrop', wrap).onclick = close;
+  swipeToClose(wrap, close);
   return { wrap, body: bodyEl, close };
 }
 
@@ -112,7 +113,9 @@ export function openSearch({ initial = '', onPick } = {}) {
   results.onclick = (e) => {
     const t = e.target.closest('.tile');
     const p = t && list.find((x) => x.id === t.dataset.id);
-    if (p) (s.close(), (onPick || openPrintSheet)(p));
+    if (!p) return;
+    if (onPick) s.close(); // picking for something else; just looking: the results stay under the card
+    (onPick || openPrintSheet)(p);
   };
   setTimeout(() => q.focus(), 300);
   if (initial) run();
@@ -129,7 +132,7 @@ export function openPrintSheet(p) {
   const body = h(`
     <div class="card-detail">
       <div class="cd-top">
-        <img class="cd-img" src="${esc(p.imageLarge || p.image || CARD_BACK)}" alt="${esc(p.name)}" onerror="this.src='${CARD_BACK}'">
+        <button class="cd-zoom" aria-label="Ver la imagen en grande"><img class="cd-img" src="${esc(p.imageLarge || p.image || CARD_BACK)}" alt="${esc(p.name)}" onerror="this.src='${CARD_BACK}'"><span class="zoom-hint" aria-hidden="true">⤢</span></button>
         <div class="cd-info">
           <h3>${esc(p.name)}</h3>
           <div class="muted">${esc(p.setName)}${p.number ? ` · ${esc(game.id === 'mtg' ? `${p.setCode} ${p.number}` : p.number)}` : ''}</div>
@@ -154,6 +157,7 @@ export function openPrintSheet(p) {
       <p class="muted tiny">${game.id === 'mtg' ? 'Precio TCGplayer (EE.UU.) vía Scryfall, se actualiza a diario.' : 'Precio de referencia de esta impresión (código + rareza) vía YGOPRODeck; revisa ventas recientes si es una carta cara.'} TC ${fmtCLP(usdclp())}.</p>
     </div>`);
   const s = openSheet({ title: p.name, body, cls: 'tall' });
+  $('.cd-zoom', body).onclick = () => openImageViewer((p.imageLarge || p.image || CARD_BACK).replace('/normal/', '/large/'), p.name);
   const market = () => priceOf(p.id, finish);
   const render = () => {
     const m0 = market();
@@ -259,7 +263,7 @@ export function openItemSheet(it) {
   const body = h(`
     <div class="card-detail">
       <div class="cd-top">
-        <img class="cd-img" src="${esc(it.imageLarge || it.image || CARD_BACK)}" alt="${esc(it.name)}" onerror="this.src='${CARD_BACK}'">
+        <button class="cd-zoom" aria-label="Ver la imagen en grande"><img class="cd-img" src="${esc(it.imageLarge || it.image || CARD_BACK)}" alt="${esc(it.name)}" onerror="this.src='${CARD_BACK}'"><span class="zoom-hint" aria-hidden="true">⤢</span></button>
         <div class="cd-info">
           <h3>${esc(it.name)}</h3>
           <div class="muted">${esc(it.setName)}${it.number ? ` · ${esc(game.id === 'mtg' ? `${it.setCode} ${it.number}` : it.number)}` : ''}</div>
@@ -287,6 +291,7 @@ export function openItemSheet(it) {
       </div>
     </div>`);
   const s = openSheet({ title: sold ? 'Carta vendida' : 'En tu vault', body, cls: 'tall' });
+  $('.cd-zoom', body).onclick = () => openImageViewer((it.imageLarge || it.image || CARD_BACK).replace('/normal/', '/large/'), it.name);
   $('.sell', body)?.addEventListener('click', () => (s.close(), openSellForm(it)));
   $('.toggle', body)?.addEventListener('click', () => {
     it.purpose = it.purpose === 'coleccion' ? 'reventa' : 'coleccion';

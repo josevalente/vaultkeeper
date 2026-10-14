@@ -15,6 +15,7 @@ export function renderMas(root) {
     <div class="view-head rise"><h1>Más</h1></div>
     <nav class="menu rise" style="--d:1">
       <button class="vaults"><span class="m-ico">◫</span><div><b>Vaults</b><small>${enabledVaults().length > 1 ? `${enabledVaults().map((v) => v.short).join(' · ')} — cambiar de juego` : 'Agrega otros juegos (Magic, Yu-Gi-Oh) en vaults separados'}</small></div><em>›</em></button>
+      <a href="#/inventario"><span class="m-ico">⊞</span><div><b>Subir inventario</b><small>Foto de cada página de tu carpeta: reconozco las cartas y tú apruebas${state.invDraft?.items?.length ? ` · ${state.invDraft.items.length} en revisión` : ''}</small></div><em>›</em></a>
       <a href="#/lote"><span class="m-ico">▦</span><div><b>Lote</b><small>Varias cartas a la vez: valor total y oferta máxima${lot ? ` · ${lot} en curso` : ''}</small></div><em>›</em></a>
       <a href="#/intercambio"><span class="m-ico">⇄</span><div><b>Intercambio</b><small>Tus cartas vs. las del otro, valorizadas${trade ? ` · ${trade} en curso` : ''}</small></div><em>›</em></a>
       <a href="#/reporte"><span class="m-ico">∑</span><div><b>Reporte y gastos</b><small>Ganancia neta por mes, feria y canal · exportar a Excel${s.expensesCLP ? '' : ''}</small></div><em>›</em></a>

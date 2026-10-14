@@ -67,6 +67,10 @@ test('grupo TCGCSV correcto por fecha y nombre', () => {
   // Same year in both names: a few weeks apart is still the same set.
   const mcd = [{ groupId: 9, name: "McDonald's Promos 2016", publishedOn: '2016-08-05T00:00:00' }, { groupId: 8, name: "McDonald's Promos 2017", publishedOn: '2017-11-07T00:00:00' }];
   assert.equal(matchGroup({ name: "McDonald's Collection 2016", releaseDate: '2016-08-20' }, mcd)?.groupId, 9);
+  // Same day + a distinctive shared word, even with different names ("25th Anniversary Promos").
+  const mcd21 = [{ groupId: 7, name: "McDonald's 25th Anniversary Promos", publishedOn: '2021-02-09T00:00:00' }, { groupId: 6, name: 'SWSH05: Battle Styles', publishedOn: '2021-03-19T00:00:00' }];
+  assert.equal(matchGroup({ name: "McDonald's Collection 2021", releaseDate: '2021-02-09' }, mcd21)?.groupId, 7);
+  assert.equal(matchGroup({ name: 'Battle Styles', releaseDate: '2021-03-19' }, mcd21)?.groupId, 6);
   assert.equal(matchGroup({ name: 'Pitch Black', releaseDate: '2026-07-17' }, groups), null, 'sin fecha cercana no cruza');
 });
 
