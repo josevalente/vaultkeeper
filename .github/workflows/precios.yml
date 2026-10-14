@@ -41,6 +41,7 @@ jobs:
           node tests/historial.test.mjs
           node tests/calc.test.mjs
           node tests/features.test.mjs
+          node tests/tcg.test.mjs
 
       - name: Traer la rama datos (con el historial acumulado)
         run: |

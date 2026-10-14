@@ -7,6 +7,7 @@ import { refreshFx, setManualFx } from '../fx.js';
 import { testClaudeKey } from '../scan.js';
 import { confirmSheet } from '../ui.js';
 import { backupNow, isInstalled } from '../backup.js';
+import { vaultListHTML, wireVaultList } from '../vaults.js';
 
 const MODELS = [
   ['claude-opus-5-5', 'Claude Opus 5.5 (más preciso)'],
@@ -24,6 +25,11 @@ export function renderSettings(root) {
   const fx = state.fx;
   root.innerHTML = `
     <div class="view-head rise"><h1>Ajustes</h1></div>
+
+    <section class="panel rise" style="--d:1">
+      <h2>Vaults (juegos)</h2>
+      <div class="vaults-box"></div>
+    </section>
 
     <section class="panel rise" style="--d:1">
       <h2>Moneda</h2>
@@ -90,6 +96,9 @@ export function renderSettings(root) {
       <p class="muted tiny">Datos de cartas y precios: TCGdex (TCGplayer y Cardmarket) y pokemontcg.io. Tipo de cambio: mindicador.cl / open.er-api.com. VaultKeeper no está afiliado a Pokémon, Nintendo ni TCGplayer.</p>
     </section>`;
 
+  const vb = $('.vaults-box', root);
+  const paintVaults = () => ((vb.innerHTML = vaultListHTML('pokemon')), wireVaultList(vb, 'pokemon', { onToggle: paintVaults }));
+  paintVaults();
   $$('.disp button', root).forEach((b) => (b.onclick = () => {
     s.display = b.dataset.c;
     save();

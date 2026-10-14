@@ -721,3 +721,19 @@ body.has-sheet .toast.show { transform: translate(-50%, 0); }
 .ev-val b { font-size: 15px; }
 .ev-h { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-2); margin: 6px 0 0; }
 .seg.small button { white-space: nowrap; }
+
+/* ───────────── vaults (Magic / Yu-Gi-Oh) */
+.brand-game { font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 99px; background: var(--brass); color: #1a1405; white-space: nowrap; }
+.brand-game:empty { display: none; }
+.vault-list { display: flex; flex-direction: column; gap: 8px; }
+.vault-row { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface-2); }
+.vault-row.on { border-color: color-mix(in oklab, var(--brass) 60%, transparent); }
+.vault-go { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; text-align: left; background: none; border: 0; color: inherit; font: inherit; padding: 2px 0; min-height: 40px; }
+.vault-go[hidden] { display: none; }
+.vault-go b { display: block; font-size: 14.5px; }
+.vault-go small { display: block; font-size: 12px; color: var(--muted); }
+.vault-go em { font-style: normal; color: var(--brass); font-weight: 800; }
+.vault-ico { font-size: 22px; text-align: center; color: var(--brass); }
+.vault-sw { font-size: 13px; }
+.search-row.tcg { grid-template-columns: 1fr; }
+.welcome .vault-pick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }

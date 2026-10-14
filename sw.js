@@ -1,9 +1,10 @@
 // VaultKeeper service worker: works offline at the feria with the last saved data.
-const VERSION = 'vk-v17';
+const VERSION = 'vk-v18';
 const SHELL = [
-  './', 'index.html', 'styles.css', 'manifest.webmanifest',
+  './', 'index.html', 'otros.html', 'styles.css', 'manifest.webmanifest',
   'js/app.js', 'js/util.js', 'js/store.js', 'js/api.js', 'js/fx.js', 'js/scan.js', 'js/chart.js', 'js/rarity.js', 'js/ui.js',
-  'js/views/home.js', 'js/views/collection.js', 'js/views/checklist.js', 'js/views/trade.js', 'js/views/settings.js', 'js/views/lote.js', 'js/views/reporte.js', 'js/views/mas.js', 'js/views/eventos.js', 'js/backup.js', 'js/salelist.js',
+  'js/views/home.js', 'js/views/collection.js', 'js/views/checklist.js', 'js/views/trade.js', 'js/views/settings.js', 'js/views/lote.js', 'js/views/reporte.js', 'js/views/mas.js', 'js/views/eventos.js', 'js/backup.js', 'js/salelist.js', 'js/vaults.js',
+  'js/tcg/app.js', 'js/tcg/games.js', 'js/tcg/store.js', 'js/tcg/ui.js', 'js/tcg/scan.js',
   'icons/favicon.png', 'icons/icon-192.png', 'icons/apple-touch-icon.png', 'icons/card-back.svg',
 ];
 const SHELL_URLS = new Set(SHELL.map((p) => new URL(p, self.registration.scope).href));
@@ -114,9 +115,9 @@ self.addEventListener('fetch', (e) => {
     if (req.mode === 'navigate' || SHELL_URLS.has(url.origin + url.pathname)) return e.respondWith(shellFirst(req));
     return e.respondWith(networkFirst(req, VERSION, 3500));
   }
-  if (url.hostname === 'assets.tcgdex.net' || url.hostname === 'images.pokemontcg.io' || url.hostname === 'tcgplayer-cdn.tcgplayer.com') return e.respondWith(imageCache(req));
+  if (/^(assets\.tcgdex\.net|images\.pokemontcg\.io|tcgplayer-cdn\.tcgplayer\.com|cards\.scryfall\.io|images\.ygoprodeck\.com)$/.test(url.hostname)) return e.respondWith(imageCache(req));
   if (url.hostname === 'raw.githubusercontent.com') return e.respondWith(networkFirst(req, 'vk-data', 20000)); // daily data files, up to ~1 MB
-  if (/^(api\.tcgdex\.net|api\.pokemontcg\.io|mindicador\.cl|open\.er-api\.com)$/.test(url.hostname)) return e.respondWith(networkFirst(req, 'vk-data'));
+  if (/^(api\.tcgdex\.net|api\.pokemontcg\.io|mindicador\.cl|open\.er-api\.com|api\.scryfall\.com|db\.ygoprodeck\.com)$/.test(url.hostname)) return e.respondWith(networkFirst(req, 'vk-data'));
   // Libraries, fonts and the OCR engine + language data (versioned URLs: they never change).
   if (/^(cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com|tessdata\.projectnaptha\.com)$/.test(url.hostname)) return e.respondWith(cacheFirst(req, 'vk-lib'));
 });

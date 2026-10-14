@@ -19,6 +19,16 @@
   <link rel="preconnect" href="https://api.tcgdex.net">
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Unbounded:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <script>
+    // Opening the app (a new session) returns to the vault used last: Magic / Yu-Gi-Oh live in otros.html.
+    try {
+      if (!sessionStorage.getItem('vk:session')) {
+        sessionStorage.setItem('vk:session', '1');
+        var v = localStorage.getItem('vaultkeeper:lastVault');
+        if (v === 'mtg' || v === 'ygo') location.replace('otros.html?juego=' + v);
+      }
+    } catch (e) {}
+  </script>
 </head>
 <body>
   <header class="topbar">

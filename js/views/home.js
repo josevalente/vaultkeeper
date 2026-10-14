@@ -1,11 +1,12 @@
 // Inicio: vault value, cost vs. value chart, and the "what to sell" ranking.
 
-import { h, esc, $, $$, fmtCLP, fmtUSD, fmtPct, timeAgo } from '../util.js';
+import { h, esc, $, $$, fmtCLP, fmtUSD, fmtPct, timeAgo, toast } from '../util.js';
 import { state, save, summary, sellRanking, actions, computeAlerts, dismissAlert } from '../store.js';
 import { renderPortfolioChart } from '../chart.js';
 import { img, variantLabel } from '../api.js';
 import { money, moneyAlt, disp, pctClass, arrow, openItemSheet, openSellForm, scanFlow, openCardSheet, openSearch, fitAmounts } from '../ui.js';
 import { backupNow, backupDue, isInstalled } from '../backup.js';
+import { choseVaults, enabledVaults, setEnabled } from '../vaults.js';
 
 let range = 'all';
 let showAll = false;
@@ -69,7 +70,8 @@ export function renderHome(root) {
           <li><b>En la feria</b>, escribe cuánto piden: te digo si es ganga y cuánto pagar como máximo. Para varias cartas usa <a href="#/lote">Lote</a>.</li>
           <li><b>Registra la compra</b>: tu vault, el gráfico y las recomendaciones de venta se arman solos.</li>
         </ol>
-        <button class="btn primary full start-scan">Escanear mi primera carta</button></section>`
+        <button class="btn primary full start-scan">Escanear mi primera carta</button>
+        ${choseVaults() ? '' : `<p class="muted small">¿Coleccionas o vendes también otros juegos? Cada uno tiene su propio vault, separado de Pokémon (se cambia en Más → Vaults):</p><div class="vault-pick"><button class="btn ghost pick-v" data-v="mtg">+ Magic</button><button class="btn ghost pick-v" data-v="ygo">+ Yu-Gi-Oh</button><button class="link pick-none">Solo Pokémon</button></div>`}</section>`
         : ''
     }
     ${
@@ -126,6 +128,8 @@ export function renderHome(root) {
 
   fitAmounts(root);
   document.fonts?.ready.then(() => root.isConnected && fitAmounts(root)); // widths change once the font loads
+  $$('.pick-v', root).forEach((b) => (b.onclick = () => (setEnabled([...enabledVaults().map((v) => v.id), b.dataset.v]), toast(`Vault de ${b.textContent.slice(2)} activado: ábrelo en Más → Vaults`, 'ok'), renderHome(root))));
+  $('.pick-none', root)?.addEventListener('click', () => (setEnabled([]), renderHome(root)));
   $('.start-scan', root)?.addEventListener('click', () => scanFlow({ title: 'Escanear carta', onPick: (c) => openCardSheet(c.id) }));
   const pts = chartPoints();
   const box = $('.chart-box', root);

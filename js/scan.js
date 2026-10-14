@@ -21,7 +21,9 @@ const friendly = (e) => (/fetch|load failed|network/i.test(e?.message || '') ? '
 
 // Opens the full-screen camera. Resolves with { info, cands, shot } (or { burst: [...] } in burst
 // mode, several cards one after another), { manual: true } to search instead, or null if closed.
-export function openScanner({ title = 'Escanear carta', burst = false } = {}) {
+// read: another way to identify the photo (the Magic / Yu-Gi-Oh vaults); without it, Pokémon.
+export function openScanner({ title = 'Escanear carta', burst = false, read = null } = {}) {
+  const ident = read || identify;
   return new Promise((resolve) => {
     const claudeOn = () => !!state.settings.claudeKey && navigator.onLine;
     const ov = h(`
@@ -31,7 +33,7 @@ export function openScanner({ title = 'Escanear carta', burst = false } = {}) {
         <div class="scan-top">
           <button class="icon-btn scan-close" aria-label="Cerrar">✕</button>
           <div class="scan-title">${esc(title)}</div>
-          <button class="scan-lang" aria-label="Idioma de la carta">Carta: ${state.settings.scanLang === 'ja' ? 'JP' : 'EN'}</button>
+          ${read ? '' : `<button class="scan-lang" aria-label="Idioma de la carta">Carta: ${state.settings.scanLang === 'ja' ? 'JP' : 'EN'}</button>`}
           <span class="scan-mode">Lee: ${claudeOn() ? 'Claude' : 'OCR'}</span>
         </div>
         <div class="scan-hint">${burst ? 'Ráfaga: captura una carta, cambia a la siguiente y vuelve a capturar. Toca “Listo” al terminar.' : 'Encaja la carta en el marco, con buena luz y sin reflejos.'}</div>
@@ -151,7 +153,7 @@ export function openScanner({ title = 'Escanear carta', burst = false } = {}) {
       busy = on;
       ov.classList.toggle('busy', on);
       shutter.setAttribute('aria-busy', String(on));
-      langBtn.disabled = on; // switching EN/JP mid-read would mix both modes
+      if (langBtn) langBtn.disabled = on; // switching EN/JP mid-read would mix both modes
     };
 
     startCamera();
@@ -164,7 +166,7 @@ export function openScanner({ title = 'Escanear carta', burst = false } = {}) {
     };
     $('.scan-close', ov).onclick = tryClose;
     $('.scan-manual', ov)?.addEventListener('click', () => close({ manual: true }));
-    langBtn.onclick = (e) => {
+    if (langBtn) langBtn.onclick = (e) => {
       state.settings.scanLang = state.settings.scanLang === 'ja' ? 'en' : 'ja';
       save({ silent: true });
       e.target.textContent = `Carta: ${state.settings.scanLang === 'ja' ? 'JP' : 'EN'}`;
@@ -194,7 +196,7 @@ export function openScanner({ title = 'Escanear carta', burst = false } = {}) {
         if (closed) return;
         const my = token;
         try {
-          Object.assign(r, await identify(canvas, cropped, (m) => { if (closed || my !== token) throw new Cancelled(); }));
+          Object.assign(r, await ident(canvas, cropped, (m) => { if (closed || my !== token) throw new Cancelled(); }));
           r.state = r.cands?.length ? 'ok' : 'bad';
         } catch {
           Object.assign(r, { info: {}, cands: [], state: 'bad' });
@@ -248,7 +250,7 @@ export function openScanner({ title = 'Escanear carta', burst = false } = {}) {
             canvas = captureFrame(video, $('.scan-frame', ov));
           }
           abort = new AbortController();
-          const res = await withTimeout(identify(canvas, cropped, stepper(my), { signal: abort.signal }), ATTEMPT_MS, () => {
+          const res = await withTimeout(ident(canvas, cropped, stepper(my), { signal: abort.signal }), ATTEMPT_MS, () => {
             cancelRun(); // the stuck read must not keep the OCR worker busy
             resetWorker();
           });
@@ -691,6 +693,28 @@ async function readWords(worker, canvas, params) {
     ? data.words
     : (data.blocks || []).flatMap((b) => (b.paragraphs || []).flatMap((p) => (p.lines || []).flatMap((l) => l.words || [])));
   return { text: data.text || '', words };
+}
+
+// For the other vaults: read the text of one zone of the card (e.g. a printed set code) …
+export async function ocrBox(canvas, [x, y, w, hh], { whitelist = '', psm = '6', mode = 'gray', scale = 2.4 } = {}) {
+  const worker = await getWorker();
+  const k = Math.min(3, Math.max(1, 1400 / canvas.width));
+  return ocr(worker, region(canvas, x, y, w, hh, { mode, scale: Math.max(scale, k) }), { tessedit_char_whitelist: whitelist, tessedit_pageseg_mode: psm });
+}
+// … and the most likely name in the top band (biggest capitalised line of letters).
+export async function ocrTopName(canvas, top = 0.16) {
+  const worker = await getWorker();
+  const k = Math.min(3, Math.max(1, 1400 / canvas.width));
+  const SPARSE = { tessedit_char_whitelist: '', tessedit_pageseg_mode: '11' };
+  for (const mode of ['gray', 'adark', 'abright']) {
+    const r = await readWords(worker, region(canvas, 0, 0, 1, top, { mode, scale: k }), SPARSE).catch(() => null);
+    const words = (r?.words || []).filter((w) => w.confidence > 50 && /^[A-Za-zÀ-ÿ'’,-]{2,}$/.test(String(w.text).trim()));
+    if (!words.length) continue;
+    const tallest = Math.max(...words.map((w) => w.bbox.y1 - w.bbox.y0));
+    const line = words.filter((w) => w.bbox.y1 - w.bbox.y0 >= tallest * 0.7).sort((a, b) => a.bbox.x0 - b.bbox.x0).map((w) => String(w.text).trim());
+    if (line.join(' ').length >= 3) return line.join(' ');
+  }
+  return '';
 }
 
 // The card name is the biggest line of letters near the top (HP is digits, so it's ignored).

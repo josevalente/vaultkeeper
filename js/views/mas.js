@@ -3,6 +3,8 @@
 import { $, timeAgo } from '../util.js';
 import { state, summary, report } from '../store.js';
 import { backupNow } from '../backup.js';
+import { openSheet } from '../ui.js';
+import { enabledVaults, vaultListHTML, wireVaultList } from '../vaults.js';
 
 export function renderMas(root) {
   const s = summary();
@@ -12,6 +14,7 @@ export function renderMas(root) {
   root.innerHTML = `
     <div class="view-head rise"><h1>Más</h1></div>
     <nav class="menu rise" style="--d:1">
+      <button class="vaults"><span class="m-ico">◫</span><div><b>Vaults</b><small>${enabledVaults().length > 1 ? `Pokémon · ${enabledVaults().slice(1).map((v) => v.short).join(' · ')} — cambiar de juego` : 'Pokémon · activa Magic o Yu-Gi-Oh en vaults separados'}</small></div><em>›</em></button>
       <a href="#/lote"><span class="m-ico">▦</span><div><b>Lote</b><small>Varias cartas a la vez: valor total y oferta máxima${lot ? ` · ${lot} en curso` : ''}</small></div><em>›</em></a>
       <a href="#/intercambio"><span class="m-ico">⇄</span><div><b>Intercambio</b><small>Tus cartas vs. las del otro, valorizadas${trade ? ` · ${trade} en curso` : ''}</small></div><em>›</em></a>
       <a href="#/reporte"><span class="m-ico">∑</span><div><b>Reporte y gastos</b><small>Ganancia neta por mes, feria y canal · exportar a Excel${s.expensesCLP ? '' : ''}</small></div><em>›</em></a>
@@ -20,4 +23,16 @@ export function renderMas(root) {
       <a href="#/ajustes"><span class="m-ico">⚙</span><div><b>Ajustes</b><small>Moneda, canales de venta, margen, Claude, datos</small></div><em>›</em></a>
     </nav>`;
   $('.backup', root).onclick = () => backupNow();
+  $('.vaults', root).onclick = () => openVaults(() => renderMas(root));
+}
+
+// Pokémon, Magic, Yu-Gi-Oh: separate vaults, never mixed. Switch or turn them on here.
+export function openVaults(onChange) {
+  const body = document.createElement('div');
+  const paint = () => {
+    body.innerHTML = vaultListHTML('pokemon');
+    wireVaultList(body, 'pokemon', { onToggle: () => (paint(), onChange?.()) });
+  };
+  paint();
+  openSheet({ title: 'Vaults', body });
 }
