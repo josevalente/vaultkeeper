@@ -833,3 +833,7 @@ body.has-sheet .toast.show { transform: translate(-50%, 0); }
 .inv-progress .bar i { display: block; height: 100%; background: var(--brass); transition: width 0.3s; }
 .warn-t { color: var(--warn); }
 .inv-cam, .inv-lib { cursor: pointer; }
+/* Faltantes in the Magic / Yu-Gi-Oh vaults */
+.tcg-rgrid { grid-template-rows: 1fr; grid-auto-columns: auto; }
+.tcg-rgrid .rcard { min-height: 0; padding: 10px 14px; justify-content: center; white-space: nowrap; }
+.cl-body .chips-scroll { margin-bottom: 10px; }

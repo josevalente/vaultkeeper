@@ -126,6 +126,15 @@ test('primer inicio: nada elegido por defecto; los usuarios anteriores conservan
   Object.assign(mem, saved);
 });
 
+test('Faltantes: cada juego trae sus dimensiones', () => {
+  for (const g of [GAMES.mtg, GAMES.ygo]) {
+    assert.ok(g.rarityKeys.length >= 4, `${g.id}: rarezas`);
+    for (const f of ['sets', 'setCards', 'rarityCards']) assert.equal(typeof g[f], 'function', `${g.id}.${f}`);
+    assert.ok(g.rarityScope);
+  }
+  assert.ok(GAMES.mtg.treatments.includes('Borderless'), 'Magic filtra por marco');
+});
+
 test('lectura de códigos impresos', () => {
   assert.equal(GAMES.mtg.parseCode('123/286 R\nMKM • EN'), 'MKM 123');
   assert.equal(GAMES.ygo.parseCode('LOB-EN005'), 'LOB-EN005');

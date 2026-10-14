@@ -7,6 +7,7 @@ import { gameById } from './games.js';
 import { openVault, state, onChange, settings, usdclp, summary, sellRanking, refreshPrices, refreshFx, itemValueUSD, itemGain, exportVault, importVault } from './store.js';
 import { openSearch, openPrintSheet, openItemSheet, openSellForm, openSheet, itemTile, money, pctClass, disp } from './ui.js';
 import { readCard } from './scan.js';
+import { renderFaltantes } from './faltantes.js';
 import { vaultListHTML, wireVaultList, setLastVault, paintVaultPill } from '../vaults.js';
 
 const g = gameById(new URLSearchParams(location.search).get('juego'));
@@ -189,7 +190,7 @@ function openVaultSheet() {
 
 // ───────────────────────── router, scanner, prices
 
-const ROUTES = { inicio: renderHome, coleccion: renderCollection, mas: renderMas };
+const ROUTES = { inicio: renderHome, coleccion: renderCollection, faltantes: renderFaltantes, mas: renderMas };
 function route() {
   const name = (location.hash.replace(/^#\/?/, '') || 'inicio').split('?')[0];
   const changed = current !== name;
@@ -232,7 +233,6 @@ async function scan() {
   };
 }
 $('.scan-fab').onclick = () => openScanChoice();
-$('.tab-search').onclick = (e) => (e.preventDefault(), openSearch());
 function openScanChoice() {
   const body = document.createElement('div');
   body.className = 'btn-col';

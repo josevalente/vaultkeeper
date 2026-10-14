@@ -38,8 +38,41 @@ function mtgPrint(c) {
       return { key, label, usd: num(c.prices?.[field]) };
     }),
     link: c.purchase_uris?.tcgplayer || c.scryfall_uri,
+    treatment: mtgTreatment(c),
   };
 }
+
+// Special frames collectors look for (Scryfall: border_color, frame_effects, full_art).
+function mtgTreatment(c) {
+  const fx = c.frame_effects || [];
+  if (c.border_color === 'borderless') return 'Borderless';
+  if (fx.includes('showcase')) return 'Showcase';
+  if (fx.includes('extendedart')) return 'Extended art';
+  if (c.full_art) return 'Full art';
+  if (fx.includes('etched') || (c.finishes || []).includes('etched')) return 'Etched';
+  return 'Normal';
+}
+
+const today = () => new Date().toLocaleDateString('sv-SE');
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+// Every page of a Scryfall search (175 cards each), politely spaced.
+async function scryfallAll(url, maxPages = 6) {
+  const out = [];
+  for (let i = 0; url && i < maxPages; i++) {
+    const r = await fetchJSON(url, { retries: 1, timeout: 20000 }).catch((e) => (i ? null : Promise.reject(e)));
+    if (!r) break;
+    out.push(...(r.data || []));
+    url = r.has_more ? r.next_page : null;
+    if (url) await pause(120);
+  }
+  return out;
+}
+const mem = new Map();
+const once = (key, fn) => {
+  if (!mem.has(key)) mem.set(key, fn().catch((e) => (mem.delete(key), Promise.reject(e))));
+  return mem.get(key);
+};
+const MTG_MAIN = new Set(['core', 'expansion', 'masters', 'draft_innovation', 'commander', 'funny']);
 
 const mtg = {
   id: 'mtg',
@@ -79,6 +112,26 @@ const mtg = {
     }
     return out;
   },
+  // ── Faltantes: by expansion (complete a set), by rarity, filtered by special frame.
+  rarityKeys: [['mythic', 'Mítica'], ['rare', 'Rara'], ['uncommon', 'Infrecuente'], ['common', 'Común'], ['special', 'Especial']],
+  treatments: ['Normal', 'Borderless', 'Showcase', 'Extended art', 'Full art', 'Etched'],
+  sets: () =>
+    once('mtg:sets', async () => {
+      const r = await fetchJSON(`${SF}/sets`, { retries: 1, timeout: 15000 });
+      return (r?.data || [])
+        .filter((x) => MTG_MAIN.has(x.set_type) && !x.digital && x.card_count > 0 && x.released_at <= today())
+        .sort((a, b) => b.released_at.localeCompare(a.released_at))
+        .map((x) => ({ id: x.code, code: x.code.toUpperCase(), name: x.name, date: x.released_at, count: x.card_count, type: x.set_type }));
+    }),
+  setCards: (code) => once(`mtg:set:${code}`, async () => (await scryfallAll(`${SF}/cards/search?q=${encodeURIComponent(`e:${code} lang:en`)}&unique=prints&order=set&include_extras=false`)).map(mtgPrint)),
+  // A rarity across the main sets of the last two years (all of history would be thousands).
+  rarityScope: 'en las expansiones principales de los últimos 2 años',
+  rarityCards: (key) =>
+    once(`mtg:rar:${key}`, async () => {
+      const since = new Date(Date.now() - 730 * 86400000).toLocaleDateString('sv-SE');
+      const q = `r:${key} (st:core OR st:expansion) date>=${since} lang:en`;
+      return (await scryfallAll(`${SF}/cards/search?q=${encodeURIComponent(q)}&unique=prints&order=released&dir=desc`, 8)).map(mtgPrint);
+    }),
   // Bottom-left: "123/286 R" over "MKM • EN" (modern frames).
   ocr: { box: [0, 0.9, 0.5, 0.1], whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/ •' },
   parseCode(text) {
@@ -146,6 +199,31 @@ const ygo = {
     }
     return out;
   },
+  // ── Faltantes: by set (complete it), by rarity across the latest booster sets.
+  rarityKeys: [['Secret Rare', 'Secret'], ['Starlight Rare', 'Starlight'], ['Quarter Century Secret Rare', 'Quarter Century'], ['Ultra Rare', 'Ultra'], ['Super Rare', 'Super'], ['Ultimate Rare', 'Ultimate'], ['Ghost Rare', 'Ghost'], ["Collector's Rare", "Collector's"], ['Prismatic Secret Rare', 'Prismatic'], ['Rare', 'Rare'], ['Common', 'Common']],
+  treatments: null,
+  sets: () =>
+    once('ygo:sets', async () => {
+      const r = await fetchJSON(`${YG}/cardsets.php`, { retries: 1, timeout: 15000 });
+      return (r || [])
+        .filter((x) => x.tcg_date && x.num_of_cards > 0 && x.tcg_date <= today())
+        .sort((a, b) => b.tcg_date.localeCompare(a.tcg_date))
+        .map((x) => ({ id: x.set_name, code: x.set_code, name: x.set_name, date: x.tcg_date, count: x.num_of_cards }));
+    }),
+  setCards: (name) =>
+    once(`ygo:set:${name}`, async () => {
+      const r = await fetchJSON(`${YG}/cardinfo.php?cardset=${encodeURIComponent(name)}`, { retries: 1, timeout: 20000 });
+      const order = (p) => parseInt(String(p.setCode).replace(/^.*?(\d+)$/, '$1'), 10) || 0;
+      return (r?.data || []).flatMap(ygoPrints).filter((p) => p.setName === name).sort((a, b) => order(a) - order(b));
+    }),
+  rarityScope: 'en los últimos 10 sets de sobres',
+  rarityCards: (rarity) =>
+    once(`ygo:rar:${rarity}`, async () => {
+      const recent = (await ygo.sets()).filter((x) => x.count >= 60).slice(0, 10);
+      const all = [];
+      for (const st of recent) all.push(...(await ygo.setCards(st.id).catch(() => [])).filter((p) => p.rarity === rarity));
+      return all;
+    }),
   // Set code under the artwork, right side ("LOB-EN001").
   ocr: { box: [0.5, 0.68, 0.48, 0.08], whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-' },
   parseCode(text) {
