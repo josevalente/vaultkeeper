@@ -298,7 +298,7 @@ input[type='date'].input::-webkit-date-and-time-value { text-align: left; margin
 .kv3 span { display: block; font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
 
 /* ───────────── rarity chips */
-.chips-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin: 0 -16px; padding-inline: 16px; scrollbar-width: none; }
+.chips-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin: 0 -16px; padding-inline: 16px; scroll-padding-inline: 16px; scrollbar-width: none; }
 .chips-scroll::-webkit-scrollbar { display: none; }
 .chips-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
 .rchip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px 6px 7px; border-radius: 99px; border: 1px solid var(--line-2); background: var(--surface); font-size: 12.5px; font-weight: 700; white-space: nowrap; color: var(--text-2); }
@@ -332,7 +332,7 @@ input[type='date'].input::-webkit-date-and-time-value { text-align: left; margin
 .badge.check.on { background: var(--brass); color: var(--brass-ink); border-color: var(--brass); }
 
 /* ───────────── checklist */
-.rgrid { display: grid; grid-auto-flow: column; grid-template-rows: repeat(2, auto); grid-auto-columns: 112px; gap: 8px; overflow-x: auto; margin: 0 -16px; padding: 0 16px 4px; scrollbar-width: none; scroll-snap-type: x proximity; }
+.rgrid { display: grid; grid-auto-flow: column; grid-template-rows: repeat(2, auto); grid-auto-columns: 112px; gap: 8px; overflow-x: auto; margin: 0 -16px; padding: 0 16px 4px; scrollbar-width: none; scroll-snap-type: x proximity; scroll-padding-inline: 16px; /* snap to the page margin, not to the screen edge */ }
 .rgrid::-webkit-scrollbar { display: none; }
 .rcard { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); text-align: left; min-height: 78px; position: relative; scroll-snap-align: start; }
 @media (min-width: 700px) { .rgrid { grid-auto-flow: row; grid-template-rows: none; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); overflow: visible; margin: 0; padding: 0; } }

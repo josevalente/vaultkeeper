@@ -48,6 +48,14 @@
   for (const el of document.querySelectorAll('.hero-value, .hero-stats b, .tile-val b, .trow-val b, .rank-side b, .kv b, .bal-row b, .ev-val b, .big')) {
     if (vis(el) && getComputedStyle(el).textOverflow === 'ellipsis' && textWidth(el.firstChild?.nodeType === 3 ? el : el) > el.clientWidth + 1) problems.push(`monto cortado: «${el.textContent.trim().slice(0, 24)}»`);
   }
+  // Horizontal carousels (rarities, chips) bleed to the screen edge, but their first item must line
+  // up with the page margin (16 px), never stick to the edge.
+  for (const sc of document.querySelectorAll('#view .rgrid, #view .chips-scroll')) {
+    const first = [...sc.children].find(vis);
+    if (!first || getComputedStyle(sc).overflowX === 'visible') continue;
+    const left = box(first).left;
+    if (left < 12) problems.push(`contenido: ${name(sc)} pegado al borde (primer elemento en x=${Math.round(left)}, debería estar en ~16)`);
+  }
   if (document.documentElement.scrollWidth > W + 1) problems.push(`la página es más ancha que la pantalla (${document.documentElement.scrollWidth} px de ${W}): scroll lateral`);
   const tab = document.querySelector('.tabbar');
   if (tab && (box(tab).left < 0 || box(tab).right > W)) problems.push('barra de pestañas fuera de la pantalla');
