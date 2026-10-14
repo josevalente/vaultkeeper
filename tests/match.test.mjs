@@ -64,6 +64,9 @@ test('grupo TCGCSV correcto por fecha y nombre', () => {
   assert.equal(matchGroup({ name: '30th Celebration', releaseDate: '2026-09-16' }, groups).groupId, 1);
   assert.equal(matchGroup({ name: '30th Classic Collection', releaseDate: '2026-09-16' }, groups).groupId, 2);
   assert.equal(matchGroup({ name: 'MEP Black Star Promos', releaseDate: '2025-09-26' }, groups).groupId, 3);
+  // Same year in both names: a few weeks apart is still the same set.
+  const mcd = [{ groupId: 9, name: "McDonald's Promos 2016", publishedOn: '2016-08-05T00:00:00' }, { groupId: 8, name: "McDonald's Promos 2017", publishedOn: '2017-11-07T00:00:00' }];
+  assert.equal(matchGroup({ name: "McDonald's Collection 2016", releaseDate: '2016-08-20' }, mcd)?.groupId, 9);
   assert.equal(matchGroup({ name: 'Pitch Black', releaseDate: '2026-07-17' }, groups), null, 'sin fecha cercana no cruza');
 });
 

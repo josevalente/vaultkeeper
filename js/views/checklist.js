@@ -1,14 +1,23 @@
 // Faltantes: pick a rarity (e.g. Illustration Rare / Special Illustration Rare) and see every
 // card that exists with it, which ones you already own and what the missing ones cost.
 
-import { esc, $, $$, fmtUSD, fmtCLP, pool } from '../util.js';
+import { esc, $, $$, fmtUSD, fmtCLP, pool, norm } from '../util.js';
 import { state } from '../store.js';
 import { RARITIES, rarityByKey, raritySymbol } from '../rarity.js';
 import { listByRarity, cachedQuickPrice, quickPrice } from '../api.js';
-import { cardTile, openCardSheet, money } from '../ui.js';
+import { cardTile, openCardSheet, openSearch, money } from '../ui.js';
 
 const FEATURED = ['illus', 'sir', 'hyper', 'mega', 'ultra', 'shinyultra', 'shiny', 'double', 'ace', 'futur', 'classic', 'pika', 'promo'];
-const ui = { rarity: 'illus', set: 'all', show: 'missing', sort: 'set' };
+const ui = { rarity: 'illus', set: 'all', show: 'missing', sort: 'set', q: '' };
+
+// Search inside the rarity list: by name ("totodile") and/or number ("048", "48", "048/089").
+const numKey = (s) => String(s || '').split('/')[0].replace(/^0+(?=\d)/, '').toUpperCase();
+function matchesQuery(c, q) {
+  const words = norm(q).split(/\s+/).filter(Boolean);
+  if (!words.length) return true;
+  const hay = norm(`${c.name} ${c.setName}`);
+  return words.every((w) => hay.includes(w) || (/\d/.test(w) && numKey(c.number) === numKey(w)));
+}
 const lists = new Map();
 let loadingPrices = false;
 
@@ -70,6 +79,9 @@ function renderList(body, r, full) {
   const scope = ui.set === 'all' ? full : full.filter((c) => c.setId === ui.set);
   const have = scope.filter((c) => owned.has(c.id)).length;
   let list = scope.filter((c) => (ui.show === 'missing' ? !owned.has(c.id) : ui.show === 'have' ? owned.has(c.id) : true));
+  if (ui.q) list = list.filter((c) => matchesQuery(c, ui.q));
+  // Nothing with these filters: say how many match in the rest of this rarity.
+  const elsewhere = ui.q && !list.length ? full.filter((c) => matchesQuery(c, ui.q)).length : 0;
 
   const price = (c) => cachedQuickPrice(c.id);
   const sorters = {
@@ -91,6 +103,7 @@ function renderList(body, r, full) {
       <div class="bar"><i style="width:${(pct * 100).toFixed(1)}%"></i></div>
       <div class="muted small">Te faltan ${missingScope.length}${priced.length ? ` · completar costaría ~${money(priced.reduce((a, b) => a + b, 0))}${priced.length < missingScope.length ? ` (${priced.length} con precio)` : ''}` : ''}</div>
     </div>
+    <input class="input cl-search" type="search" placeholder="Buscar por nombre o número (ej: Totodile, 048)" value="${esc(ui.q)}" autocomplete="off" aria-label="Buscar en ${esc(r.label)}">
     <div class="filter-row">
       <select class="input setsel small">
         <option value="all">Todas las expansiones (${full.length})</option>
@@ -106,7 +119,28 @@ function renderList(body, r, full) {
       </select>
     </div>
     ${unpriced ? `<button class="btn ghost full loadp">${loadingPrices ? 'Cargando precios…' : `Cargar precios de ${unpriced} carta${unpriced === 1 ? '' : 's'}`}</button>` : ''}
-    <div class="grid">${list.length ? list.map((c) => tile(c, owned)).join('') : `<div class="empty wide"><p>${ui.show === 'missing' ? '¡Las tienes todas! 🎉' : 'Nada aquí todavía.'}</p></div>`}</div>`;
+    ${ui.q && list.length ? `<p class="muted small">${list.length} resultado${list.length === 1 ? '' : 's'} para “${esc(ui.q)}”</p>` : ''}
+    <div class="grid">${
+      list.length
+        ? list.map((c) => tile(c, owned)).join('')
+        : ui.q
+          ? `<div class="empty wide"><p>Nada con “${esc(ui.q)}”${ui.show === 'missing' ? ' entre las que te faltan' : ui.show === 'have' ? ' entre las que tienes' : ''}${ui.set !== 'all' ? ' en esta expansión' : ''}.</p>
+              ${elsewhere ? `<button class="btn ghost widen">Ver ${elsewhere} en todas las expansiones y estados</button>` : ''}
+              <button class="btn ghost anyr">Buscar “${esc(ui.q)}” en todas las cartas</button></div>`
+          : `<div class="empty wide"><p>${ui.show === 'missing' ? '¡Las tienes todas! 🎉' : 'Nada aquí todavía.'}</p></div>`
+    }</div>`;
+
+  const search = $('.cl-search', body);
+  search.oninput = () => {
+    ui.q = search.value.trim() ? search.value : '';
+    const pos = search.selectionStart;
+    renderList(body, r, full);
+    const s2 = $('.cl-search', body);
+    s2.focus();
+    s2.setSelectionRange(pos, pos);
+  };
+  $('.widen', body)?.addEventListener('click', () => ((ui.set = 'all'), (ui.show = 'all'), renderList(body, r, full)));
+  $('.anyr', body)?.addEventListener('click', () => openSearch({ onPick: (c) => openCardSheet(c.id), initial: ui.q }));
 
   $('.setsel', body).onchange = (e) => ((ui.set = e.target.value), renderList(body, r, full));
   $('.sortsel', body).onchange = (e) => ((ui.sort = e.target.value), renderList(body, r, full));

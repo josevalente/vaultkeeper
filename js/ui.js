@@ -1,7 +1,7 @@
 // Shared UI: bottom sheets, card tiles, card detail, buy/sell forms, search, scan flow.
 
 import { h, esc, $, $$, fmtCLP, roundCLP, fmtUSD, fmtPct, fmtDate, localDate, parseAmount, toast, debounce, timeAgo } from './util.js';
-import { state, save, addItems, recordExit, removeItem, snapshot, ownedCount, marketUSD, priceOf, itemGain, feeNow, fixedNow, setPrice, pushHist, dealVerdict, defaultPurpose, toUSD, toCLP, itemValueUSD, maxPayUSD, CONDITIONS, GRADERS, condFactor, channelById, netOfChannel, knownEvents, rememberEvent, todayEvent } from './store.js';
+import { state, save, addItems, recordExit, removeItem, snapshot, ownedCount, marketUSD, priceOf, itemGain, feeNow, fixedNow, setPrice, pushHist, dealVerdict, defaultPurpose, toUSD, toCLP, itemValueUSD, maxPayUSD, CONDITIONS, GRADERS, condFactor, channelById, netOfChannel, knownEvents, rememberEvent, todayEvent, canonicalEvent, eventKey, setExitEvent } from './store.js';
 import { getCard, img, variantLabel, tcgplayerUrl, searchByName, findByNumber, getHistory, searchCatalog } from './api.js';
 import { renderPriceChart } from './chart.js';
 import { rarityInfo, raritySymbol } from './rarity.js';
@@ -643,12 +643,15 @@ export function openItemSheet(item) {
              ${gain != null && hasFee ? `<div class="kv"><span>Si vendes en ${esc(ch?.name || 'tu canal')}</span><b class="${pctClass(N.disp)}">${usdMode ? fmtUSD(N.usd, { sign: true }) : fmtCLP(N.clp, { sign: true })} (${fmtPct(N.pct)}) <em class="muted">neto de comisión</em></b></div>` : ''}`}
       </div>
       <div class="btn-col">
+        ${sold ? (item.exit.kind === 'sale' ? '<button class="btn primary editsale">Editar venta (precio, canal, evento)</button>' : '<button class="btn primary editev">Evento del intercambio</button>') : ''}
         ${sold ? '' : `<button class="btn primary sell">Registrar venta</button>
         <div class="btn-row"><button class="btn ghost toggle">${item.purpose === 'coleccion' ? 'Mover a reventa' : 'Mover a colección'}</button><button class="btn ghost prices">Ver precios</button></div>`}
         <div class="btn-row"><button class="btn ghost edit">Editar compra</button><button class="btn ghost danger del">Eliminar</button></div>
       </div>
     </div>`);
   const s = openSheet({ title: sold ? 'Carta vendida' : 'En tu vault', body, cls: 'tall' });
+  $('.editsale', body)?.addEventListener('click', () => (s.close(), openSellForm(item, { edit: true })));
+  $('.editev', body)?.addEventListener('click', () => (s.close(), openExitEventForm(item)));
   $('.sell', body)?.addEventListener('click', () => (s.close(), openSellForm(item)));
   $('.prices', body)?.addEventListener('click', () => (s.close(), openCardSheet(item.cardId)));
   $('.toggle', body)?.addEventListener('click', () => {
@@ -699,7 +702,7 @@ function openEditBuy(item) {
     const price = parseAmount($('.price', body).value, cur);
     const fx = parseAmount($('.fx', body).value, 'USD');
     if (!price || !fx) return toast('Revisa precio y tipo de cambio', 'err');
-    item.buy = { ...item.buy, price, currency: cur, fx, date: $('.date', body).value, event: $('.event', body).value.trim() };
+    item.buy = { ...item.buy, price, currency: cur, fx, date: $('.date', body).value, event: canonicalEvent($('.event', body).value) };
     item.costUSD = toUSD(price, cur, fx);
     item.costCLP = toCLP(price, cur, fx);
     item.notes = $('.notes', body).value.trim();
@@ -714,28 +717,44 @@ function openEditBuy(item) {
   };
 }
 
+// Event of a trade already recorded (a sale is edited with the sale form).
+function openExitEventForm(item) {
+  const body = h(`<form class="form">${eventField(item.exit.event || '', 'Feria / evento')}<button class="btn primary" type="submit">Guardar</button></form>`);
+  const s = openSheet({ title: 'Evento del intercambio', body });
+  body.onsubmit = (e) => {
+    e.preventDefault();
+    setExitEvent(item, $('.event', body).value);
+    s.close();
+    toast('Evento guardado', 'ok');
+  };
+}
+
 // ───────────────────────── sell
 
-export function openSellForm(item, { suggestCLP } = {}) {
+export function openSellForm(item, { suggestCLP, edit = false } = {}) {
   const v = itemValueUSD(item);
-  const suggest = suggestCLP || (v ? roundCLP(v * state.fx.usdclp) : '');
+  const ex = edit ? item.exit : null; // editing: start from what was recorded
+  const suggest = ex ? (ex.currency === 'USD' ? String(ex.gross).replace('.', ',') : Math.round(ex.gross)) : suggestCLP || (v ? roundCLP(v * state.fx.usdclp) : '');
+  const curNow = ex?.currency || 'CLP';
+  const chNow = ex ? ex.channel || '' : state.settings.defaultChannel;
   const body = h(`
     <form class="form">
       <div class="mini-card">${cardTile({ ...item, id: item.cardId })}</div>
       <label class="field"><span>Precio de venta</span>
         <div class="money-in"><input class="input price" inputmode="decimal" required value="${suggest}">
-        <div class="seg cur"><button type="button" data-c="CLP" class="on">CLP</button><button type="button" data-c="USD">USD</button></div></div>
+        <div class="seg cur"><button type="button" data-c="CLP" class="${curNow === 'CLP' ? 'on' : ''}">CLP</button><button type="button" data-c="USD" class="${curNow === 'USD' ? 'on' : ''}">USD</button></div></div>
       </label>
-      <label class="field"><span>Dónde la vendes</span><select class="input channel">${state.settings.channels.map((c) => `<option value="${esc(c.id)}" ${c.id === state.settings.defaultChannel ? 'selected' : ''}>${esc(c.name)}${c.feePct || c.fixedCLP ? ` · ${c.feePct ? c.feePct + '%' : ''}${c.fixedCLP ? ` + ${fmtCLP(c.fixedCLP)}` : ''}` : ''}</option>`).join('')}</select></label>
-      <label class="field"><span>Fecha</span><input class="input date" type="date" value="${localDate()}"></label>
+      <label class="field"><span>Dónde la vendes</span><select class="input channel">${ex && !state.settings.channels.some((c) => c.id === chNow) ? '<option value="" selected>Sin canal</option>' : ''}${state.settings.channels.map((c) => `<option value="${esc(c.id)}" ${c.id === chNow ? 'selected' : ''}>${esc(c.name)}${c.feePct || c.fixedCLP ? ` · ${c.feePct ? c.feePct + '%' : ''}${c.fixedCLP ? ` + ${fmtCLP(c.fixedCLP)}` : ''}` : ''}</option>`).join('')}</select></label>
+      <label class="field"><span>Fecha</span><input class="input date" type="date" value="${ex?.date || localDate()}"></label>
       <div class="fxline muted small"><span class="fxl"></span> <button type="button" class="link fxr">actualizar</button></div>
-      ${eventField()}
+      ${eventField(ex ? ex.event || '' : null)}
       <div class="buy-sum"></div>
-      <button class="btn primary" type="submit">Registrar venta</button>
+      <button class="btn primary" type="submit">${ex ? 'Guardar cambios' : 'Registrar venta'}</button>
     </form>`);
-  const s = openSheet({ title: 'Vender', body, cls: 'tall' });
-  let cur = 'CLP';
-  const channel = () => channelById($('.channel', body).value);
+  const s = openSheet({ title: ex ? 'Editar venta' : 'Vender', body, cls: 'tall' });
+  let cur = curNow;
+  // "Sin canal" (an old sale without one): no fee.
+  const channel = () => ($('.channel', body).value ? channelById($('.channel', body).value) : { id: '', name: 'Sin canal', feePct: 0, fixedCLP: 0 });
   let fxNow = () => state.fx.usdclp;
   const sum = $('.buy-sum', body);
   const render = () => {
@@ -778,6 +797,6 @@ export function openSellForm(item, { suggestCLP } = {}) {
     snapshot();
     save();
     s.close();
-    toast('Venta registrada', 'ok');
+    toast(ex ? 'Venta actualizada' : 'Venta registrada', 'ok');
   };
 }

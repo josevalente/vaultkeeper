@@ -1,7 +1,7 @@
 // All app data lives in one JSON document in localStorage (per device).
 // Use Ajustes → Exportar respaldo to move it to another phone.
 
-import { localDate, uid, daysBetween, clamp, fmtCLP, roundCLP } from './util.js';
+import { localDate, uid, daysBetween, clamp, fmtCLP, roundCLP, norm } from './util.js';
 import { rarityInfo } from './rarity.js';
 
 const KEY = 'vaultkeeper:v1';
@@ -179,7 +179,10 @@ export function repairItems(card, prices) {
     if (it.cardId !== card.id) continue;
     if (!tp[it.variant] && priced.length === 1) it.variant = priced[0];
     if (!it.rarity && card.rarity) it.rarity = card.rarity;
+    if (!it.image && card.image) it.image = card.image;
   }
+  const w = state.wishlist[card.id];
+  if (w && !w.image && card.image) w.image = card.image;
 }
 export const ownedCount = (cardId) => state.items.filter((it) => it.status === 'held' && it.cardId === cardId).length;
 // Card condition → share of the Near Mint price. TCGplayer's market price is for Near Mint;
@@ -246,6 +249,7 @@ export function toCLP(amount, currency, fx = state.fx.usdclp) {
 
 export function addItems({ card, variant, price, currency, date, purpose, notes, source, qty = 1, fx, condition = 'NM', graded = null, event = '' }) {
   fx = fx || state.fx.usdclp;
+  event = canonicalEvent(event);
   const created = [];
   for (let i = 0; i < qty; i++) {
     const it = {
@@ -284,6 +288,7 @@ export function addItems({ card, variant, price, currency, date, purpose, notes,
 // `price` is what you actually receive (net of fees). `gross`/`feePct` are kept for reference.
 export function recordExit(item, { kind, price, currency, date, fx, tradeId, gross, feePct = 0, fixedCLP = 0, channel = '', event = '' }) {
   fx = fx || state.fx.usdclp;
+  event = canonicalEvent(event);
   item.status = kind === 'trade' ? 'traded' : 'sold';
   item.exit = { kind, price, gross: gross ?? price, feePct, fixedCLP, channel, event, currency, fx, date, tradeId, usd: toUSD(price, currency, fx), clp: toCLP(price, currency, fx) };
 }
@@ -300,6 +305,7 @@ export function netOfChannel(gross, currency, channel, fx = state.fx.usdclp) {
 
 export const EXPENSE_CATS = ['Entrada feria', 'Transporte', 'Insumos (fundas, toploaders)', 'Envíos', 'Comida', 'Otro'];
 export function addExpense({ date, amountCLP, cat, note = '', event = '' }) {
+  event = canonicalEvent(event);
   state.expenses.push({ id: uid(), date, amountCLP, cat, note, event, addedAt: Date.now() });
   save();
 }
@@ -428,8 +434,16 @@ export function sellRanking({ includeKeep = false } = {}) {
 export function report() {
   const months = new Map(), events = new Map(), channels = new Map();
   const bucket = (map, key) => {
-    if (!map.has(key)) map.set(key, { key, buys: 0, buyN: 0, sales: 0, saleN: 0, tradeN: 0, profit: 0, expenses: 0 });
+    if (!map.has(key)) map.set(key, { key, buys: 0, buyN: 0, sales: 0, saleN: 0, tradeN: 0, profit: 0, expenses: 0, from: '', to: '', names: {} });
     return map.get(key);
+  };
+  // Events: "Feria Persa" and "feria persa" are the same feria; remember its dates and spelling.
+  const ev = (name, date) => {
+    const b = bucket(events, eventKey(name));
+    b.names[name] = (b.names[name] || 0) + 1;
+    if (date && (!b.from || date < b.from)) b.from = date;
+    if (date && date > b.to) b.to = date;
+    return b;
   };
   // Only real purchases count as "Compras" (not cards received in trades or loaded without buying).
   const bought = (it) => it.buy.source !== 'Intercambio' && it.buy.source !== 'Carga inicial';
@@ -441,14 +455,14 @@ export function report() {
       b.buyN++;
     }
     if (it.buy.event && bought(it)) {
-      const e = bucket(events, it.buy.event);
+      const e = ev(it.buy.event, it.buy.date);
       e.buys += it.costCLP;
       e.buyN++;
     }
     if (it.status !== 'held' && it.exit) {
       const profit = it.exit.clp - it.costCLP;
       const targets = [bucket(months, (it.exit.date || '').slice(0, 7))];
-      if (it.exit.event) targets.push(bucket(events, it.exit.event));
+      if (it.exit.event) targets.push(ev(it.exit.event, it.exit.date));
       if (it.exit.kind === 'sale') targets.push(bucket(channels, it.exit.channel || 'sin canal'));
       for (const b of targets) {
         if (it.exit.kind === 'trade') b.tradeN++;
@@ -462,9 +476,10 @@ export function report() {
   }
   for (const e of state.expenses) {
     bucket(months, (e.date || '').slice(0, 7)).expenses += e.amountCLP;
-    if (e.event) bucket(events, e.event).expenses += e.amountCLP;
+    if (e.event) ev(e.event, e.date).expenses += e.amountCLP;
   }
-  const fin = (m) => [...m.values()].map((b) => ({ ...b, net: b.profit - b.expenses }));
+  // The most used spelling is the event's name.
+  const fin = (m) => [...m.values()].map((b) => ({ ...b, name: Object.entries(b.names).sort((x, y) => y[1] - x[1])[0]?.[0] ?? b.key, net: b.profit - b.expenses }));
   return {
     months: fin(months).sort((a, b) => b.key.localeCompare(a.key)),
     events: fin(events).sort((a, b) => b.buys + b.sales - (a.buys + a.sales)),
@@ -489,8 +504,61 @@ export function setAsk(it, p) {
   else delete it.askCLP;
 }
 
-export const knownEvents = () =>
-  [...new Set([...state.items.flatMap((it) => [it.buy.event, it.exit?.event]), ...state.expenses.map((e) => e.event)].filter(Boolean))].slice(-30).reverse();
+// Most recent first, one spelling per event (the latest one used).
+export const knownEvents = () => {
+  const seen = new Map();
+  for (const e of [...state.items.flatMap((it) => [it.buy.event, it.exit?.event]), ...state.expenses.map((x) => x.event)].filter(Boolean)) {
+    const k = eventKey(e);
+    seen.delete(k);
+    seen.set(k, e);
+  }
+  return [...seen.values()].slice(-30).reverse();
+};
+
+// ───────────────────────── Events (ferias): free text, the same however it's typed
+export const eventKey = (name) => norm(name).replace(/\s+/g, ' ').trim();
+
+// The spelling already in use for a typed event, so "feria persa" doesn't start a second feria.
+export function canonicalEvent(name) {
+  name = String(name || '').trim().replace(/\s+/g, ' ');
+  if (!name) return '';
+  const k = eventKey(name);
+  return knownEvents().find((e) => eventKey(e) === k) || name;
+}
+
+// Every place an event is written: purchases, sales/trades and expenses.
+function eventRefs() {
+  return [...state.items.flatMap((it) => [it.buy, it.exit].filter((x) => x?.event)), ...state.expenses.filter((x) => x.event)];
+}
+
+// Renames an event everywhere. A name that is another event's name merges both.
+export function renameEvent(key, to) {
+  to = String(to || '').trim().replace(/\s+/g, ' ');
+  if (!to) return 0;
+  const target = eventKey(to) === key ? to : canonicalEvent(to);
+  let n = 0;
+  for (const r of eventRefs()) if (eventKey(r.event) === key) (r.event = target), n++;
+  if (state.settings.lastEvent && eventKey(state.settings.lastEvent.name) === key) state.settings.lastEvent.name = target;
+  save();
+  return n;
+}
+
+// Removes an event from every purchase, sale and expense (the records themselves stay).
+export function removeEvent(key) {
+  let n = 0;
+  for (const r of eventRefs()) if (eventKey(r.event) === key) (r.event = ''), n++;
+  if (state.settings.lastEvent && eventKey(state.settings.lastEvent.name) === key) state.settings.lastEvent = null;
+  save();
+  return n;
+}
+
+// Sets (or clears) the event of a sale or trade already recorded.
+export function setExitEvent(item, event) {
+  if (!item.exit) return;
+  item.exit.event = canonicalEvent(event);
+  rememberEvent(item.exit.event);
+  save();
+}
 
 // ───────────────────────── Lot (lote en la feria)
 

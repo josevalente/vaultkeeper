@@ -13,6 +13,7 @@ import { renderSettings } from './views/settings.js';
 import { renderLote } from './views/lote.js';
 import { renderReporte } from './views/reporte.js';
 import { renderMas } from './views/mas.js';
+import { renderEventos } from './views/eventos.js';
 
 const ROUTES = {
   inicio: renderHome,
@@ -23,9 +24,10 @@ const ROUTES = {
   lote: renderLote,
   reporte: renderReporte,
   mas: renderMas,
+  eventos: renderEventos,
 };
 // Sections reached from "Más" keep that tab highlighted.
-const TAB_OF = { lote: 'mas', intercambio: 'mas', reporte: 'mas', ajustes: 'mas' };
+const TAB_OF = { lote: 'mas', intercambio: 'mas', reporte: 'mas', ajustes: 'mas', eventos: 'mas' };
 
 const view = $('#view');
 let current = null;

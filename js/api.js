@@ -115,6 +115,7 @@ async function decorate(list) {
     })
     .filter(Boolean);
 }
+const decorateWithImages = async (list) => withImages(await decorate(list));
 
 // ───────────────────────── card + prices
 
@@ -189,6 +190,42 @@ function dataBases() {
   return bases;
 }
 const extraUrls = () => dataBases().map((b) => b + 'precios-extra.json');
+
+// Cards TCGdex has without a picture (whole promo sets, McDonald's…): TCGplayer's picture instead.
+// From the robot (data/imagenes.json) plus the TCGplayer products already in precios-extra.json.
+let imagesPromise;
+function imageMap() {
+  imagesPromise ||= (async () => {
+    const map = new Map();
+    const extra = await getExtra().catch(() => ({ cards: {} }));
+    for (const [id, e] of Object.entries(extra.cards || {})) {
+      const pid = Object.values(e.tp || {}).find((v) => v?.pid)?.pid;
+      if (pid) map.set(id, `tcgp:${pid}`);
+    }
+    let data = cacheGet('imgs', 12 * 3600000);
+    for (const url of data ? [] : dataBases().map((b) => b + 'imagenes.json')) {
+      try {
+        data = await fetchJSON(url, { timeout: 8000, retries: 0 });
+        if (data?.cards) {
+          cacheSet('imgs', data);
+          break;
+        }
+      } catch {
+        /* next source */
+      }
+    }
+    data ||= cacheGet('imgs');
+    for (const [id, pid] of Object.entries(data?.cards || {})) map.set(id, `tcgp:${pid}`);
+    return map;
+  })().catch(() => new Map());
+  return imagesPromise;
+}
+export async function withImages(list) {
+  if (!list?.some((c) => !c.image)) return list;
+  const map = await imageMap();
+  for (const c of list) if (!c.image && map.has(c.id)) c.image = map.get(c.id);
+  return list;
+}
 
 let extraPromise;
 export function getExtra() {
@@ -365,6 +402,7 @@ export async function getCard(id, { fresh = false } = {}) {
   const card = normCard(raw);
   const prices = normPrices(raw);
   const extra = await getExtra().catch(() => ({ cards: {} }));
+  if (!card.image) await withImages([card]);
   const ex = extra.cards?.[id];
   if (ex) {
     card.printed = ex.printed;
@@ -406,7 +444,7 @@ export async function searchByName(q) {
   q = q.trim();
   if (q.length < 2) return [];
   const list = await fetchJSON(`${TD}/cards?name=${encodeURIComponent(q)}`, { retries: 1 });
-  const out = await decorate(list);
+  const out = await decorateWithImages(list);
   const base = (n) => String(n || '').toLowerCase().replace(/\b(ex|v|vmax|vstar|gx)\b/g, '').trim();
   const sim = (c) => Math.round(similarity(base(c.name), base(q)) * 4);
   return out.sort((a, b) => sim(b) - sim(a) || b.setIdx - a.setIdx).slice(0, 150);
@@ -448,16 +486,16 @@ export async function findByNumber(number, total, name, { nameFallback = true } 
   if (name) cands.sort((a, b) => sim(b) - sim(a) || b.setIdx - a.setIdx);
   else cands.sort((a, b) => b.setIdx - a.setIdx);
   if (!cands.length && name && nameFallback) return searchByName(name);
-  return cands.slice(0, 40);
+  return withImages(cands.slice(0, 40));
 }
 
 // All cards of one set (brief), cached — used to match an OCR'd name inside the sets that share a printed total.
 export async function setCards(setId) {
   const key = 'set:' + setId;
   const cached = cacheGet(key, 7 * 86400000);
-  if (cached) return cached;
+  if (cached) return withImages(cached);
   const s = await fetchJSON(`${TD}/sets/${encodeURIComponent(setId)}`, { retries: 1 });
-  const out = await decorate(s?.cards || []);
+  const out = await decorateWithImages(s?.cards || []);
   cacheSet(key, out);
   return out;
 }
@@ -465,7 +503,7 @@ export async function setCards(setId) {
 export async function listByRarity(apiRarity) {
   const key = 'rar:' + apiRarity.toLowerCase();
   const cached = cacheGet(key, 2 * 86400000);
-  if (cached) return cached;
+  if (cached) return withImages(cached);
   const list = await fetchJSON(`${TD}/cards?rarity=${encodeURIComponent('eq:' + apiRarity)}`, { retries: 2, timeout: 20000 });
   const out = await decorate(list);
   // Cards TCGdex has without a rarity (e.g. 30th Classic Collection) but TCGplayer classifies.
@@ -477,6 +515,7 @@ export async function listByRarity(apiRarity) {
     const s = map.get(e.setId);
     if (s) out.push({ id, name: e.name, number: e.number, image: e.image, setId: e.setId, setName: s.name, total: s.official, setIdx: s.idx });
   }
+  await withImages(out);
   cacheSet(key, out);
   return out;
 }

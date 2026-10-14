@@ -12,9 +12,10 @@ Es 100 % estática: se publica gratis en GitHub Pages y los datos quedan guardad
 | **Registrar compra** | Precio en CLP o USD; guarda el tipo de cambio del momento (mindicador.cl, dólar observado; si no hay red usa el último guardado). Destino: reventa o colección. |
 | **Inicio** | Valor del vault, invertido, ganancia no realizada y realizada. Gráfico **costo vs. valor** con franja de **% rentabilidad** debajo (mismo eje de tiempo). Ranking **top 5 para vender** (con “Mostrar todas”). |
 | **Colección** | Tus cartas filtradas por rareza (con los símbolos oficiales), reventa/colección, vendidas. Vender, editar, mover. |
-| **Faltantes** | Eliges una rareza (Illustration Rare, Special Illustration Rare, Hyper Rare, Mega Hyper Rare…) y ves **todas** las cartas que existen con esa rareza, por expansión, cuáles tienes y cuáles te faltan, con precio y ordenadas de la más barata (las más fáciles de conseguir). Incluye wishlist. |
+| **Faltantes** | Eliges una rareza (Illustration Rare, Special Illustration Rare, Hyper Rare, Mega Hyper Rare…) y ves **todas** las cartas que existen con esa rareza, por expansión, cuáles tienes y cuáles te faltan, con precio y ordenadas de la más barata (las más fáciles de conseguir). Buscador por nombre o número (ej. *Totodile*, *048*). Incluye wishlist. |
 | **Intercambio** | Tus cartas (valorizadas) vs. las del otro (por foto o búsqueda, valorizadas igual) + dinero extra. Te dice si es justo, a favor o en contra, y al confirmar actualiza el vault. |
-| **Más** (barra inferior) | Lote, Intercambio, Reporte y gastos, Respaldo y Ajustes. |
+| **Más** (barra inferior) | Lote, Intercambio, Reporte y gastos, Eventos, Respaldo y Ajustes. |
+| **Eventos** | Cada feria con sus compras, ventas, gastos y ganancia neta. Renombrar, unir eventos escritos distinto ("Feria Persa" / "feria persa" ya se juntan solos) y quitar. Colección se puede filtrar por evento y una venta ya registrada se puede editar (precio, canal, evento). |
 | **Lote** | Varias cartas a la vez (cámara en ráfaga, una por una o buscando): valor total, **oferta máxima** para tu margen y veredicto sobre lo que piden. “Comprar el lote” reparte lo pagado según el valor de cada carta; “Solo agregar” carga cartas que ya tenías (costo = mercado). |
 | **Reporte** | Ganancia realizada por **mes**, por **feria/evento** y por **canal**, menos **gastos** (entrada, transporte, fundas, envíos…). Exporta inventario y gastos a CSV (Excel). |
 | **Novedades** | En Inicio: carta de la wishlist bajo tu precio meta, carta del vault que se movió más de X% en 7 días, carta que ya rinde tu margen objetivo. Con la app instalada, también como número en el ícono (actívalo en Ajustes: iPhone pide permiso de notificaciones; no se envían notificaciones). |
@@ -56,6 +57,7 @@ Puntaje = ganancia % sobre tu compra + monto de la ganancia + tendencia del prec
 Abre la URL en **Safari** → botón **Compartir** → **Agregar a pantalla de inicio**. Abre a pantalla completa, funciona sin conexión con los últimos precios y iOS no borra los datos de apps instaladas. Cuando hay una versión nueva, la app la descarga completa en segundo plano y muestra **"Hay una versión nueva · Toca para actualizar"**.
 
 ## Qué significa cada precio
+- **Imágenes:** TCGdex no tiene foto de algunas cartas (por ejemplo todas las *MEP Black Star Promos* y varias promos de McDonald's). El robot busca esas cartas en TCGplayer y publica `data/imagenes.json`; la app muestra la imagen de TCGplayer en su lugar.
 - **TCGplayer market:** promedio de ventas recientes en TCGplayer (EE.UU.). Es el que usa la app para valorizar y para el veredicto de feria.
 - **Más barata publicada / Mediana publicada:** lo que piden hoy los vendedores en TCGplayer (no lo que se pagó). El precio más alto publicado no se muestra porque suele ser un aviso desactualizado o absurdo.
 - **Cardmarket · Europa:** referencia del mercado europeo en euros, con su equivalente en pesos. Su tendencia (promedio 7 días vs 30 días) ayuda a decidir cuándo vender. Solo se usa para valorizar si no hay precio de TCGplayer.

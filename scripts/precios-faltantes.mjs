@@ -2,9 +2,13 @@
 // a public daily mirror of TCGplayer's catalog. Writes data/precios-extra.json, which the app
 // reads as its third price source. Runs daily from .github/workflows/precios.yml.
 //
-//   node scripts/precios-faltantes.mjs [--out data/precios-extra.json] [--sets 15]
+// With --imgs it also writes data/imagenes.json: the TCGplayer product of every TCGdex card that
+// has no picture (whole promo sets like "MEP Black Star Promos", McDonald's promos…), so the app
+// can show TCGplayer's image instead of a blank card.
+//
+//   node scripts/precios-faltantes.mjs [--out data/precios-extra.json] [--sets 15] [--imgs data/imagenes.json]
 
-import { writeFile, mkdir } from 'node:fs/promises';
+import { writeFile, mkdir, readFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { matchGroup, matchCards, normSetName } from './match.mjs';
 
@@ -15,6 +19,7 @@ const arg = (name, def) => {
   return i > 0 ? process.argv[i + 1] : def;
 };
 const OUT = arg('--out', 'data/precios-extra.json');
+const IMGS = arg('--imgs', null);
 const RECENT = Number(arg('--sets', 15));
 // TCGCSV usage guidelines: identify the app, pause between requests, pull at most once a day.
 const UA = 'VaultKeeper/1.0.0';
@@ -79,6 +84,48 @@ async function main() {
   await mkdir(dirname(OUT), { recursive: true });
   await writeFile(OUT, JSON.stringify(out, null, 1) + '\n');
   console.log(`Escribí ${OUT}: ${Object.keys(out.cards).length} cartas de ${Object.keys(out.sets).length} expansiones.`);
+
+  // Images are a bonus: a failure here never blocks the prices.
+  if (IMGS) await images(all.filter((s) => !pocketIds.has(s.id)), groups, out).catch((e) => console.warn(`! imágenes: ${e.message}`));
+}
+
+async function images(sets, groups, extra) {
+  const prev = JSON.parse(await readFile(IMGS, 'utf8').catch(() => 'null'));
+  const res = { updated: new Date().toISOString(), cards: {} };
+  // Already matched for prices: their TCGplayer product is known.
+  for (const [id, e] of Object.entries(extra.cards)) {
+    if (e.image) continue;
+    const pid = Object.values(e.tp || {}).find((v) => v.pid)?.pid;
+    if (pid) res.cards[id] = pid;
+  }
+  let missing = 0, failed = 0;
+  for (const s of sets) {
+    const set = await get(`${TD}/sets/${encodeURIComponent(s.id)}`).catch(() => null);
+    const cards = (set?.cards || []).filter((c) => !c.image && !res.cards[c.id]);
+    if (!cards.length) continue;
+    missing += cards.length;
+    const g = matchGroup(set, groups);
+    if (!g) continue;
+    try {
+      const products = await get(`${CSV}/${g.groupId}/products`);
+      const prices = await get(`${CSV}/${g.groupId}/prices`);
+      const matched = matchCards(cards, products?.results || [], prices?.results || []);
+      for (const [id, m] of Object.entries(matched)) {
+        const pid = Object.values(m.tp).find((v) => v.pid)?.pid;
+        if (pid) res.cards[id] = pid;
+      }
+    } catch (e) {
+      failed++;
+      console.warn(`! imágenes ${set.id}: ${e.message}`);
+    }
+  }
+  // Keep what a failed group had yesterday, and never replace the file with a much smaller one.
+  for (const [id, pid] of Object.entries(prev?.cards || {})) res.cards[id] ??= pid;
+  const n = Object.keys(res.cards).length, before = Object.keys(prev?.cards || {}).length;
+  if (n < before * 0.8) return console.warn(`! imágenes: ${n} vs ${before} antes, mantengo el archivo anterior`);
+  await mkdir(dirname(IMGS), { recursive: true });
+  await writeFile(IMGS, JSON.stringify(res) + '\n');
+  console.log(`Escribí ${IMGS}: ${n} cartas sin imagen en TCGdex con imagen de TCGplayer (de ${missing} sin imagen; ${failed} grupos fallaron).`);
 }
 
 main().catch((e) => {

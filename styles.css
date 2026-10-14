@@ -710,3 +710,14 @@ body.has-sheet .toast.show { transform: translate(-50%, 0); }
 }
 /* New version ready (service worker): one tap reloads. */
 .update-pill { position: fixed; z-index: 90; left: 50%; transform: translateX(-50%); top: calc(var(--safe-t) + 60px); padding: 10px 16px; border-radius: 99px; border: 0; background: var(--brass); color: #1a1405; font-weight: 800; font-size: 13.5px; box-shadow: var(--shadow); white-space: nowrap; max-width: calc(100% - 32px); }
+.cl-search { margin-bottom: 10px; }
+.empty.wide .btn { margin-top: 8px; }
+/* Eventos */
+.ev-list { display: flex; flex-direction: column; gap: 8px; }
+.ev-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; text-align: left; padding: 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface-2); color: inherit; font: inherit; }
+.ev-main b { display: block; font-size: 14.5px; overflow-wrap: anywhere; }
+.ev-main small, .ev-val small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.ev-val { text-align: right; }
+.ev-val b { font-size: 15px; }
+.ev-h { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-2); margin: 6px 0 0; }
+.seg.small button { white-space: nowrap; }

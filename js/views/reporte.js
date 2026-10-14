@@ -39,7 +39,7 @@ export function renderReporte(root) {
               .map(
                 (b) => `
         <div class="rep-row">
-          <div class="rep-head"><b>${esc(label(b.key))}</b><b class="${pctClass(b.net)}">${fmtCLP(b.net, { sign: true })}</b></div>
+          <div class="rep-head"><b>${esc(tab === 'evento' ? b.name : label(b.key))}</b><b class="${pctClass(b.net)}">${fmtCLP(b.net, { sign: true })}</b></div>
           <div class="rep-grid">
             ${tab !== 'canal' ? `<div><span>Compras</span>${fmtCLP(b.buys)} <small>(${b.buyN})</small></div>` : ''}
             <div><span>Ventas</span>${fmtCLP(b.sales)} <small>(${b.saleN}${b.tradeN ? ` + ${b.tradeN} trueque${b.tradeN === 1 ? '' : 's'}` : ''})</small></div>

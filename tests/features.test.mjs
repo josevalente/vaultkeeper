@@ -104,7 +104,7 @@ test('reporte por mes, evento y canal con gastos', () => {
   assert.equal(oct.profit, 30000);
   assert.equal(oct.expenses, 5000);
   assert.equal(oct.net, 25000);
-  const ev = r.events.find((e) => e.key === 'Feria Persa');
+  const ev = r.events.find((e) => e.name === 'Feria Persa');
   assert.equal(ev.net, 25000);
   assert.equal(r.channels.find((c) => c.key === 'insta').sales, 80000);
   assert.equal(S.summary().realNetCLP, 25000);
@@ -318,6 +318,42 @@ test('sin espacio: libera caché e historial de cartas que ya no tienes antes de
   assert.ok(state.priceHist['k|holofoil'], 'conserva el historial de lo que tienes');
   assert.equal(state.priceHist['vendida|holofoil'], undefined);
   assert.ok(it);
+});
+
+test('eventos: mismo evento aunque se escriba distinto, renombrar, unir y quitar', () => {
+  reset();
+  S.setPrice('e', { tp: { holofoil: { market: 50 } } });
+  const [a1] = S.addItems({ card: card('e'), variant: 'holofoil', price: 10000, currency: 'CLP', date: '2026-10-12', event: 'Feria Persa' });
+  const [a2] = S.addItems({ card: card('e'), variant: 'holofoil', price: 20000, currency: 'CLP', date: '2026-10-13', event: '  feria   persa ' });
+  assert.equal(a2.buy.event, 'Feria Persa', 'usa la forma ya escrita');
+  S.recordExit(a1, { kind: 'sale', price: 30000, currency: 'CLP', date: '2026-10-13', fx: 1000, event: 'FERIA PERSA' });
+  S.addExpense({ date: '2026-10-12', amountCLP: 5000, cat: 'Entrada feria', event: 'Feria persa' });
+  let [ev] = S.report().events;
+  assert.equal(S.report().events.length, 1);
+  assert.equal(ev.name, 'Feria Persa');
+  assert.equal(ev.buyN, 2);
+  assert.equal(ev.saleN, 1);
+  assert.equal(ev.from, '2026-10-12');
+  assert.equal(ev.to, '2026-10-13');
+  near(ev.net, 30000 - 10000 - 5000);
+  // a typo creates a second event; merging it by renaming
+  state.expenses.push({ id: 'x', date: '2026-10-13', amountCLP: 1000, cat: 'Comida', event: 'Feria Persa Biobio' });
+  assert.equal(S.report().events.length, 2);
+  const typo = S.report().events.find((e) => e.name === 'Feria Persa Biobio');
+  S.renameEvent(typo.key, 'feria persa');
+  assert.equal(S.report().events.length, 1, 'unidos');
+  assert.equal(state.expenses.find((e) => e.id === 'x').event, 'Feria Persa');
+  // rename only the spelling
+  ev = S.report().events[0];
+  S.renameEvent(ev.key, 'Feria Persa Biobío 2026');
+  assert.equal(S.report().events[0].name, 'Feria Persa Biobío 2026');
+  // sale event edited afterwards
+  S.setExitEvent(a1, 'Instagram');
+  assert.equal(a1.exit.event, 'Instagram');
+  // remove an event everywhere
+  S.removeEvent(S.eventKey('Feria Persa Biobío 2026'));
+  assert.ok(state.items.every((it) => !it.buy.event));
+  assert.equal(S.report().events.length, 1, 'solo queda Instagram');
 });
 
 console.log(`${pass} pruebas de funciones nuevas OK${process.exitCode ? ' — HAY FALLAS' : ''}`);

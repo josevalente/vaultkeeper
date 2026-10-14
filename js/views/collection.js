@@ -1,12 +1,18 @@
 // Colección: every copy you own (or sold), filterable by rarity, purpose and status.
 
 import { esc, $, $$, fmtPct, norm, fmtCLP, fmtUSD } from '../util.js';
-import { state, itemValueUSD, itemGain } from '../store.js';
+import { state, itemValueUSD, itemGain, eventKey, report } from '../store.js';
 import { RARITIES, rarityInfo } from '../rarity.js';
 import { cardTile, rarityChip, money, pctClass, openItemSheet } from '../ui.js';
 import { openSaleList } from '../salelist.js';
 
-const ui = { q: '', rarity: null, status: 'held', purpose: 'all', sort: 'value', kind: 'all' };
+const ui = { q: '', rarity: null, status: 'held', purpose: 'all', sort: 'value', kind: 'all', event: '' };
+// Más → Eventos opens Colección filtered by one event.
+export function showEventInCollection(key) {
+  Object.assign(ui, { event: key, status: 'all', rarity: null, kind: 'all', purpose: 'all', q: '' });
+  location.hash = '#/coleccion';
+}
+const atEvent = (it, key) => [it.buy?.event, it.exit?.event].some((e) => e && eventKey(e) === key);
 const kindOf = (it) => (it.kind === 'sealed' || String(it.cardId).startsWith('sealed-') ? 'sealed' : it.lang === 'ja' ? 'jp' : 'en');
 
 export function renderCollection(root) {
@@ -20,7 +26,10 @@ export function renderCollection(root) {
   const present = RARITIES.filter((r) => counts[r.key]);
   if (counts.other) present.push({ key: 'other', label: 'Otras' });
 
+  const events = report().events;
+  if (ui.event && !events.some((e) => e.key === ui.event)) ui.event = '';
   let list = base.filter((it) => {
+    if (ui.event && !atEvent(it, ui.event)) return false;
     if (ui.kind !== 'all' && kindOf(it) !== ui.kind) return false;
     if (ui.rarity && rarityInfo(it.rarity).key !== ui.rarity) return false;
     if (ui.purpose !== 'all' && it.purpose !== ui.purpose) return false;
@@ -69,6 +78,7 @@ export function renderCollection(root) {
           <button data-p="reventa" class="${ui.purpose === 'reventa' ? 'on' : ''}">Reventa</button>
           <button data-p="coleccion" class="${ui.purpose === 'coleccion' ? 'on' : ''}">Colección</button>
         </div>
+        ${events.length ? `<select class="input evsel small" aria-label="Filtrar por evento"><option value="">Todos los eventos</option>${events.map((e) => `<option value="${esc(e.key)}" ${ui.event === e.key ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}</select>` : ''}
         <select class="input sort small">
           ${[['value', 'Mayor valor'], ['gain', 'Mayor ganancia %'], ['date', 'Más recientes'], ['rarity', 'Rareza'], ['name', 'Nombre']]
             .map(([k, l]) => `<option value="${k}" ${ui.sort === k ? 'selected' : ''}>${l}</option>`)
@@ -92,6 +102,7 @@ export function renderCollection(root) {
   $$('.chips-scroll .rchip', root).forEach((b) => (b.onclick = () => ((ui.rarity = b.dataset.r || null), renderCollection(root))));
   $$('.status button', root).forEach((b) => (b.onclick = () => ((ui.status = b.dataset.s), (ui.rarity = null), renderCollection(root))));
   $$('.purpose button', root).forEach((b) => (b.onclick = () => ((ui.purpose = b.dataset.p), renderCollection(root))));
+  $('.evsel', root)?.addEventListener('change', (e) => ((ui.event = e.target.value), renderCollection(root)));
   $$('.kinds button', root).forEach((b) => (b.onclick = () => ((ui.kind = b.dataset.k), (ui.rarity = null), renderCollection(root))));
   $('.sale-list', root).onclick = () => openSaleList();
   $('.sort', root).onchange = (e) => ((ui.sort = e.target.value), renderCollection(root));

@@ -46,8 +46,12 @@ export function daysApart(a, b) {
 export function matchGroup(set, groups) {
   let best = null;
   for (const g of groups) {
-    if (set.releaseDate && g.publishedOn && daysApart(set.releaseDate, g.publishedOn.slice(0, 10)) > 10) continue;
     const a = normSetName(set.name), b = normSetName(g.name);
+    // Same year in both names ("McDonald's Collection 2016" / "McDonald's Promos 2016"): their
+    // dates may differ by a few weeks.
+    const year = a.match(/\b(19|20)\d{2}\b/)?.[0];
+    const window = year && b.includes(year) ? 45 : 10;
+    if (set.releaseDate && g.publishedOn && daysApart(set.releaseDate, g.publishedOn.slice(0, 10)) > window) continue;
     // Promo sets are named differently on each side ("MEP Black Star Promos" / "ME: Mega Evolution
     // Promo"); same release date + both promo is a strong enough signal.
     const sim = jaccard(a, b) + (/\bpromo\b/.test(a) && /\bpromo\b/.test(b) ? 0.5 : 0);

@@ -1,5 +1,6 @@
 # Once a day, from TCGCSV (daily mirror of TCGplayer, English + Japanese Pokémon):
 #  · data/precios-extra.json — prices TCGdex doesn't have yet (new sets);
+#  · data/imagenes.json — TCGplayer picture for cards TCGdex has without one;
 #  · data/hist/*.json — daily price history of every card/product worth US$5 or more;
 #  · data/catalogo/jp.json, data/catalogo/sellados.json — Japanese cards and sealed products.
 # Published on the `datos` branch so it never conflicts with your pushes to main; the app reads
@@ -65,7 +66,7 @@ jobs:
           mkdir -p "$dir/data"
 
       - name: Precios faltantes de expansiones nuevas
-        run: node scripts/precios-faltantes.mjs --out "$RUNNER_TEMP/datos/data/precios-extra.json"
+        run: node scripts/precios-faltantes.mjs --out "$RUNNER_TEMP/datos/data/precios-extra.json" --imgs "$RUNNER_TEMP/datos/data/imagenes.json"
 
       - name: Historial, cartas japonesas y sellados
         run: node scripts/tcgcsv-diario.mjs --data "$RUNNER_TEMP/datos/data"
