@@ -71,7 +71,7 @@ function route() {
 }
 
 function renderFx() {
-  $('.fxchip').textContent = `US$1 = ${fmtCLP(state.fx.usdclp)}`;
+  $('.fxchip').innerHTML = `<span class="fx-k">US$1 = </span>${fmtCLP(state.fx.usdclp)}`; // short ("$976") on narrow phones
 }
 
 // Re-render the visible view whenever data changes (sheets live outside #view).

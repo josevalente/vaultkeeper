@@ -202,7 +202,7 @@ function route() {
     $('#sheets').innerHTML = '';
     document.body.classList.remove('has-sheet');
   }
-  $('.fxchip').textContent = `US$1 = ${fmtCLP(usdclp())}`;
+  $('.fxchip').innerHTML = `<span class="fx-k">US$1 = </span>${fmtCLP(usdclp())}`;
 }
 onChange(() => {
   const y = window.scrollY;

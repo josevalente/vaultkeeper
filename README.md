@@ -104,3 +104,7 @@ Todo vive en el `localStorage` del teléfono. En **Ajustes → Exportar respaldo
 python -m http.server 8765
 ```
 y abre http://localhost:8765. No hay build: HTML + CSS + módulos JS.
+
+### Validar el diseño en todos los iPhone
+
+`tests/layout-check.js` revisa la pantalla abierta: piezas de la cabecera que se montan o se salen, montos cortados con "…" y cualquier cosa más ancha que la pantalla. Pégalo en la consola del navegador (o córrelo desde un navegador automatizado) con la app abierta en cada ancho: 320 (SE 1ª gen.), 360, 375 (SE / mini), 390–393 (13–16), 402 (16 Pro), 414, 430 (Plus / Pro Max) y 440 (16 Pro Max). Devuelve `{ ok, problems }`.

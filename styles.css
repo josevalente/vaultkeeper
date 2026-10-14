@@ -771,3 +771,23 @@ body.has-sheet .toast.show { transform: translate(-50%, 0); }
 .back-btn { display: inline-flex; align-items: center; gap: 4px; min-height: 40px; margin: -6px 0 6px -6px; padding: 6px 12px 6px 8px; border-radius: 99px; border: 0; background: transparent; color: var(--brass); font-weight: 800; font-size: 15px; }
 .back-btn span { font-size: 24px; line-height: 0.8; margin-top: -2px; }
 .back-btn:active { background: var(--surface-2); }
+
+/* ───────────── header that fits every phone (320 → 440 px), validated with tests/layout-check.js */
+.topbar { gap: 8px; }
+.brand-row { flex: 1 1 auto; min-width: 0; }
+.top-right { flex: none; }
+.vault-pill { min-width: 0; flex: 0 1 auto; overflow: hidden; }
+.vault-pill .vp-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.brand { flex: none; }
+/* Phones: logo + vault pill + rate + gear; the "VaultKeeper" wordmark only on wide screens. */
+@media (max-width: 599px) {
+  .brand > span { display: none; }
+  .fxchip { padding: 4px 8px; font-size: 12px; }
+  body.offline .offline-dot { display: none; }
+  body.offline .fxchip::after { content: ' · sin red'; font-weight: 800; }
+}
+@media (max-width: 379px) {
+  .fx-k { display: none; }
+  body.offline .fxchip::after { content: ' ⚠'; }
+  .vault-pill { padding: 5px 9px 5px 8px; font-size: 13px; }
+}
