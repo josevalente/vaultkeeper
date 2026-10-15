@@ -22,6 +22,13 @@ function matchesQuery(c, q) {
 const lists = new Map();
 let loadingPrices = false;
 
+// Inicio → "Mi wishlist": Faltantes opened on the wishlist.
+export function showWishlist() {
+  ui.by = 'rareza';
+  ui.show = 'wish';
+  location.hash = '#/faltantes';
+}
+
 export function renderChecklist(root) {
   if (ui.by === 'set') return renderBySet(root);
   const r = rarityByKey(ui.rarity);

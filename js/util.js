@@ -318,3 +318,17 @@ export function openPicker({ title, items, current, onPick, openSheet, placehold
   setTimeout(() => q.focus(), 300);
   return s;
 }
+
+// Inicio: the wishlist one tap away. items: [{ id, name, image, usd, hit }] (newest first).
+export function wishPanelHTML(items, { money }) {
+  const priced = items.filter((x) => x.usd != null);
+  const hits = items.filter((x) => x.hit).length;
+  const sub = items.length
+    ? [`${items.length} carta${items.length === 1 ? '' : 's'}`, priced.length ? `~${money(priced.reduce((a, x) => a + x.usd, 0))}` : '', hits ? `${hits} bajo tu meta` : ''].filter(Boolean).join(' · ')
+    : 'Toca ♡ en cualquier carta para guardarla aquí';
+  return `
+    <section class="panel wish-panel rise" style="--d:1">
+      <button class="wish-head" aria-label="Abrir mi wishlist"><span class="heart">♥</span><div><b>Mi wishlist</b><small class="${hits ? 'pos' : ''}">${esc(sub)}</small></div><em aria-hidden="true">›</em></button>
+      ${items.length ? `<div class="wish-strip">${items.slice(0, 12).map((x) => `<button class="${x.hit ? 'hit' : ''}" data-id="${esc(x.id)}" aria-label="${esc(x.name)}"><img src="${esc(x.image || 'icons/card-back.svg')}" alt="" loading="lazy" onerror="this.src='icons/card-back.svg'"></button>`).join('')}${items.length > 12 ? `<button class="more-n" aria-label="Ver todas">+${items.length - 12}</button>` : ''}</div>` : ''}
+    </section>`;
+}

@@ -1,14 +1,14 @@
 // Magic / Yu-Gi-Oh vaults (otros.html?juego=mtg|ygo): Inicio, Colección, Más + scanner/search.
 // A separate app from the Pokémon vault: its own storage key, same look, shared settings.
 
-import { h, $, $$, esc, fmtCLP, fmtUSD, fmtPct, fmtDate, timeAgo, toast, norm } from '../util.js';
+import { h, $, $$, esc, fmtCLP, fmtUSD, fmtPct, fmtDate, timeAgo, toast, norm, wishPanelHTML } from '../util.js';
 import { renderPortfolioChart } from '../chart.js';
 import { gameById } from './games.js';
-import { openVault, state, onChange, settings, usdclp, summary, sellRanking, refreshPrices, refreshFx, itemValueUSD, itemGain, exportVault, importVault, computeAlerts, dismissAlert, wishPrint, backupDue, backedUp, eventKey, eventReport, renameEvent, removeEvent, knownEvents } from './store.js';
+import { openVault, state, onChange, settings, usdclp, summary, sellRanking, refreshPrices, refreshFx, itemValueUSD, itemGain, exportVault, importVault, computeAlerts, dismissAlert, wishPrint, minPriceUSD, backupDue, backedUp, eventKey, eventReport, renameEvent, removeEvent, knownEvents } from './store.js';
 import { openSearch, openPrintSheet, openItemSheet, openSellForm, openSheet, confirmSheet, itemTile, printTile, money, pctClass, disp } from './ui.js';
 import { openSaleList } from './salelist.js';
 import { readCard } from './scan.js';
-import { renderFaltantes } from './faltantes.js';
+import { renderFaltantes, showWishlist } from './faltantes.js';
 import { vaultListHTML, wireVaultList, setLastVault, paintVaultPill } from '../vaults.js';
 
 const g = gameById(new URLSearchParams(location.search).get('juego'));
@@ -66,6 +66,7 @@ function renderHome(root) {
             .join('')}${alerts.length > 6 ? `<p class="muted tiny">y ${alerts.length - 6} más…</p>` : ''}</section>`
         : ''
     }
+    ${wishPanelHTML(wishItems(), { money })}
     ${backupDue() ? `<div class="notice rise"><b>${state.lastBackup ? `Tu último respaldo de ${esc(g.short)} fue ${timeAgo(state.lastBackup)}` : `Aún no respaldas tu vault de ${esc(g.short)}`}</b>. Tus datos viven solo en este teléfono. <button class="link do-backup">Respaldar ahora</button></div>` : ''}
     <section class="panel rise" style="--d:1">
       <div class="panel-head"><h2>Costo vs. valor</h2><div class="seg small ranges">${[['30', '1M'], ['90', '3M'], ['all', 'Todo']].map(([k, l]) => `<button data-r="${k}" class="${range === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
@@ -95,6 +96,13 @@ function renderHome(root) {
   $('.keep', root)?.addEventListener('change', (e) => ((includeKeep = e.target.checked), renderHome(root)));
   $('.more', root)?.addEventListener('click', () => ((showAll = !showAll), renderHome(root)));
   $('.do-backup', root)?.addEventListener('click', () => backup());
+  $('.wish-head', root)?.addEventListener('click', showWishlist);
+  $('.wish-strip', root)?.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    const w = b && state.wishlist[b.dataset.id];
+    if (w) openPrintSheet(wishPrint(w));
+    else if (b) showWishlist();
+  });
   $('.alerts', root)?.addEventListener('click', (e) => {
     const d = e.target.closest('.dismiss');
     if (d) return dismissAlert(d.dataset.key);
@@ -125,6 +133,15 @@ function renderHome(root) {
     if (e.target.closest('.sell')) openSellForm(it, { suggestCLP: r?.askCLP });
     else openItemSheet(it);
   });
+}
+
+function wishItems() {
+  return Object.values(state.wishlist)
+    .sort((a, b) => b.addedAt - a.addedAt)
+    .map((w) => {
+      const usd = minPriceUSD(w.id);
+      return { id: w.id, name: w.name, image: w.image, usd, hit: !!(w.targetCLP && usd != null && usd * usdclp() <= w.targetCLP) };
+    });
 }
 
 // ───────────────────────── Colección

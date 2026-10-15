@@ -10,6 +10,11 @@ import { state, game, usdclp, inWish, wishPrint, minPriceUSD } from './store.js'
 import { printTile, openPrintSheet, openSheet, money, setWishListener } from './ui.js';
 
 const ui = { by: 'set', setId: '', rarity: '', show: 'missing', q: '', rar: '', treat: '', sort: 'num' };
+// Inicio → "Mi wishlist": Faltantes opened on the wishlist.
+export function showWishlist() {
+  ui.by = 'wish';
+  location.hash = '#/faltantes';
+}
 const bestUSD = (p) => {
   const v = p.finishes.map((f) => f.usd).filter((x) => x != null);
   return v.length ? Math.min(...v) : null; // the cheapest finish: what completing it costs at least

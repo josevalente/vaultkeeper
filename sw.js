@@ -1,5 +1,5 @@
 // VaultKeeper service worker: works offline at the feria with the last saved data.
-const VERSION = 'vk-v29';
+const VERSION = 'vk-v30';
 const SHELL = [
   './', 'index.html', 'otros.html', 'elegir.html', 'venta.html', 'styles.css', 'manifest.webmanifest',
   'js/app.js', 'js/util.js', 'js/store.js', 'js/api.js', 'js/fx.js', 'js/scan.js', 'js/chart.js', 'js/rarity.js', 'js/ui.js',

@@ -1,7 +1,8 @@
 // Inicio: vault value, cost vs. value chart, and the "what to sell" ranking.
 
-import { h, esc, $, $$, fmtCLP, fmtUSD, fmtPct, timeAgo, toast } from '../util.js';
-import { state, save, summary, sellRanking, actions, computeAlerts, dismissAlert } from '../store.js';
+import { h, esc, $, $$, fmtCLP, fmtUSD, fmtPct, timeAgo, toast, wishPanelHTML } from '../util.js';
+import { state, save, summary, sellRanking, actions, computeAlerts, dismissAlert, minMarketUSD } from '../store.js';
+import { showWishlist } from './checklist.js';
 import { renderPortfolioChart } from '../chart.js';
 import { img, variantLabel } from '../api.js';
 import { money, moneyAlt, disp, pctClass, arrow, openItemSheet, openSellForm, scanFlow, openCardSheet, openSearch, fitAmounts } from '../ui.js';
@@ -99,6 +100,8 @@ export function renderHome(root) {
 
     ${notices.join('')}
 
+    ${firstRun && !Object.keys(state.wishlist).length ? '' : wishPanelHTML(wishItems(), { money })}
+
     <section class="quick rise" style="--d:1">
       <button class="qa scan"><span class="qa-ico">◎</span><b>Evaluar en feria</b><small>Foto → precio y veredicto</small></button>
       <a class="qa" href="#/lote"><span class="qa-ico">▦</span><b>Evaluar un lote</b><small>Varias cartas, oferta máxima</small></a>
@@ -163,6 +166,12 @@ export function renderHome(root) {
     if (it) openItemSheet(it);
     else openCardSheet(row.dataset.card);
   });
+  $('.wish-head', root)?.addEventListener('click', showWishlist);
+  $('.wish-strip', root)?.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (b?.dataset.id) openCardSheet(b.dataset.id);
+    else if (b) showWishlist();
+  });
   $('.scan', root).onclick = () => scanFlow({ title: 'Evaluar en feria', onPick: (c) => openCardSheet(c.id), stay: true });
   $('.find', root).onclick = () => openSearch({ onPick: (c) => openCardSheet(c.id), stay: true });
 
@@ -173,6 +182,15 @@ export function renderHome(root) {
     if (e.target.closest('.sell')) openSellForm(r.it, { suggestCLP: r.askCLP });
     else openItemSheet(r.it);
   });
+}
+
+function wishItems() {
+  return Object.values(state.wishlist)
+    .sort((a, b) => b.addedAt - a.addedAt)
+    .map((w) => {
+      const usd = minMarketUSD(w.id);
+      return { id: w.id, name: w.name, image: img(w.image), usd, hit: !!(w.targetCLP && usd != null && usd * state.fx.usdclp <= w.targetCLP) };
+    });
 }
 
 function rankRow(r, i) {
