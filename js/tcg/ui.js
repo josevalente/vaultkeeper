@@ -2,7 +2,7 @@
 // styles.css), own logic (js/tcg/store.js) so nothing of the Pokémon vault is touched.
 
 import { h, esc, $, $$, swipeToClose, openImageViewer, fmtCLP, fmtUSD, fmtPct, fmtDate, localDate, parseAmount, toast, roundCLP, debounce } from '../util.js';
-import { state, game, settings, usdclp, fx, fxOn, refreshFx, toUSD, toCLP, priceOf, itemValueUSD, itemGain, dealVerdict, maxPayUSD, addItems, recordSale, removeItem, save, channelById, CONDITIONS, condFactor, setPrint } from './store.js';
+import { state, game, settings, usdclp, fx, fxOn, refreshFx, toUSD, toCLP, priceOf, itemValueUSD, itemGain, dealVerdict, maxPayUSD, addItems, recordSale, removeItem, save, channelById, CONDITIONS, condFactor, setPrint, GRADERS, inWish, toggleWish, setWishTarget, editBuy, knownEvents, todayEvent } from './store.js';
 
 const CARD_BACK = 'icons/card-back.svg';
 export const disp = () => settings().display;
@@ -79,7 +79,7 @@ export function itemTile(it) {
     const g = itemGain(it)?.pct ?? null;
     extra = `<div class="tile-val"><b>${v != null ? money(v) : '—'}</b>${g != null ? `<em class="${pctClass(g)}">${fmtPct(g, { digits: 0 })}</em>` : ''}</div>`;
   }
-  const badge = (it.purpose === 'coleccion' ? '<span class="badge keep" title="Colección">★</span>' : '') + (it.finish !== 'normal' && game.id === 'mtg' ? `<span class="slab">${esc(it.finishLabel)}</span>` : it.condition && it.condition !== 'NM' ? `<span class="slab cond">${esc(it.condition)}</span>` : '');
+  const badge = (it.purpose === 'coleccion' ? '<span class="badge keep" title="Colección">★</span>' : '') + (it.graded ? `<span class="slab">${esc(it.graded.co)} ${esc(it.graded.grade)}</span>` : it.finish !== 'normal' && game.id === 'mtg' ? `<span class="slab">${esc(it.finishLabel)}</span>` : it.condition && it.condition !== 'NM' ? `<span class="slab cond">${esc(it.condition)}</span>` : '');
   return printTile({ ...it, id: it.printId }, { extra, badge, dim: it.status !== 'held', itemId: it.id });
 }
 
@@ -123,12 +123,15 @@ export function openSearch({ initial = '', onPick } = {}) {
 
 // ───────────────────────── one printing: prices, verdict at the feria, buy
 
+const shopLink = (p) => p.link || (game.id === 'mtg' ? `https://scryfall.com/search?q=${encodeURIComponent(`!"${p.name}" e:${p.setCode} cn:${p.number}`)}` : `https://www.tcgplayer.com/search/yugioh/product?q=${encodeURIComponent(p.name + ' ' + p.setCode)}`);
+
 export function openPrintSheet(p) {
   setPrint(p);
   save({ silent: true });
   let finish = (p.finishes.find((f) => f.usd != null) || p.finishes[0]).key;
   let askCur = 'CLP', cond = 'NM';
   const owned = state.items.filter((it) => it.status === 'held' && it.printId === p.id).length;
+  const wished = inWish(p.id);
   const body = h(`
     <div class="card-detail">
       <div class="cd-top">
@@ -138,6 +141,7 @@ export function openPrintSheet(p) {
           <div class="muted">${esc(p.setName)}${p.number ? ` · ${esc(game.id === 'mtg' ? `${p.setCode} ${p.number}` : p.number)}` : ''}</div>
           ${p.rarity ? `<div class="rline"><span>${esc(p.rarity)}</span></div>` : ''}
           ${owned ? `<div class="owned-pill">Tienes ${owned} en tu vault</div>` : ''}
+          <button class="heart-btn ${wished ? 'on' : ''}" aria-pressed="${wished}" aria-label="${wished ? 'Quitar de la wishlist' : 'Agregar a la wishlist'}">${wished ? '♥' : '♡'}</button>
         </div>
       </div>
       ${p.finishes.length > 1 ? `<div class="seg finishes">${p.finishes.map((f) => `<button data-f="${esc(f.key)}" class="${f.key === finish ? 'on' : ''}">${esc(f.label)}</button>`).join('')}</div>` : ''}
@@ -152,7 +156,11 @@ export function openPrintSheet(p) {
       </div>
       <div class="btn-col">
         <button class="btn primary buy">Registrar compra</button>
-        ${p.link ? `<a class="btn ghost" target="_blank" rel="noopener" href="${esc(p.link)}">Ver en ${game.id === 'mtg' ? 'TCGplayer / Scryfall' : 'TCGplayer'} ↗</a>` : `<a class="btn ghost" target="_blank" rel="noopener" href="https://www.tcgplayer.com/search/yugioh/product?q=${encodeURIComponent(p.name + ' ' + p.setCode)}">Ver en TCGplayer ↗</a>`}
+        <div class="btn-row">
+          <button class="btn ghost wish">${wished ? '♥ En wishlist' : '♡ Wishlist'}</button>
+          <a class="btn ghost" target="_blank" rel="noopener" href="${esc(shopLink(p))}">${/tcgplayer/.test(shopLink(p)) ? 'TCGplayer' : 'Scryfall'} ↗</a>
+        </div>
+        <label class="field wish-target" ${wished ? '' : 'hidden'}><span>Avísame si baja de (CLP)</span><input class="input target" inputmode="numeric" placeholder="Ej: 25.000" value="${state.wishlist[p.id]?.targetCLP ? Math.round(state.wishlist[p.id].targetCLP) : ''}"></label>
       </div>
       <p class="muted tiny">${game.id === 'mtg' ? 'Precio TCGplayer (EE.UU.) vía Scryfall, se actualiza a diario.' : 'Precio de referencia de esta impresión (código + rareza) vía YGOPRODeck; revisa ventas recientes si es una carta cara.'} TC ${fmtCLP(usdclp())}.</p>
     </div>`);
@@ -182,8 +190,31 @@ export function openPrintSheet(p) {
   $$('.conds button', body).forEach((b) => (b.onclick = () => ((cond = b.dataset.c), $$('.conds button', body).forEach((x) => x.classList.toggle('on', x === b)), render())));
   $('.ask', body).oninput = render;
   $('.buy', body).onclick = () => (s.close(), openBuyForm(p, { finish, condition: cond, ask: $('.ask', body).value, askCur }));
+  // Wishlist: the heart next to the card and the button below do the same.
+  const wish = () => {
+    const on = toggleWish(p);
+    $('.wish', body).textContent = on ? '♥ En wishlist' : '♡ Wishlist';
+    const heart = $('.heart-btn', body);
+    heart.textContent = on ? '♥' : '♡';
+    heart.classList.toggle('on', on);
+    heart.setAttribute('aria-pressed', String(on));
+    heart.setAttribute('aria-label', on ? 'Quitar de la wishlist' : 'Agregar a la wishlist');
+    $('.wish-target', body).hidden = !on;
+    toast(on ? 'Agregada a tu wishlist ♥' : 'Quitada de tu wishlist');
+    onWishChange?.();
+  };
+  $('.wish', body).onclick = wish;
+  $('.heart-btn', body).onclick = wish;
+  $('.target', body).onchange = (e) => {
+    const v = parseAmount(e.target.value, 'CLP');
+    setWishTarget(p.id, v);
+    toast(v > 0 ? `Te aviso si baja de ${fmtCLP(v)}` : 'Aviso quitado');
+  };
   render();
 }
+// Faltantes repaints its hearts when the wishlist changes from a card sheet.
+let onWishChange = null;
+export const setWishListener = (fn) => (onWishChange = fn);
 
 // Exchange rate of the chosen date: today's, or the dólar observado of a past day.
 function fxForDate(body, onUpdate) {
@@ -208,7 +239,30 @@ function fxForDate(body, onUpdate) {
   return get;
 }
 
-const eventInput = (value = '') => `<label class="field"><span>Feria / evento (opcional)</span><input class="input event" value="${esc(value)}" placeholder="Ej: Feria Persa 12-oct" autocomplete="off"></label>`;
+// The feria you're at today is proposed again; the ones you used before are suggested.
+const eventInput = (value = null) => {
+  const id = 'ev' + Math.random().toString(36).slice(2, 7);
+  return `<label class="field"><span>Feria / evento (opcional)</span><input class="input event" list="${id}" value="${esc(value ?? todayEvent())}" placeholder="Ej: Feria Persa 12-oct" autocomplete="off"><datalist id="${id}">${knownEvents().map((e) => `<option value="${esc(e)}">`).join('')}</datalist></label>`;
+};
+
+// Graded copy (PSA, BGS…): its value is typed by you, in pesos, so it doesn't drift with the dollar.
+const gradedFields = (g = null) => `
+      <label class="switch"><input type="checkbox" class="is-graded" ${g ? 'checked' : ''}><span>Carta gradeada (PSA, BGS, CGC…)</span></label>
+      <div class="graded-box" ${g ? '' : 'hidden'}>
+        <div class="row2">
+          <label class="field"><span>Empresa</span><select class="input g-co">${GRADERS.map((x) => `<option ${g?.co === x ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
+          <label class="field"><span>Nota</span><input class="input g-grade" inputmode="decimal" placeholder="10" value="${esc(g?.grade || '')}"></label>
+        </div>
+        <label class="field"><span>N° de certificado (opcional)</span><input class="input g-cert" value="${esc(g?.cert || '')}"></label>
+        <label class="field"><span>Valor de la gradeada (CLP)</span><input class="input g-value" inputmode="numeric" placeholder="Revisa ventas recientes de esa nota" value="${g?.clp ? Math.round(g.clp) : ''}"></label>
+        <p class="muted tiny">No hay una fuente gratuita confiable de precios de gradeadas: ingresa el valor tú (por ejemplo, ventas recientes en eBay de esa nota).</p>
+      </div>`;
+function readGraded(body) {
+  if (!$('.is-graded', body)?.checked) return null;
+  const clp = parseAmount($('.g-value', body).value, 'CLP');
+  return { co: $('.g-co', body).value, grade: $('.g-grade', body).value.trim(), cert: $('.g-cert', body).value.trim(), clp: clp > 0 ? clp : null };
+}
+const wireGraded = (body) => $('.is-graded', body)?.addEventListener('change', (e) => ($('.graded-box', body).hidden = !e.target.checked));
 
 export function openBuyForm(p, { finish, condition = 'NM', ask = '', askCur = 'CLP' } = {}) {
   const body = h(`
@@ -224,6 +278,7 @@ export function openBuyForm(p, { finish, condition = 'NM', ask = '', askCur = 'C
         <label class="field"><span>Fecha</span><input class="input date" type="date" value="${localDate()}"></label>
       </div>
       <div class="field"><span>Estado</span><div class="seg conds">${Object.keys(CONDITIONS).map((k) => `<button type="button" data-c="${k}" class="${k === condition ? 'on' : ''}">${k}</button>`).join('')}</div></div>
+      ${gradedFields()}
       <div class="field"><span>Destino</span><div class="seg purpose"><button type="button" data-p="reventa" class="on">Para revender</button><button type="button" data-p="coleccion">Para mi colección</button></div></div>
       ${eventInput()}
       <label class="field"><span>Nota</span><input class="input notes" placeholder="Ej: puesto 12, con funda"></label>
@@ -235,6 +290,7 @@ export function openBuyForm(p, { finish, condition = 'NM', ask = '', askCur = 'C
   seg('.cur', 'c', (v) => (cur = v));
   seg('.conds', 'c', (v) => (cond = v));
   seg('.purpose', 'p', (v) => (purpose = v));
+  wireGraded(body);
   const rate = fxForDate(body);
   body.onsubmit = async (e) => {
     e.preventDefault();
@@ -244,7 +300,7 @@ export function openBuyForm(p, { finish, condition = 'NM', ask = '', askCur = 'C
     body.dataset.saving = '1';
     $('[type=submit]', body).textContent = 'Guardando…';
     await rate.ready;
-    const created = addItems({ print: p, finish: $('.finish', body)?.value || finish || p.finishes[0].key, price, currency: cur, fx: rate(), date: $('.date', body).value, qty: Math.max(1, parseInt($('.qty', body).value) || 1), condition: cond, purpose, event: $('.event', body).value.trim(), notes: $('.notes', body).value.trim() });
+    const created = addItems({ print: p, finish: $('.finish', body)?.value || finish || p.finishes[0].key, price, currency: cur, fx: rate(), date: $('.date', body).value, qty: Math.max(1, parseInt($('.qty', body).value) || 1), condition: cond, graded: readGraded(body), purpose, event: $('.event', body).value.trim(), notes: $('.notes', body).value.trim() });
     s.close();
     toast(`${p.name} guardada en el vault${created.length > 1 ? ` (×${created.length})` : ''}`, 'ok');
   };
@@ -267,7 +323,7 @@ export function openItemSheet(it) {
         <div class="cd-info">
           <h3>${esc(it.name)}</h3>
           <div class="muted">${esc(it.setName)}${it.number ? ` · ${esc(game.id === 'mtg' ? `${it.setCode} ${it.number}` : it.number)}` : ''}</div>
-          <div class="muted small">${[it.rarity, it.finishLabel !== 'Normal' ? it.finishLabel : '', it.condition !== 'NM' ? it.condition : ''].filter(Boolean).map(esc).join(' · ')}</div>
+          <div class="muted small">${[it.rarity, it.finishLabel !== 'Normal' ? it.finishLabel : '', it.condition !== 'NM' ? it.condition : '', it.graded ? `${it.graded.co} ${it.graded.grade}` : ''].filter(Boolean).map(esc).join(' · ')}</div>
           <div class="tag ${it.purpose === 'coleccion' ? 'coleccion' : 'reventa'}">${it.purpose === 'coleccion' ? 'Colección' : 'Reventa'}</div>
         </div>
       </div>
@@ -286,13 +342,25 @@ export function openItemSheet(it) {
         }
       </div>
       <div class="btn-col">
-        ${sold ? '' : `<button class="btn primary sell">Registrar venta</button><button class="btn ghost toggle">${it.purpose === 'coleccion' ? 'Mover a reventa' : 'Mover a colección'}</button>`}
-        <button class="btn ghost danger del">Eliminar</button>
+        ${sold ? '<button class="btn primary editsale">Editar venta (precio, canal, evento)</button>' : `<button class="btn primary sell">Registrar venta</button>
+        <div class="btn-row"><button class="btn ghost toggle">${it.purpose === 'coleccion' ? 'Mover a reventa' : 'Mover a colección'}</button><button class="btn ghost prices">Ver precios</button></div>`}
+        <div class="btn-row"><button class="btn ghost edit">Editar compra</button><button class="btn ghost danger del">Eliminar</button></div>
       </div>
     </div>`);
   const s = openSheet({ title: sold ? 'Carta vendida' : 'En tu vault', body, cls: 'tall' });
   $('.cd-zoom', body).onclick = () => openImageViewer((it.imageLarge || it.image || CARD_BACK).replace('/normal/', '/large/'), it.name);
   $('.sell', body)?.addEventListener('click', () => (s.close(), openSellForm(it)));
+  $('.editsale', body)?.addEventListener('click', () => (s.close(), openSellForm(it, { edit: true })));
+  $('.edit', body).onclick = () => (s.close(), openEditBuy(it));
+  $('.prices', body)?.addEventListener('click', async (e) => {
+    e.target.textContent = 'Cargando…';
+    let p = null;
+    try {
+      if (navigator.onLine) p = (await game.refresh([it.printId]))[it.printId];
+    } catch {}
+    s.close();
+    openPrintSheet(p || printOf(it));
+  });
   $('.toggle', body)?.addEventListener('click', () => {
     it.purpose = it.purpose === 'coleccion' ? 'reventa' : 'coleccion';
     save();
@@ -306,29 +374,78 @@ export function openItemSheet(it) {
   };
 }
 
-export function openSellForm(it, { suggestCLP } = {}) {
+// An owned copy as a print (offline, or before its prices are fetched again).
+const FINISH_LABEL = { normal: 'Normal', foil: 'Foil', etched: 'Etched foil' };
+function printOf(it) {
+  const keys = Object.keys(state.prices[it.printId]?.f || { [it.finish]: null });
+  return { id: it.printId, cardKey: it.cardKey, name: it.name, setName: it.setName, setCode: it.setCode, number: it.number, rarity: it.rarity, image: it.image, imageLarge: it.imageLarge, finishes: keys.map((k) => ({ key: k, label: k === it.finish ? it.finishLabel : FINISH_LABEL[k] || k, usd: priceOf(it.printId, k) })) };
+}
+
+function openEditBuy(it) {
+  const body = h(`
+    <form class="form">
+      <label class="field"><span>Precio pagado</span>
+        <div class="money-in"><input class="input price" inputmode="decimal" value="${it.buy.currency === 'CLP' ? Math.round(it.buy.price) : it.buy.price}"><div class="seg cur"><button type="button" data-c="CLP" class="${it.buy.currency === 'CLP' ? 'on' : ''}">CLP</button><button type="button" data-c="USD" class="${it.buy.currency === 'USD' ? 'on' : ''}">USD</button></div></div>
+      </label>
+      <div class="row2">
+        <label class="field"><span>Tipo de cambio usado</span><input class="input fx" inputmode="decimal" value="${String(it.buy.fx).replace('.', ',')}"></label>
+        <label class="field"><span>Fecha</span><input class="input date" type="date" value="${esc(it.buy.date)}"></label>
+      </div>
+      <div class="field"><span>Estado</span><div class="seg conds">${Object.keys(CONDITIONS).map((k) => `<button type="button" data-c="${k}" class="${k === (it.condition || 'NM') ? 'on' : ''}">${k}</button>`).join('')}</div></div>
+      ${gradedFields(it.graded)}
+      ${eventInput(it.buy.event || '')}
+      <label class="field"><span>Nota</span><input class="input notes" value="${esc(it.notes || '')}"></label>
+      <button class="btn primary" type="submit">Guardar cambios</button>
+    </form>`);
+  const s = openSheet({ title: 'Editar compra', body, cls: 'tall' });
+  let cur = it.buy.currency, cond = it.condition || 'NM';
+  const seg = (sel, set) => $$(`${sel} button`, body).forEach((b) => (b.onclick = () => (set(b.dataset.c), $$(`${sel} button`, body).forEach((x) => x.classList.toggle('on', x === b)))));
+  seg('.cur', (v) => (cur = v));
+  seg('.conds', (v) => (cond = v));
+  wireGraded(body);
+  // A new date brings that day's dólar observado.
+  $('.date', body).addEventListener('change', async (e) => {
+    const r = e.target.value < localDate() ? await fxOn(e.target.value) : await refreshFx().then(() => ({ usdclp: usdclp() }));
+    if (r) $('.fx', body).value = String(r.usdclp).replace('.', ',');
+  });
+  body.onsubmit = (e) => {
+    e.preventDefault();
+    const price = parseAmount($('.price', body).value, cur);
+    const rate = parseAmount($('.fx', body).value, 'USD');
+    if (!price || !rate) return toast('Revisa precio y tipo de cambio', 'err');
+    editBuy(it, { price, currency: cur, fx: rate, date: $('.date', body).value || it.buy.date, condition: cond, graded: readGraded(body), event: $('.event', body).value, notes: $('.notes', body).value.trim() });
+    s.close();
+    toast('Compra actualizada', 'ok');
+  };
+}
+
+export function openSellForm(it, { suggestCLP, edit = false } = {}) {
   const v = itemValueUSD(it);
   const sx = settings();
+  const ex = edit ? it.exit : null; // editing: start from what was recorded
+  const suggest = ex ? (ex.currency === 'USD' ? String(ex.gross).replace('.', ',') : Math.round(ex.gross)) : suggestCLP || (v ? roundCLP(v * usdclp()) : '');
+  const curNow = ex?.currency || 'CLP';
+  const chNow = ex ? ex.channel || '' : sx.defaultChannel;
   const body = h(`
     <form class="form">
       <div class="mini-card">${printTile({ ...it, id: it.printId })}</div>
       <label class="field"><span>Precio de venta</span>
-        <div class="money-in"><input class="input price" inputmode="decimal" required value="${suggestCLP || (v ? roundCLP(v * usdclp()) : '')}"><div class="seg cur"><button type="button" data-c="CLP" class="on">CLP</button><button type="button" data-c="USD">USD</button></div></div>
+        <div class="money-in"><input class="input price" inputmode="decimal" required value="${suggest}"><div class="seg cur"><button type="button" data-c="CLP" class="${curNow === 'CLP' ? 'on' : ''}">CLP</button><button type="button" data-c="USD" class="${curNow === 'USD' ? 'on' : ''}">USD</button></div></div>
       </label>
-      <label class="field"><span>Dónde la vendes</span><select class="input channel">${sx.channels.map((c) => `<option value="${esc(c.id)}" ${c.id === sx.defaultChannel ? 'selected' : ''}>${esc(c.name)}${c.feePct || c.fixedCLP ? ` · ${c.feePct ? c.feePct + '%' : ''}${c.fixedCLP ? ` + ${fmtCLP(c.fixedCLP)}` : ''}` : ''}</option>`).join('')}</select></label>
-      <label class="field"><span>Fecha</span><input class="input date" type="date" value="${localDate()}"></label>
+      <label class="field"><span>Dónde la vendes</span><select class="input channel">${ex && !sx.channels.some((c) => c.id === chNow) ? '<option value="" selected>Sin canal</option>' : ''}${sx.channels.map((c) => `<option value="${esc(c.id)}" ${c.id === chNow ? 'selected' : ''}>${esc(c.name)}${c.feePct || c.fixedCLP ? ` · ${c.feePct ? c.feePct + '%' : ''}${c.fixedCLP ? ` + ${fmtCLP(c.fixedCLP)}` : ''}` : ''}</option>`).join('')}</select></label>
+      <label class="field"><span>Fecha</span><input class="input date" type="date" value="${ex?.date || localDate()}"></label>
       <div class="fxline muted small"><span class="fxl"></span></div>
-      ${eventInput()}
+      ${eventInput(ex ? ex.event || '' : null)}
       <div class="buy-sum"></div>
-      <button class="btn primary" type="submit">Registrar venta</button>
+      <button class="btn primary" type="submit">${ex ? 'Guardar cambios' : 'Registrar venta'}</button>
     </form>`);
-  const s = openSheet({ title: 'Vender', body, cls: 'tall' });
-  let cur = 'CLP';
+  const s = openSheet({ title: ex ? 'Editar venta' : 'Vender', body, cls: 'tall' });
+  let cur = curNow;
   const sum = $('.buy-sum', body);
   const render = () => {
     const p = parseAmount($('.price', body).value, cur);
     if (!p) return (sum.innerHTML = '');
-    const r = rate(), ch = channelById($('.channel', body).value) || { feePct: 0, fixedCLP: 0, name: '' };
+    const r = rate(), ch = channelById($('.channel', body).value) || { feePct: 0, fixedCLP: 0, name: 'Sin canal' };
     const gross = toCLP(p, cur, r);
     const net = Math.max(0, gross * (1 - (ch.feePct || 0) / 100) - (ch.fixedCLP || 0));
     const g = net - it.costCLP;
@@ -353,6 +470,6 @@ export function openSellForm(it, { suggestCLP } = {}) {
     await rate.ready;
     recordSale(it, { gross: p, currency: cur, fx: rate(), date: $('.date', body).value, channel: $('.channel', body).value, event: $('.event', body).value.trim() });
     s.close();
-    toast('Venta registrada', 'ok');
+    toast(ex ? 'Venta actualizada' : 'Venta registrada', 'ok');
   };
 }

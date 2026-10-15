@@ -852,3 +852,6 @@ body.has-sheet .toast.show { transform: translate(-50%, 0); }
 .pk-row small { display: block; font-size: 12px; color: var(--muted); }
 .pk-row.on { border-color: var(--vault, var(--brass)); }
 .pk-row em { font-style: normal; color: var(--vault, var(--brass)); font-weight: 800; }
+
+/* Filter toggles: each button as wide as its text ("Colección" was clipped by equal widths) */
+.filters .seg.small button, .filter-row .seg.small button { flex: 1 0 auto; }

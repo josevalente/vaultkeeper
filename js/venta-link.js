@@ -12,18 +12,25 @@ async function pipe(bytes, stream) {
 }
 
 // Pictures as short keys: TCGdex "https://assets.tcgdex.net/en/sv/sv03.5/199" → "t:sv/sv03.5/199",
-// TCGplayer "tcgp:699872" → "p:699872".
+// TCGplayer "tcgp:699872" → "p:699872", Scryfall (Magic) "…/small/front/6/d/<uuid>.jpg" →
+// "s:<uuid>", YGOPRODeck (Yu-Gi-Oh) "…/cards_small/46986414.jpg" → "y:46986414".
 export function imageKey(image) {
   const s = String(image || '');
   if (s.startsWith('tcgp:')) return 'p:' + s.slice(5);
   const m = s.match(/^https:\/\/assets\.tcgdex\.net\/en\/(.+)$/);
   if (m) return 't:' + m[1];
+  const sf = s.match(/^https:\/\/cards\.scryfall\.io\/\w+\/front\/\w\/\w\/([0-9a-f-]{36})\.jpg/);
+  if (sf) return 's:' + sf[1];
+  const yg = s.match(/^https:\/\/images\.ygoprodeck\.com\/images\/cards(?:_small)?\/(\d+)\.jpg$/);
+  if (yg) return 'y:' + yg[1];
   return s.startsWith('https://') ? 'u:' + s : '';
 }
 export function imageURL(key, big = false) {
   if (!key) return 'icons/card-back.svg';
   if (key.startsWith('p:')) return `https://tcgplayer-cdn.tcgplayer.com/product/${key.slice(2)}_${big ? '400w' : '200w'}.jpg`;
   if (key.startsWith('t:')) return `https://assets.tcgdex.net/en/${key.slice(2)}/${big ? 'high' : 'low'}.webp`;
+  if (key.startsWith('s:')) return `https://cards.scryfall.io/${big ? 'large' : 'small'}/front/${key[2]}/${key[3]}/${key.slice(2)}.jpg`;
+  if (key.startsWith('y:')) return `https://images.ygoprodeck.com/images/${big ? 'cards' : 'cards_small'}/${key.slice(2)}.jpg`;
   if (key.startsWith('u:')) return key.slice(2);
   return 'icons/card-back.svg';
 }

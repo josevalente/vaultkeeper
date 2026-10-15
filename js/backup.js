@@ -3,24 +3,9 @@
 
 import { state, save, exportData } from './store.js';
 import { toast } from './util.js';
+import { shareFile } from './sale-share.js';
 
-export async function shareFile(file, { title = '', text = '' } = {}) {
-  if (navigator.canShare?.({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], title, text });
-      return true;
-    } catch (e) {
-      if (e?.name === 'AbortError') return false; // user closed the sheet
-    }
-  }
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(file);
-  a.download = file.name;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => (URL.revokeObjectURL(a.href), a.remove()), 1500);
-  return true;
-}
+export { shareFile };
 
 export async function backupNow() {
   const name = `vaultkeeper-${new Date().toISOString().slice(0, 10)}.json`;

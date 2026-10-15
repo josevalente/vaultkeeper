@@ -142,4 +142,88 @@ test('lectura de códigos impresos', () => {
   assert.equal(GAMES.ygo.parseCode('nada'), null);
 });
 
+test('wishlist: el corazón guarda la carta, se sale al comprarla y avisa bajo la meta', () => {
+  S.openVault(GAMES.ygo);
+  S.state.items = [];
+  S.state.wishlist = {};
+  S.state.alertsSeen = {};
+  const p = print('w1', 20); // US$20 → $20.000 con TC 1000
+  assert.equal(S.toggleWish(p), true);
+  assert.ok(S.inWish('w1'));
+  assert.equal(S.computeAlerts().filter((a) => a.kind === 'wish').length, 0, 'sin meta no avisa');
+  S.setWishTarget('w1', 25000);
+  const a = S.computeAlerts().find((x) => x.kind === 'wish');
+  assert.ok(a && /20\.000/.test(a.text), 'bajo la meta avisa');
+  S.dismissAlert(a.key);
+  assert.equal(S.computeAlerts().filter((x) => x.kind === 'wish').length, 0, 'descartada se oculta');
+  assert.equal(S.wishPrint(S.state.wishlist.w1).finishes[0].usd, 20, 'la ficha trae el último precio');
+  S.addItems({ print: p, finish: 'normal', price: 15000, currency: 'CLP' });
+  assert.ok(!S.inWish('w1'), 'comprada sale de la wishlist');
+  assert.equal(S.toggleWish(print('w2', 5)), true);
+  assert.equal(S.toggleWish(print('w2', 5)), false, 'segundo toque la quita');
+});
+
+test('Novedades: precio que se mueve en 7 días y carta lista para vender', () => {
+  S.openVault(GAMES.mtg);
+  S.state.items = [];
+  S.state.alertsSeen = {};
+  const p = print('m1', 10);
+  S.addItems({ print: p, finish: 'normal', price: 5000, currency: 'CLP', fx: 1000 });
+  const d = (n) => new Date(Date.now() - n * 86400000).toLocaleDateString('sv-SE');
+  S.state.priceHist['m1|normal'] = [[d(10), 10], [d(0), 13]];
+  const kinds = S.computeAlerts().map((a) => a.kind).sort();
+  assert.deepEqual(kinds, ['sell', 'up'], 'subió 30% y rinde 100% sobre la compra');
+  S.state.items[0].purpose = 'coleccion';
+  assert.deepEqual(S.computeAlerts().map((a) => a.kind), ['up'], 'colección no se recomienda vender');
+});
+
+test('editar compra recalcula el costo; gradeada usa su valor en pesos', () => {
+  S.openVault(GAMES.mtg);
+  S.state.items = [];
+  const [it] = S.addItems({ print: print('e1', 10), finish: 'normal', price: 5000, currency: 'CLP', fx: 1000 });
+  S.editBuy(it, { price: 8, currency: 'USD', fx: 900, date: '2026-01-02', condition: 'LP', graded: { co: 'PSA', grade: '10', cert: '', clp: 60000 }, event: 'Feria', notes: 'x' });
+  near(it.costCLP, 7200);
+  near(it.costUSD, 8);
+  assert.equal(it.condition, 'LP');
+  near(S.itemValueUSD(it), 60, 1e-9); // 60.000 / 1000
+});
+
+test('eventos: misma feria escrita distinto, resultado, renombrar y quitar', () => {
+  S.openVault(GAMES.ygo);
+  S.state.items = [];
+  S.state.lastEvent = null;
+  const [a] = S.addItems({ print: print('v1', 10), finish: 'normal', price: 4000, currency: 'CLP', fx: 1000, event: 'Feria Persa' });
+  S.addItems({ print: print('v2', 10), finish: 'normal', price: 3000, currency: 'CLP', fx: 1000, event: 'feria  persa' });
+  assert.equal(S.state.items[1].buy.event, 'Feria Persa', 'se escribe igual que la primera');
+  assert.equal(S.todayEvent(), 'Feria Persa', 'se propone de nuevo hoy');
+  S.recordSale(a, { gross: 9000, currency: 'CLP', fx: 1000, channel: 'feria', event: 'Feria Persa' });
+  const [e] = S.eventReport();
+  assert.equal(e.buyN, 2);
+  assert.equal(e.saleN, 1);
+  near(e.net, 5000);
+  assert.equal(S.renameEvent(e.key, 'Feria Persa Biobío'), 3);
+  assert.equal(S.eventReport()[0].name, 'Feria Persa Biobío');
+  S.removeEvent(S.eventReport()[0].key);
+  assert.equal(S.eventReport().length, 0);
+});
+
+test('lista de venta: el precio cambiado queda en la carta, el de mercado no', () => {
+  S.openVault(GAMES.mtg);
+  S.state.items = [];
+  const [it] = S.addItems({ print: print('s1', 10), finish: 'normal', price: 5000, currency: 'CLP', fx: 1000 });
+  S.setAsk(it, S.suggestedAskCLP(it));
+  assert.equal(it.askCLP, undefined);
+  S.setAsk(it, 12000);
+  assert.equal(it.askCLP, 12000);
+});
+
+const L = await import('../js/venta-link.js');
+test('QR: fotos de Scryfall y YGOPRODeck como claves cortas', () => {
+  const sf = 'https://cards.scryfall.io/normal/front/6/d/6da045f8-6278-4c84-9d39-025adf0789c1.jpg?1562404626';
+  assert.equal(L.imageKey(sf), 's:6da045f8-6278-4c84-9d39-025adf0789c1');
+  assert.equal(L.imageURL('s:6da045f8-6278-4c84-9d39-025adf0789c1'), 'https://cards.scryfall.io/small/front/6/d/6da045f8-6278-4c84-9d39-025adf0789c1.jpg');
+  assert.equal(L.imageKey('https://images.ygoprodeck.com/images/cards/46986414.jpg'), 'y:46986414');
+  assert.equal(L.imageURL('y:46986414', true), 'https://images.ygoprodeck.com/images/cards/46986414.jpg');
+});
+
 console.log(`${pass} pruebas de vaults OK${process.exitCode ? ' — HAY FALLAS' : ''}`);

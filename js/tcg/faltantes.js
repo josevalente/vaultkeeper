@@ -1,12 +1,13 @@
 // Faltantes for the Magic / Yu-Gi-Oh vaults, with the dimensions each game's collectors use most:
 //  · by expansion / set (complete it) — the default;
 //  · by rarity (Mítica, Starlight, Quarter Century…) across the recent main sets;
-//  · Magic also filters by special frame (Borderless, Showcase, Extended art).
+//  · Magic also filters by special frame (Borderless, Showcase, Extended art);
+//  · the wishlist (♥ on a card): what you're looking for, with an alert price.
 // Same look as the Pokémon Faltantes; which ones you have comes from this vault only.
 
-import { $, $$, esc, fmtUSD, norm, openPicker } from '../util.js';
-import { state, game } from './store.js';
-import { printTile, openPrintSheet, openSheet, money } from './ui.js';
+import { $, $$, esc, fmtUSD, fmtCLP, norm, openPicker } from '../util.js';
+import { state, game, usdclp, inWish, wishPrint, minPriceUSD } from './store.js';
+import { printTile, openPrintSheet, openSheet, money, setWishListener } from './ui.js';
 
 const ui = { by: 'set', setId: '', rarity: '', show: 'missing', q: '', rar: '', treat: '', sort: 'num' };
 const bestUSD = (p) => {
@@ -22,14 +23,17 @@ export function renderFaltantes(root) {
   root.innerHTML = `
     <div class="view-head rise">
       <h1>Faltantes</h1>
-      <p class="muted">${ui.by === 'set' ? `Elige ${game.id === 'mtg' ? 'una expansión' : 'un set'}: todas sus cartas, cuáles tienes y cuáles te faltan.` : `Elige una rareza: todas las cartas con ella ${esc(game.rarityScope)}.`}</p>
-      <label class="by-row"><span>Ver por</span><select class="input small bysel"><option value="set" ${ui.by === 'set' ? 'selected' : ''}>${game.id === 'mtg' ? 'Expansión' : 'Set'}</option><option value="rareza" ${ui.by === 'rareza' ? 'selected' : ''}>Rareza</option></select></label>
+      <p class="muted">${ui.by === 'set' ? `Elige ${game.id === 'mtg' ? 'una expansión' : 'un set'}: todas sus cartas, cuáles tienes y cuáles te faltan.` : ui.by === 'wish' ? 'Las cartas que buscas. Toca ♡ en cualquier carta para sumarla; si le pones un precio, te aviso en Inicio cuando baje.' : `Elige una rareza: todas las cartas con ella ${esc(game.rarityScope)}.`}</p>
+      <label class="by-row"><span>Ver por</span><select class="input small bysel"><option value="set" ${ui.by === 'set' ? 'selected' : ''}>${game.id === 'mtg' ? 'Expansión' : 'Set'}</option><option value="rareza" ${ui.by === 'rareza' ? 'selected' : ''}>Rareza</option><option value="wish" ${ui.by === 'wish' ? 'selected' : ''}>♥ Wishlist (${Object.keys(state.wishlist).length})</option></select></label>
     </div>
-    ${ui.by === 'rareza' ? `<div class="rgrid tcg-rgrid rise" style="--d:1">${keys.map(([k, l]) => `<button class="rcard ${ui.rarity === k ? 'on' : ''}" data-r="${esc(k)}"><span>${esc(l)}</span></button>`).join('')}</div>` : '<div class="cl-sets rise" style="--d:1"><div class="loading">Cargando expansiones…</div></div>'}
+    ${ui.by === 'wish' ? '' : ui.by === 'rareza' ? `<div class="rgrid tcg-rgrid rise" style="--d:1">${keys.map(([k, l]) => `<button class="rcard ${ui.rarity === k ? 'on' : ''}" data-r="${esc(k)}"><span>${esc(l)}</span></button>`).join('')}</div>` : '<div class="cl-sets rise" style="--d:1"><div class="loading">Cargando expansiones…</div></div>'}
     <div class="cl-body rise" style="--d:2"></div>`;
   $('.bysel', root).onchange = (e) => ((ui.by = e.target.value), (ui.q = ''), (ui.rar = ''), (ui.treat = ''), renderFaltantes(root));
   $$('.rcard', root).forEach((b) => (b.onclick = () => ((ui.rarity = b.dataset.r), (ui.q = ''), renderFaltantes(root))));
   const body = $('.cl-body', root);
+  // A heart added or removed from a card sheet shows here right away.
+  setWishListener(() => root.isConnected && (ui.by === 'wish' ? renderFaltantes(root) : $$('.tile', root).forEach(paintHeart)));
+  if (ui.by === 'wish') return renderWish(body);
   if (ui.by === 'rareza') return load(body, game.rarityCards(ui.rarity), { title: keys.find(([k]) => k === ui.rarity)?.[1] || ui.rarity, sub: game.rarityScope, mode: 'rareza' });
   renderSetPicker(root, body);
 }
@@ -62,6 +66,38 @@ async function renderSetPicker(root, body) {
       onPick: (id) => ((ui.setId = id), (ui.q = ''), (ui.rar = ''), (ui.treat = ''), renderFaltantes(root)),
     });
   load(body, game.setCards(set.id), { title: set.name, sub: `${set.code || ''}${set.date ? ` · ${set.date.slice(0, 4)}` : ''}`, mode: 'set' });
+}
+
+function paintHeart(t) {
+  if (t.querySelector('.badge.have')) return;
+  const on = inWish(t.dataset.id);
+  const b = t.querySelector('.badge.wish');
+  if (on && !b) t.querySelector('.tile-img')?.insertAdjacentHTML('beforeend', '<span class="badge wish">♥</span>');
+  if (!on && b) b.remove();
+}
+
+function renderWish(body) {
+  const list = Object.values(state.wishlist).sort((a, b) => b.addedAt - a.addedAt);
+  const priced = list.map((w) => minPriceUSD(w.id)).filter((v) => v != null);
+  body.innerHTML = `
+    <div class="progress-card">
+      <div class="pc-top"><span class="heart big">♥</span><div><b>Wishlist</b><span class="muted small">${list.length} carta${list.length === 1 ? '' : 's'} que buscas${priced.length ? ` · ~${money(priced.reduce((a, b) => a + b, 0))} en total` : ''}</span></div></div>
+    </div>
+    <div class="grid">${
+      list.length
+        ? list
+            .map((w) => {
+              const m = minPriceUSD(w.id);
+              const hit = w.targetCLP && m != null && m * usdclp() <= w.targetCLP;
+              return printTile(w, { badge: '<span class="badge wish">♥</span>', extra: `<div class="tile-val"><b>${m != null ? fmtUSD(m) : '·'}</b>${w.targetCLP ? `<em class="${hit ? 'pos' : ''}">meta ${fmtCLP(w.targetCLP)}</em>` : ''}</div>` });
+            })
+            .join('')
+        : '<div class="empty wide"><p>Toca ♡ en cualquier carta (al buscarla o aquí en Faltantes) para guardarla en tu wishlist.</p></div>'
+    }</div>`;
+  $('.grid', body).onclick = (e) => {
+    const w = state.wishlist[e.target.closest('.tile')?.dataset.id];
+    if (w) openPrintSheet(wishPrint(w));
+  };
 }
 
 function load(body, promise, meta) {
@@ -115,7 +151,7 @@ function renderList(body, full, meta) {
     ${ui.q && list.length ? `<p class="muted small">${list.length} resultado${list.length === 1 ? '' : 's'}</p>` : ''}
     <div class="grid">${
       list.length
-        ? list.map((p) => printTile(p, { dim: !owned.has(p.id), badge: owned.has(p.id) ? '<span class="badge have">✓</span>' : '', extra: `<div class="tile-val"><b>${bestUSD(p) != null ? fmtUSD(bestUSD(p)) : '·'}</b></div>` })).join('')
+        ? list.map((p) => printTile(p, { dim: !owned.has(p.id), badge: owned.has(p.id) ? '<span class="badge have">✓</span>' : inWish(p.id) ? '<span class="badge wish">♥</span>' : '', extra: `<div class="tile-val"><b>${bestUSD(p) != null ? fmtUSD(bestUSD(p)) : '·'}</b></div>` })).join('')
         : `<div class="empty wide"><p>${ui.q ? `Nada con “${esc(ui.q)}”.` : ui.show === 'missing' ? '¡Las tienes todas! 🎉' : 'Nada aquí todavía.'}</p></div>`
     }</div>`;
   const rerender = () => renderList(body, full, meta);
