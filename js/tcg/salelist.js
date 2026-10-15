@@ -10,6 +10,12 @@ import { imageKey } from '../venta-link.js';
 const code = (it) => (game.id === 'mtg' ? `${it.setCode} ${it.number}` : it.number);
 const label = (it) => (it.graded ? `${it.graded.co} ${it.graded.grade}` : [it.finish !== 'normal' && game.id === 'mtg' ? it.finishLabel : '', it.condition && it.condition !== 'NM' ? it.condition : ''].filter(Boolean).join(' · '));
 
+// QR of some cards ([{ it, p }]): from the sale list, or one card from its sheet.
+export function openSaleQRFor(rows) {
+  const t = state.sale.title || `Cartas de ${game.short} en venta`;
+  return openSaleQR({ t, f: state.sale.foot || '', d: new Date().toLocaleDateString('sv-SE'), c: rows.map(({ it, p }) => [it.name, [it.setName, code(it)].filter(Boolean).join(' · '), imageKey(it.imageLarge || it.image), Math.round(p), label(it) || 'NM']) }, { openSheet });
+}
+
 export function openSaleList() {
   const list = held()
     .filter((it) => it.purpose !== 'coleccion')
@@ -71,11 +77,7 @@ export function openSaleList() {
   };
   $('.sl-qr', body).onclick = () => {
     const rows = chosen();
-    if (!rows.length) return;
-    openSaleQR(
-      { t: title(), f: state.sale.foot || '', d: new Date().toLocaleDateString('sv-SE'), c: rows.map(({ it, p }) => [it.name, [it.setName, code(it)].filter(Boolean).join(' · '), imageKey(it.imageLarge || it.image), Math.round(p), label(it) || 'NM']) },
-      { openSheet }
-    );
+    if (rows.length) openSaleQRFor(rows);
   };
   $('.sl-img', body).onclick = async (e) => {
     const rows = chosen();

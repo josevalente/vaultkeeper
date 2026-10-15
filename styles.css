@@ -855,3 +855,9 @@ body.has-sheet .toast.show { transform: translate(-50%, 0); }
 
 /* Filter toggles: each button as wide as its text ("Colección" was clipped by equal widths) */
 .filters .seg.small button, .filter-row .seg.small button { flex: 1 0 auto; }
+
+/* Your own sale price on the card sheet */
+.ask-box { margin-top: 12px; }
+.ask-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.ask-row .btn { min-height: 44px; padding: 0 14px; white-space: nowrap; }
+.ask-note { margin: 6px 2px 0; }

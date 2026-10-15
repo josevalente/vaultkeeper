@@ -2,7 +2,8 @@
 // styles.css), own logic (js/tcg/store.js) so nothing of the Pokémon vault is touched.
 
 import { h, esc, $, $$, swipeToClose, openImageViewer, fmtCLP, fmtUSD, fmtPct, fmtDate, localDate, parseAmount, toast, roundCLP, debounce } from '../util.js';
-import { state, game, settings, usdclp, fx, fxOn, refreshFx, toUSD, toCLP, priceOf, itemValueUSD, itemGain, dealVerdict, maxPayUSD, addItems, recordSale, removeItem, save, channelById, CONDITIONS, condFactor, setPrint, GRADERS, inWish, toggleWish, setWishTarget, editBuy, knownEvents, todayEvent } from './store.js';
+import { state, game, settings, usdclp, fx, fxOn, refreshFx, toUSD, toCLP, priceOf, itemValueUSD, itemGain, dealVerdict, maxPayUSD, addItems, recordSale, removeItem, save, channelById, CONDITIONS, condFactor, setPrint, GRADERS, inWish, toggleWish, setWishTarget, editBuy, knownEvents, todayEvent, suggestedAskCLP, setAsk } from './store.js';
+import { askBoxHTML, wireAskBox } from '../sale-share.js';
 
 const CARD_BACK = 'icons/card-back.svg';
 export const disp = () => settings().display;
@@ -341,6 +342,7 @@ export function openItemSheet(it) {
                ${G && hasFee ? `<div class="kv"><span>Si vendes en ${esc(ch?.name || 'tu canal')}</span><b class="${pctClass(N.clp)}">${fmtG(N)} (${fmtPct(N.pct)}) <em class="muted">neto de comisión</em></b></div>` : ''}`
         }
       </div>
+      ${sold ? '' : askBoxHTML(it, suggestedAskCLP(it))}
       <div class="btn-col">
         ${sold ? '<button class="btn primary editsale">Editar venta (precio, canal, evento)</button>' : `<button class="btn primary sell">Registrar venta</button>
         <div class="btn-row"><button class="btn ghost toggle">${it.purpose === 'coleccion' ? 'Mover a reventa' : 'Mover a colección'}</button><button class="btn ghost prices">Ver precios</button></div>`}
@@ -349,6 +351,14 @@ export function openItemSheet(it) {
     </div>`);
   const s = openSheet({ title: sold ? 'Carta vendida' : 'En tu vault', body, cls: 'tall' });
   $('.cd-zoom', body).onclick = () => openImageViewer((it.imageLarge || it.image || CARD_BACK).replace('/normal/', '/large/'), it.name);
+  if (!sold)
+    wireAskBox(body, it, {
+      suggested: suggestedAskCLP(it),
+      setAsk,
+      save: () => save({ silent: true }),
+      parse: (v) => parseAmount(v, 'CLP'),
+      openQR: (p) => import('./salelist.js').then((m) => m.openSaleQRFor([{ it, p }])),
+    });
   $('.sell', body)?.addEventListener('click', () => (s.close(), openSellForm(it)));
   $('.editsale', body)?.addEventListener('click', () => (s.close(), openSellForm(it, { edit: true })));
   $('.edit', body).onclick = () => (s.close(), openEditBuy(it));
@@ -423,7 +433,7 @@ export function openSellForm(it, { suggestCLP, edit = false } = {}) {
   const v = itemValueUSD(it);
   const sx = settings();
   const ex = edit ? it.exit : null; // editing: start from what was recorded
-  const suggest = ex ? (ex.currency === 'USD' ? String(ex.gross).replace('.', ',') : Math.round(ex.gross)) : suggestCLP || (v ? roundCLP(v * usdclp()) : '');
+  const suggest = ex ? (ex.currency === 'USD' ? String(ex.gross).replace('.', ',') : Math.round(ex.gross)) : it.askCLP || suggestCLP || (v ? roundCLP(v * usdclp()) : '');
   const curNow = ex?.currency || 'CLP';
   const chNow = ex ? ex.channel || '' : sx.defaultChannel;
   const body = h(`

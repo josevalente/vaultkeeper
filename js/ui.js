@@ -1,7 +1,8 @@
 // Shared UI: bottom sheets, card tiles, card detail, buy/sell forms, search, scan flow.
 
 import { h, esc, $, $$, swipeToClose, openImageViewer, fmtCLP, roundCLP, fmtUSD, fmtPct, fmtDate, localDate, parseAmount, toast, debounce, timeAgo } from './util.js';
-import { state, save, addItems, recordExit, removeItem, snapshot, ownedCount, marketUSD, priceOf, itemGain, feeNow, fixedNow, setPrice, pushHist, dealVerdict, defaultPurpose, toUSD, toCLP, itemValueUSD, maxPayUSD, CONDITIONS, GRADERS, condFactor, channelById, netOfChannel, knownEvents, rememberEvent, todayEvent, canonicalEvent, eventKey, setExitEvent } from './store.js';
+import { state, save, addItems, recordExit, removeItem, snapshot, ownedCount, marketUSD, priceOf, itemGain, feeNow, fixedNow, setPrice, pushHist, dealVerdict, defaultPurpose, toUSD, toCLP, itemValueUSD, maxPayUSD, CONDITIONS, GRADERS, condFactor, channelById, netOfChannel, knownEvents, rememberEvent, todayEvent, canonicalEvent, eventKey, setExitEvent, suggestedAskCLP, setAsk } from './store.js';
+import { askBoxHTML, wireAskBox } from './sale-share.js';
 import { getCard, img, variantLabel, tcgplayerUrl, searchByName, findByNumber, getHistory, searchCatalog } from './api.js';
 import { renderPriceChart } from './chart.js';
 import { rarityInfo, raritySymbol } from './rarity.js';
@@ -656,6 +657,7 @@ export function openItemSheet(item) {
              ${gain != null ? `<div class="kv"><span>Ganancia${hasFee ? ' a mercado' : ''}</span><b class="${pctClass(gain)}">${arrow(gain)} ${fmtGain(gain)} (${fmtPct(gainPct)})</b></div>` : ''}
              ${gain != null && hasFee ? `<div class="kv"><span>Si vendes en ${esc(ch?.name || 'tu canal')}</span><b class="${pctClass(N.disp)}">${usdMode ? fmtUSD(N.usd, { sign: true }) : fmtCLP(N.clp, { sign: true })} (${fmtPct(N.pct)}) <em class="muted">neto de comisión</em></b></div>` : ''}`}
       </div>
+      ${sold ? '' : askBoxHTML(item, suggestedAskCLP(item))}
       <div class="btn-col">
         ${sold ? (item.exit.kind === 'sale' ? '<button class="btn primary editsale">Editar venta (precio, canal, evento)</button>' : '<button class="btn primary editev">Evento del intercambio</button>') : ''}
         ${sold ? '' : `<button class="btn primary sell">Registrar venta</button>
@@ -665,6 +667,14 @@ export function openItemSheet(item) {
     </div>`);
   const s = openSheet({ title: sold ? 'Carta vendida' : 'En tu vault', body, cls: 'tall' });
   $('.cd-zoom', body).onclick = () => openImageViewer(img(item.image, 'full'), item.name);
+  if (!sold)
+    wireAskBox(body, item, {
+      suggested: suggestedAskCLP(item),
+      setAsk,
+      save: () => save({ silent: true }),
+      parse: (v) => parseAmount(v, 'CLP'),
+      openQR: (p) => import('./salelist.js').then((m) => m.openSaleQR([{ it: item, p }])),
+    });
   $('.editsale', body)?.addEventListener('click', () => (s.close(), openSellForm(item, { edit: true })));
   $('.editev', body)?.addEventListener('click', () => (s.close(), openExitEventForm(item)));
   $('.sell', body)?.addEventListener('click', () => (s.close(), openSellForm(item)));
@@ -749,7 +759,7 @@ function openExitEventForm(item) {
 export function openSellForm(item, { suggestCLP, edit = false } = {}) {
   const v = itemValueUSD(item);
   const ex = edit ? item.exit : null; // editing: start from what was recorded
-  const suggest = ex ? (ex.currency === 'USD' ? String(ex.gross).replace('.', ',') : Math.round(ex.gross)) : suggestCLP || (v ? roundCLP(v * state.fx.usdclp) : '');
+  const suggest = ex ? (ex.currency === 'USD' ? String(ex.gross).replace('.', ',') : Math.round(ex.gross)) : item.askCLP || suggestCLP || (v ? roundCLP(v * state.fx.usdclp) : '');
   const curNow = ex?.currency || 'CLP';
   const chNow = ex ? ex.channel || '' : state.settings.defaultChannel;
   const body = h(`

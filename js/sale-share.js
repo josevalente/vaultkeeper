@@ -192,3 +192,43 @@ export async function openSaleQR(data, { openSheet }) {
     if (blob) await shareFile(new File([blob], 'qr-lista-de-venta.png', { type: 'image/png' }), { title: data.t });
   };
 }
+
+// ───────────────────────── your own sale price for one copy (card sheet)
+// Empty = today's market price (it follows the market); a price you type stays on that copy and is
+// what the sale list, the QR and "Registrar venta" use.
+
+export function askBoxHTML(it, suggested) {
+  return `
+      <div class="ask-box">
+        <label class="field"><span>Tu precio de venta (lista y QR)</span>
+          <div class="ask-row"><input class="input ask-price" inputmode="numeric" placeholder="${suggested ? fmtCLP(suggested) : '$'}" value="${it.askCLP ? fmtCLP(it.askCLP) : ''}" aria-label="Tu precio de venta en pesos"><button type="button" class="btn ghost ask-qr">▦ QR</button></div>
+        </label>
+        <p class="muted tiny ask-note"></p>
+      </div>`;
+}
+
+export function wireAskBox(body, it, { suggested, setAsk, save, parse, openQR }) {
+  const input = $('.ask-price', body), note = $('.ask-note', body);
+  const paint = () =>
+    (note.innerHTML = it.askCLP
+      ? `<b>Fijado por ti.</b> Mercado hoy ~${suggested ? fmtCLP(suggested) : 'sin precio'}. Bórralo para volver al de mercado.`
+      : suggested
+        ? `Vacío = precio de mercado del día (~${fmtCLP(suggested)}), se actualiza solo.`
+        : 'Sin precio de mercado: escribe el tuyo para poder compartirla.');
+  paint();
+  input.onchange = () => {
+    const p = parse(input.value);
+    const before = it.askCLP;
+    setAsk(it, p > 0 ? p : null);
+    save();
+    input.value = it.askCLP ? fmtCLP(it.askCLP) : '';
+    paint();
+    if (it.askCLP !== before) toast(it.askCLP ? `Precio de venta: ${fmtCLP(it.askCLP)}` : 'Vuelve al precio de mercado', 'ok');
+  };
+  $('.ask-qr', body).onclick = () => {
+    input.onchange();
+    const p = it.askCLP || suggested;
+    if (!p) return toast('Escribe tu precio de venta primero', 'err');
+    openQR(p);
+  };
+}
