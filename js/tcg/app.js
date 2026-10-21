@@ -4,7 +4,7 @@
 import { h, $, $$, esc, fmtCLP, fmtUSD, fmtPct, fmtDate, timeAgo, toast, norm, wishPanelHTML } from '../util.js';
 import { renderPortfolioChart } from '../chart.js';
 import { gameById } from './games.js';
-import { openVault, state, onChange, settings, usdclp, summary, sellRanking, refreshPrices, refreshFx, itemValueUSD, itemGain, exportVault, importVault, computeAlerts, dismissAlert, wishPrint, minPriceUSD, backupDue, backedUp, eventKey, eventReport, renameEvent, removeEvent, knownEvents } from './store.js';
+import { openVault, state, onChange, settings, usdclp, summary, sellRanking, refreshPrices, refreshFx, itemValueUSD, itemGain, exportVault, importVault, computeAlerts, dismissAlert, wishPrint, minPriceUSD, pkey, heldByPrint, backupDue, backedUp, eventKey, eventReport, renameEvent, removeEvent, knownEvents } from './store.js';
 import { openSearch, openPrintSheet, openItemSheet, openSellForm, openSheet, confirmSheet, itemTile, printTile, money, pctClass, disp } from './ui.js';
 import { openSaleList } from './salelist.js';
 import { readCard } from './scan.js';
@@ -171,7 +171,7 @@ function renderCollection(root) {
         <select class="input small sort">${[['value', 'Mayor valor'], ['gain', 'Mayor ganancia %'], ['date', 'Más recientes'], ['name', 'Nombre']].map(([k, l]) => `<option value="${k}" ${ui.sort === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
       </div>
     </div>
-    <div class="grid rise" style="--d:2">${list.length ? list.map(itemTile).join('') : `<div class="empty wide"><p>${state.items.length ? 'Nada con estos filtros.' : 'Aún no tienes cartas en este vault. Toca el botón central para buscar o escanear.'}</p></div>`}</div>`;
+    <div class="grid rise" style="--d:2">${list.length ? ((n) => list.map((it) => itemTile(it, { count: n.get(pkey(it.printId)) })).join(''))(heldByPrint()) : `<div class="empty wide"><p>${state.items.length ? 'Nada con estos filtros.' : 'Aún no tienes cartas en este vault. Toca el botón central para buscar o escanear.'}</p></div>`}</div>`;
   const search = $('input[type=search]', root);
   search.oninput = () => {
     ui.q = search.value;

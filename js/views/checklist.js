@@ -1,7 +1,7 @@
 // Faltantes: pick a rarity (e.g. Illustration Rare / Special Illustration Rare) and see every
 // card that exists with it, which ones you already own and what the missing ones cost.
 
-import { esc, $, $$, fmtUSD, fmtCLP, pool, norm, openPicker } from '../util.js';
+import { esc, $, $$, fmtUSD, fmtCLP, pool, norm, openPicker, qtyBadge, heldCounts } from '../util.js';
 import { state } from '../store.js';
 import { RARITIES, rarityByKey, raritySymbol } from '../rarity.js';
 import { listByRarity, cachedQuickPrice, quickPrice, getSets, setCards } from '../api.js';
@@ -129,9 +129,8 @@ async function renderBySet(root) {
     .catch(() => (body.innerHTML = `<div class="empty"><p>No pude cargar esa expansión. Revisa tu conexión.</p></div>`));
 }
 
-function ownedIds() {
-  return new Set(state.items.filter((it) => it.status === 'held').map((it) => it.cardId));
-}
+// Map(cardId → copies held): .has() says if you have it, .get() how many.
+const ownedIds = () => heldCounts(state.items, 'cardId');
 
 function renderList(body, r, full) {
   const owned = ownedIds();
@@ -241,7 +240,7 @@ function tile(c, owned) {
   const has = owned.has(c.id);
   const p = cachedQuickPrice(c.id);
   const wish = !!state.wishlist[c.id];
-  const badge = has ? `<span class="badge have">✓</span>` : wish ? `<span class="badge wish">♥</span>` : '';
+  const badge = has ? `<span class="badge have">✓</span>${qtyBadge(owned.get(c.id))}` : wish ? `<span class="badge wish">♥</span>` : '';
   return cardTile({ ...c, rarity: ui.by === 'set' ? c.rarity : rarityByKey(ui.rarity).api }, { dim: !has, badge, extra: `<div class="tile-val"><b>${p != null ? money(p) : '·'}</b></div>` });
 }
 
@@ -256,7 +255,7 @@ function renderWish(body) {
     </div>
     <div class="grid">${
       list.length
-        ? list.map((c) => cardTile(c, { badge: owned.has(c.id) ? `<span class="badge have">✓</span>` : '', extra: `<div class="tile-val"><b>${cachedQuickPrice(c.id) != null ? money(cachedQuickPrice(c.id)) : '·'}</b></div>` })).join('')
+        ? list.map((c) => cardTile(c, { badge: owned.has(c.id) ? `<span class="badge have">✓</span>${qtyBadge(owned.get(c.id))}` : '', extra: `<div class="tile-val"><b>${cachedQuickPrice(c.id) != null ? money(cachedQuickPrice(c.id)) : '·'}</b></div>` })).join('')
         : `<div class="empty wide"><p>Toca ♡ Wishlist en cualquier carta para guardarla aquí.</p></div>`
     }</div>`;
   $('.grid', body).onclick = (e) => {

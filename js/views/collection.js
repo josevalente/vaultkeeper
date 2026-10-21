@@ -1,6 +1,6 @@
 // Colección: every copy you own (or sold), filterable by rarity, purpose and status.
 
-import { esc, $, $$, fmtPct, norm, fmtCLP, fmtUSD } from '../util.js';
+import { esc, $, $$, fmtPct, norm, fmtCLP, fmtUSD, qtyBadge, heldCounts } from '../util.js';
 import { state, itemValueUSD, itemGain, eventKey, report } from '../store.js';
 import { RARITIES, rarityInfo } from '../rarity.js';
 import { cardTile, rarityChip, money, pctClass, openItemSheet } from '../ui.js';
@@ -87,7 +87,7 @@ export function renderCollection(root) {
       </div>
     </div>
     <div class="grid rise" style="--d:2">
-      ${list.length ? list.map(tile).join('') : `<div class="empty wide"><p>${all.length ? 'Nada con estos filtros.' : 'Aún no tienes cartas. Toca el botón central para escanear.'}</p></div>`}
+      ${list.length ? ((n) => list.map((it) => tile(it, n)).join(''))(heldCounts(all, 'cardId')) : `<div class="empty wide"><p>${all.length ? 'Nada con estos filtros.' : 'Aún no tienes cartas. Toca el botón central para escanear.'}</p></div>`}
     </div>`;
 
   const search = $('input[type=search]', root);
@@ -114,7 +114,7 @@ export function renderCollection(root) {
   };
 }
 
-function tile(it) {
+function tile(it, counts) {
   const v = itemValueUSD(it);
   let extra;
   if (it.status !== 'held') {
@@ -124,6 +124,6 @@ function tile(it) {
     const g = itemGain(it, { v })?.pct ?? null;
     extra = `<div class="tile-val"><b>${v != null ? money(v) : '—'}</b>${g != null ? `<em class="${pctClass(g)}">${fmtPct(g, { digits: 0 })}</em>` : ''}</div>`;
   }
-  const badge = (it.purpose === 'coleccion' ? `<span class="badge keep" title="Colección">★</span>` : '') + (it.graded ? `<span class="slab">${esc(it.graded.co)} ${esc(it.graded.grade)}</span>` : it.condition && it.condition !== 'NM' ? `<span class="slab cond">${esc(it.condition)}</span>` : '');
+  const badge = (it.status === 'held' ? qtyBadge(counts.get(it.cardId)) : '') + (it.purpose === 'coleccion' ? `<span class="badge keep" title="Colección">★</span>` : '') + (it.graded ? `<span class="slab">${esc(it.graded.co)} ${esc(it.graded.grade)}</span>` : it.condition && it.condition !== 'NM' ? `<span class="slab cond">${esc(it.condition)}</span>` : '');
   return cardTile({ ...it, id: it.cardId, itemId: it.id }, { extra, badge, dim: it.status !== 'held' });
 }

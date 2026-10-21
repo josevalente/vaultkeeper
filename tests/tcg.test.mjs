@@ -226,4 +226,29 @@ test('QR: fotos de Scryfall y YGOPRODeck como claves cortas', () => {
   assert.equal(L.imageURL('y:46986414', true), 'https://images.ygoprodeck.com/images/cards/46986414.jpg');
 });
 
+const U = await import('../js/util.js');
+test('badge ×N: copias que tienes de cada carta (las vendidas no cuentan)', () => {
+  const n = U.heldCounts([{ status: 'held', printId: 'a' }, { status: 'held', printId: 'a' }, { status: 'sold', printId: 'a' }, { status: 'held', printId: 'b' }], 'printId');
+  assert.equal(n.get('a'), 2);
+  assert.equal(n.get('b'), 1);
+  assert.match(U.qtyBadge(2), /×2/);
+  assert.equal(U.qtyBadge(1), '');
+});
+
+test('Yu-Gi-Oh: la misma impresión con otro id de carta (arte alternativo) se reconoce', () => {
+  S.openVault(GAMES.ygo);
+  S.state.items = [];
+  S.state.wishlist = {};
+  const ygoPrint = (id) => ({ ...print(id, 10), setCode: 'LOB-EN005', number: 'LOB-EN005', rarity: 'Ultra Rare' });
+  S.addItems({ print: ygoPrint('46986421|LOB-EN005|Ultra Rare'), finish: 'normal', price: 5000, currency: 'CLP', qty: 2 });
+  assert.equal(S.ownedOf('36996508|LOB-EN005|Ultra Rare'), 2, 'mismo set code + rareza');
+  assert.equal(S.ownedOf('36996508|LOB-EN005|Secret Rare'), 0, 'otra rareza es otra impresión');
+  S.toggleWish(ygoPrint('36996508|LOB-005|Ultra Rare'));
+  assert.ok(S.inWish('46986421|LOB-005|Ultra Rare'));
+  S.addItems({ print: ygoPrint('46986421|LOB-005|Ultra Rare'), finish: 'normal', price: 5000, currency: 'CLP' });
+  assert.equal(Object.keys(S.state.wishlist).length, 0, 'comprada con el otro id, sale de la wishlist');
+  S.openVault(GAMES.mtg);
+  assert.equal(S.pkey('abc|x'), 'abc|x', 'Magic usa su id tal cual');
+});
+
 console.log(`${pass} pruebas de vaults OK${process.exitCode ? ' — HAY FALLAS' : ''}`);

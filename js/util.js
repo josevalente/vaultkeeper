@@ -332,3 +332,12 @@ export function wishPanelHTML(items, { money }) {
       ${items.length ? `<div class="wish-strip">${items.slice(0, 12).map((x) => `<button class="${x.hit ? 'hit' : ''}" data-id="${esc(x.id)}" aria-label="${esc(x.name)}"><img src="${esc(x.image || 'icons/card-back.svg')}" alt="" loading="lazy" onerror="this.src='icons/card-back.svg'"></button>`).join('')}${items.length > 12 ? `<button class="more-n" aria-label="Ver todas">+${items.length - 12}</button>` : ''}</div>` : ''}
     </section>`;
 }
+
+// "×3" on a card's picture when you hold more than one copy of it.
+export const qtyBadge = (n) => (n > 1 ? `<span class="qty-badge" title="Tienes ${n} copias" aria-label="${n} copias">×${n}</span>` : '');
+// Copies held of each card: Map(cardKey → n).
+export function heldCounts(items, key) {
+  const m = new Map();
+  for (const it of items) if (it.status === 'held') m.set(it[key], (m.get(it[key]) || 0) + 1);
+  return m;
+}

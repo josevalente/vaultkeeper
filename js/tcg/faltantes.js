@@ -5,8 +5,8 @@
 //  · the wishlist (♥ on a card): what you're looking for, with an alert price.
 // Same look as the Pokémon Faltantes; which ones you have comes from this vault only.
 
-import { $, $$, esc, fmtUSD, fmtCLP, norm, openPicker } from '../util.js';
-import { state, game, usdclp, inWish, wishPrint, minPriceUSD } from './store.js';
+import { $, $$, esc, fmtUSD, fmtCLP, norm, openPicker, qtyBadge } from '../util.js';
+import { state, game, usdclp, inWish, wishPrint, minPriceUSD, pkey, heldByPrint } from './store.js';
 import { printTile, openPrintSheet, openSheet, money, setWishListener } from './ui.js';
 
 const ui = { by: 'set', setId: '', rarity: '', show: 'missing', q: '', rar: '', treat: '', sort: 'num' };
@@ -19,7 +19,11 @@ const bestUSD = (p) => {
   const v = p.finishes.map((f) => f.usd).filter((x) => x != null);
   return v.length ? Math.min(...v) : null; // the cheapest finish: what completing it costs at least
 };
-const ownedIds = () => new Set(state.items.filter((it) => it.status === 'held').map((it) => it.printId));
+// Copies held of each printing; has()/get() take a print id (Yu-Gi-Oh matched by set code + rarity).
+function ownedIds() {
+  const m = heldByPrint();
+  return { has: (id) => m.has(pkey(id)), get: (id) => m.get(pkey(id)) };
+}
 const numKey = (p) => parseInt(String(p.number || p.setCode).replace(/^.*?(\d+)\D*$/, '$1'), 10) || 0;
 
 export function renderFaltantes(root) {
@@ -156,7 +160,7 @@ function renderList(body, full, meta) {
     ${ui.q && list.length ? `<p class="muted small">${list.length} resultado${list.length === 1 ? '' : 's'}</p>` : ''}
     <div class="grid">${
       list.length
-        ? list.map((p) => printTile(p, { dim: !owned.has(p.id), badge: owned.has(p.id) ? '<span class="badge have">✓</span>' : inWish(p.id) ? '<span class="badge wish">♥</span>' : '', extra: `<div class="tile-val"><b>${bestUSD(p) != null ? fmtUSD(bestUSD(p)) : '·'}</b></div>` })).join('')
+        ? list.map((p) => printTile(p, { dim: !owned.has(p.id), badge: owned.has(p.id) ? `<span class="badge have">✓</span>${qtyBadge(owned.get(p.id))}` : inWish(p.id) ? '<span class="badge wish">♥</span>' : '', extra: `<div class="tile-val"><b>${bestUSD(p) != null ? fmtUSD(bestUSD(p)) : '·'}</b></div>` })).join('')
         : `<div class="empty wide"><p>${ui.q ? `Nada con “${esc(ui.q)}”.` : ui.show === 'missing' ? '¡Las tienes todas! 🎉' : 'Nada aquí todavía.'}</p></div>`
     }</div>`;
   const rerender = () => renderList(body, full, meta);

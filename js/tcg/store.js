@@ -127,6 +127,23 @@ export function dealVerdict(askUSD, marketUSD) {
 
 export const held = () => state.items.filter((it) => it.status === 'held');
 
+// The same printing, however it was found. Yu-Gi-Oh ids are "<card id>|<set code>|<rarity>", and
+// YGOPRODeck gives one printing different card ids (alternate artworks): the set code + rarity
+// ("LOB-EN005|ULTRA RARE") is what identifies it. Magic ids (Scryfall) are already unique.
+export function pkey(id) {
+  id = String(id || '');
+  if (game?.id !== 'ygo') return id;
+  const rest = id.slice(id.indexOf('|') + 1);
+  return rest.replace(/\|/g, '') ? rest.toUpperCase() : id;
+}
+// Copies you hold of each printing: Map(pkey → n).
+export function heldByPrint() {
+  const m = new Map();
+  for (const it of held()) m.set(pkey(it.printId), (m.get(pkey(it.printId)) || 0) + 1);
+  return m;
+}
+export const ownedOf = (id) => heldByPrint().get(pkey(id)) || 0;
+
 export function itemGain(it, { net = false } = {}) {
   const v = itemValueUSD(it);
   if (v == null) return null;
@@ -172,7 +189,7 @@ export function addItems({ print, finish, price, currency, fx: rate, date, qty =
     state.items.push(it);
     created.push(it);
   }
-  delete state.wishlist[print.id]; // bought: it's no longer something you're looking for
+  for (const k of Object.keys(state.wishlist)) if (pkey(k) === pkey(print.id)) delete state.wishlist[k]; // bought: no longer looking for it
   rememberEvent(event);
   snapshot();
   save();
@@ -346,9 +363,11 @@ function pruneHist() {
 
 // ───────────────────────── wishlist
 
-export const inWish = (id) => !!state.wishlist[id];
+const wishKeyOf = (id) => Object.keys(state.wishlist).find((k) => pkey(k) === pkey(id));
+export const inWish = (id) => !!wishKeyOf(id);
 export function toggleWish(p) {
-  if (state.wishlist[p.id]) delete state.wishlist[p.id];
+  const k = wishKeyOf(p.id);
+  if (k) delete state.wishlist[k];
   else {
     setPrint(p);
     state.wishlist[p.id] = { id: p.id, name: p.name, setName: p.setName, setCode: p.setCode, number: p.number, rarity: p.rarity, image: p.image, imageLarge: p.imageLarge, link: p.link || '', finishes: p.finishes.map(({ key, label }) => ({ key, label })), addedAt: Date.now() };
@@ -357,7 +376,7 @@ export function toggleWish(p) {
   return !!state.wishlist[p.id];
 }
 export function setWishTarget(id, clp) {
-  const w = state.wishlist[id];
+  const w = state.wishlist[wishKeyOf(id)];
   if (!w) return;
   w.targetCLP = clp > 0 ? clp : null;
   save({ silent: true });

@@ -1,8 +1,8 @@
 // Sheets and forms of the Magic / Yu-Gi-Oh vaults. Same look as the Pokémon vault (shared
 // styles.css), own logic (js/tcg/store.js) so nothing of the Pokémon vault is touched.
 
-import { h, esc, $, $$, swipeToClose, openImageViewer, fmtCLP, fmtUSD, fmtPct, fmtDate, localDate, parseAmount, toast, roundCLP, debounce } from '../util.js';
-import { state, game, settings, usdclp, fx, fxOn, refreshFx, toUSD, toCLP, priceOf, itemValueUSD, itemGain, dealVerdict, maxPayUSD, addItems, recordSale, removeItem, save, channelById, CONDITIONS, condFactor, setPrint, GRADERS, inWish, toggleWish, setWishTarget, editBuy, knownEvents, todayEvent, suggestedAskCLP, setAsk } from './store.js';
+import { h, esc, $, $$, swipeToClose, openImageViewer, fmtCLP, fmtUSD, fmtPct, fmtDate, localDate, parseAmount, toast, roundCLP, debounce, qtyBadge } from '../util.js';
+import { state, game, settings, usdclp, fx, fxOn, refreshFx, toUSD, toCLP, priceOf, itemValueUSD, itemGain, dealVerdict, maxPayUSD, addItems, recordSale, removeItem, save, channelById, CONDITIONS, condFactor, setPrint, GRADERS, inWish, toggleWish, setWishTarget, editBuy, knownEvents, todayEvent, suggestedAskCLP, setAsk, ownedOf, pkey } from './store.js';
 import { askBoxHTML, wireAskBox } from '../sale-share.js';
 
 const CARD_BACK = 'icons/card-back.svg';
@@ -70,7 +70,7 @@ export function printTile(p, { extra = '', badge = '', dim = false, itemId = '' 
     </button>`;
 }
 
-export function itemTile(it) {
+export function itemTile(it, { count = 0 } = {}) {
   const v = itemValueUSD(it);
   let extra;
   if (it.status !== 'held') {
@@ -80,7 +80,7 @@ export function itemTile(it) {
     const g = itemGain(it)?.pct ?? null;
     extra = `<div class="tile-val"><b>${v != null ? money(v) : '—'}</b>${g != null ? `<em class="${pctClass(g)}">${fmtPct(g, { digits: 0 })}</em>` : ''}</div>`;
   }
-  const badge = (it.purpose === 'coleccion' ? '<span class="badge keep" title="Colección">★</span>' : '') + (it.graded ? `<span class="slab">${esc(it.graded.co)} ${esc(it.graded.grade)}</span>` : it.finish !== 'normal' && game.id === 'mtg' ? `<span class="slab">${esc(it.finishLabel)}</span>` : it.condition && it.condition !== 'NM' ? `<span class="slab cond">${esc(it.condition)}</span>` : '');
+  const badge = (it.status === 'held' ? qtyBadge(count) : '') + (it.purpose === 'coleccion' ? '<span class="badge keep" title="Colección">★</span>' : '') + (it.graded ? `<span class="slab">${esc(it.graded.co)} ${esc(it.graded.grade)}</span>` : it.finish !== 'normal' && game.id === 'mtg' ? `<span class="slab">${esc(it.finishLabel)}</span>` : it.condition && it.condition !== 'NM' ? `<span class="slab cond">${esc(it.condition)}</span>` : '');
   return printTile({ ...it, id: it.printId }, { extra, badge, dim: it.status !== 'held', itemId: it.id });
 }
 
@@ -131,8 +131,9 @@ export function openPrintSheet(p) {
   save({ silent: true });
   let finish = (p.finishes.find((f) => f.usd != null) || p.finishes[0]).key;
   let askCur = 'CLP', cond = 'NM';
-  const owned = state.items.filter((it) => it.status === 'held' && it.printId === p.id).length;
+  const owned = ownedOf(p.id);
   const wished = inWish(p.id);
+  const wish = () => Object.values(state.wishlist).find((w) => pkey(w.id) === pkey(p.id));
   const body = h(`
     <div class="card-detail">
       <div class="cd-top">
@@ -161,7 +162,7 @@ export function openPrintSheet(p) {
           <button class="btn ghost wish">${wished ? '♥ En wishlist' : '♡ Wishlist'}</button>
           <a class="btn ghost" target="_blank" rel="noopener" href="${esc(shopLink(p))}">${/tcgplayer/.test(shopLink(p)) ? 'TCGplayer' : 'Scryfall'} ↗</a>
         </div>
-        <label class="field wish-target" ${wished ? '' : 'hidden'}><span>Avísame si baja de (CLP)</span><input class="input target" inputmode="numeric" placeholder="Ej: 25.000" value="${state.wishlist[p.id]?.targetCLP ? Math.round(state.wishlist[p.id].targetCLP) : ''}"></label>
+        <label class="field wish-target" ${wished ? '' : 'hidden'}><span>Avísame si baja de (CLP)</span><input class="input target" inputmode="numeric" placeholder="Ej: 25.000" value="${wish()?.targetCLP ? Math.round(wish().targetCLP) : ''}"></label>
       </div>
       <p class="muted tiny">${game.id === 'mtg' ? 'Precio TCGplayer (EE.UU.) vía Scryfall, se actualiza a diario.' : 'Precio de referencia de esta impresión (código + rareza) vía YGOPRODeck; revisa ventas recientes si es una carta cara.'} TC ${fmtCLP(usdclp())}.</p>
     </div>`);
@@ -192,7 +193,7 @@ export function openPrintSheet(p) {
   $('.ask', body).oninput = render;
   $('.buy', body).onclick = () => (s.close(), openBuyForm(p, { finish, condition: cond, ask: $('.ask', body).value, askCur }));
   // Wishlist: the heart next to the card and the button below do the same.
-  const wish = () => {
+  const toggle = () => {
     const on = toggleWish(p);
     $('.wish', body).textContent = on ? '♥ En wishlist' : '♡ Wishlist';
     const heart = $('.heart-btn', body);
@@ -204,8 +205,8 @@ export function openPrintSheet(p) {
     toast(on ? 'Agregada a tu wishlist ♥' : 'Quitada de tu wishlist');
     onWishChange?.();
   };
-  $('.wish', body).onclick = wish;
-  $('.heart-btn', body).onclick = wish;
+  $('.wish', body).onclick = toggle;
+  $('.heart-btn', body).onclick = toggle;
   $('.target', body).onchange = (e) => {
     const v = parseAmount(e.target.value, 'CLP');
     setWishTarget(p.id, v);
